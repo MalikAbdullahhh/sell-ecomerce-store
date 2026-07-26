@@ -6,6 +6,7 @@ import morgan from "morgan";
 import { connectDB } from "./config/db.js";
 import { cloudinaryEnabled } from "./config/cloudinary.js";
 import { storageProvider, uploadsDir } from "./middleware/upload.js";
+import { ensureAdminFromEnv } from "./bootstrap/ensureAdmin.js";
 
 import authRoutes from "./routes/auth.js";
 import uploadRoutes from "./routes/upload.js";
@@ -68,9 +69,14 @@ if (!cloudinaryEnabled) {
 }
 
 /** Ensure DB is ready before any API handler (important on serverless). */
+let bootstrapped = false;
 app.use(async (_req, _res, next) => {
   try {
     await connectDB(process.env.MONGODB_URI);
+    if (!bootstrapped) {
+      await ensureAdminFromEnv();
+      bootstrapped = true;
+    }
     next();
   } catch (err) {
     next(err);
