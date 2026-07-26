@@ -9,7 +9,7 @@ import SiteSettings from "./models/SiteSettings.js";
 import PageContent from "./models/PageContent.js";
 import Faq from "./models/Faq.js";
 import Testimonial from "./models/Testimonial.js";
-
+// iuhyghjkl
 const u = (id, w = 1200) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
 
