@@ -57,7 +57,7 @@ export function AnnouncementMarquee() {
   const copies = useMemo(() => Array.from({ length: 6 }, (_, i) => i), []);
 
   return (
-    <div className="overflow-hidden bg-foreground py-2 text-background">
+    <div className="band overflow-hidden bg-ink py-2 text-paper dark:bg-[oklch(0.2_0_0)]">
       <div
         className="flex w-max animate-announcement-marquee font-mono text-[10px] uppercase tracking-[0.2em]"
         style={{ animationDuration: `${speed}s` }}

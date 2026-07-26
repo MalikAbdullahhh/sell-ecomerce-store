@@ -230,10 +230,10 @@ function Index() {
 
       {/* Flash sale */}
       {flash.visible !== false && (
-        <section className="mt-8 bg-foreground text-background md:mt-12">
+        <section className="band mt-8 bg-ink text-paper md:mt-12 dark:bg-[oklch(0.2_0_0)]">
           <div className="mx-auto grid max-w-[1440px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-6 md:px-10">
             <div className="min-w-0">
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] opacity-60">
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-paper/55">
                 {flash.eyebrow}
               </p>
               <p className="mt-1 truncate text-lg md:text-xl">{flash.title}</p>
@@ -278,7 +278,7 @@ function Index() {
                 <Link
                   to="/shop"
                   search={{ category: c.slug }}
-                  className="crosshair group relative block aspect-[4/3] overflow-hidden border border-background/25"
+                  className="crosshair group relative block aspect-[4/3] overflow-hidden rounded-2xl border border-white/20"
                 >
                   <img
                     src={c.image}
@@ -286,10 +286,10 @@ function Index() {
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-[900ms] group-hover:scale-110"
                   />
-                  <div className="absolute inset-0 bg-foreground/45" />
-                  <div className="absolute bottom-3 left-3">
-                    <p className="text-lg text-background">{c.name}</p>
-                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-background/70">
+                  <div className="absolute inset-0 bg-black/50 transition-colors group-hover:bg-black/40" />
+                  <div className="absolute bottom-3 left-3 right-3">
+                    <p className="text-lg text-paper">{c.name}</p>
+                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-paper/70">
                       {c.blurb}
                     </p>
                   </div>
@@ -327,22 +327,22 @@ function Index() {
       {story.visible !== false && (
         <Section invert>
           <div className="grid gap-8 md:grid-cols-2 md:items-center">
-            <FocusIn className="crosshair relative aspect-[4/3] overflow-hidden border border-background/25">
+            <FocusIn className="crosshair relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/20">
               <img
                 src={mediaUrl(story.image)}
                 alt={story.title}
                 loading="lazy"
                 className="h-full w-full object-cover"
               />
-              <Brackets size={26} className="text-background" />
+              <Brackets size={26} className="text-paper" />
             </FocusIn>
             <FocusIn delay={0.1}>
-              <Eyebrow className="text-background">{story.eyebrow}</Eyebrow>
+              <Eyebrow className="text-paper/70">{story.eyebrow}</Eyebrow>
               <h2 className="mt-3 text-3xl md:text-4xl">{story.title}</h2>
-              <p className="mt-4 max-w-md opacity-75">{story.body}</p>
+              <p className="mt-4 max-w-md text-paper/75">{story.body}</p>
               <Link
                 to="/about"
-                className="mt-6 inline-block border-b border-background pb-1 font-mono text-[11px] uppercase tracking-[0.2em]"
+                className="mt-6 inline-block border-b border-paper pb-1 font-mono text-[11px] uppercase tracking-[0.2em] text-paper"
               >
                 {story.linkLabel}
               </Link>
@@ -399,7 +399,7 @@ function Index() {
                   <Instagram
                     width={15}
                     height={15}
-                    className="absolute right-2 top-2 text-background opacity-0 transition-opacity group-hover:opacity-100"
+                    className="absolute right-2 top-2 text-paper opacity-0 transition-opacity group-hover:opacity-100"
                   />
                 </FocusIn>
               ),
@@ -422,7 +422,7 @@ function Index() {
       {settings?.newsletter?.enabled !== false && (
         <Section invert id="newsletter" className="scroll-mt-28 text-center">
           <FocusIn>
-            <Tag className="bg-background text-foreground">
+            <Tag className="bg-paper text-ink">
               {settings?.newsletter?.eyebrow || "10% off your first order"}
             </Tag>
             <h2 className="mx-auto mt-5 max-w-xl text-3xl md:text-4xl">
@@ -450,11 +450,11 @@ function Index() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@domain.com"
-                className="box-border min-h-14 w-full min-w-0 flex-1 border border-background/40 bg-transparent px-4 font-mono text-base leading-normal text-background outline-none placeholder:text-background/45 focus:border-background sm:min-h-12 sm:text-sm"
+                className="box-border min-h-14 w-full min-w-0 flex-1 rounded-xl border border-white/30 bg-white/5 px-4 font-mono text-base leading-normal text-paper outline-none placeholder:text-paper/45 focus:border-paper sm:min-h-12 sm:text-sm"
               />
               <button
                 disabled={submitting}
-                className="glass-sweep box-border min-h-14 w-full shrink-0 bg-background px-6 font-mono text-xs uppercase tracking-[0.22em] text-foreground disabled:opacity-50 sm:min-h-12 sm:w-auto"
+                className="glass-sweep glass-sweep-ink box-border min-h-14 w-full shrink-0 rounded-xl bg-paper px-6 font-mono text-xs uppercase tracking-[0.22em] text-ink disabled:opacity-50 sm:min-h-12 sm:w-auto"
               >
                 {submitting ? "…" : settings?.newsletter?.buttonLabel || "Subscribe"}
               </button>

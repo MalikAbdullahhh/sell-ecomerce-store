@@ -296,7 +296,7 @@
     pointer-events: none;
     z-index: 2;
     will-change: transform, opacity;
-    animation: glass-diagonal-auto 7s cubic-bezier(0.45, 0.05, 0.25, 1) infinite;
+    animation: glass-diagonal-auto 8.5s cubic-bezier(0.4, 0.05, 0.2, 1) infinite;
   }
 
   /* Product cards: shorter idle — restarts sooner */
@@ -304,15 +304,48 @@
     animation: glass-diagonal-auto-card 4.8s cubic-bezier(0.45, 0.05, 0.25, 1) infinite;
   }
 
-  /* Stronger flash on filled CTAs + product cards */
+  /* Stronger white flash on dark / filled CTAs + product cards */
   button.bg-foreground:not(:disabled)::after,
   a.bg-foreground::after,
-  button.bg-background:not(:disabled)::after,
-  a.bg-background::after,
   button.h-12.bg-foreground:not(:disabled)::after,
   a.h-12.bg-foreground::after,
   .glass-sweep-strong::after,
   .product-card-glass::after {
+    background: linear-gradient(
+      115deg,
+      transparent 32%,
+      color-mix(in oklab, white 22%, transparent) 44%,
+      color-mix(in oklab, white 58%, transparent) 50%,
+      color-mix(in oklab, white 22%, transparent) 56%,
+      transparent 68%
+    );
+  }
+
+  /* Black glass on white / light buttons (paper, background in light mode) */
+  button.bg-background:not(:disabled)::after,
+  a.bg-background::after,
+  button.bg-paper:not(:disabled)::after,
+  a.bg-paper::after,
+  button.bg-white:not(:disabled)::after,
+  a.bg-white::after,
+  .bg-paper.glass-sweep::after,
+  .glass-sweep-ink::after,
+  /* Outline / ghost CTAs on light surfaces */
+  button.border-foreground:not(.bg-foreground):not(:disabled)::after,
+  a.border-foreground:not(.bg-foreground)::after {
+    background: linear-gradient(
+      115deg,
+      transparent 32%,
+      color-mix(in oklab, black 16%, transparent) 44%,
+      color-mix(in oklab, black 42%, transparent) 50%,
+      color-mix(in oklab, black 16%, transparent) 56%,
+      transparent 68%
+    );
+  }
+
+  /* In dark mode, bg-background is dark — use white glass there again */
+  .dark button.bg-background:not(:disabled)::after,
+  .dark a.bg-background::after {
     background: linear-gradient(
       115deg,
       transparent 32%,
@@ -372,9 +405,150 @@
     .glass-sweep:hover::after,
     .glass-sweep:focus-visible::after,
     .product-card-glass:hover::after {
-      animation: glass-diagonal-sweep 2.4s cubic-bezier(0.45, 0.05, 0.25, 1);
+      animation: glass-diagonal-sweep 3.8s cubic-bezier(0.4, 0.05, 0.2, 1);
     }
   }
+}
+
+/*
+ * High-visibility glass sweeps (unlayered so they win over utilities).
+ * Same speed / direction / feel for all CTAs —
+ * dark buttons → white sheen, light / outline buttons → black sheen.
+ */
+.glass-sweep,
+.glass-sweep-strong,
+.glass-sweep-ink {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.glass-sweep > *,
+.glass-sweep-strong > *,
+.glass-sweep-ink > * {
+  position: relative;
+  z-index: 1;
+}
+
+.glass-sweep::after,
+.glass-sweep-strong::after,
+.glass-sweep-ink::after,
+.glass-sweep.bg-paper::after,
+.glass-sweep.bg-background::after,
+.glass-sweep.border-foreground:not(.bg-foreground)::after,
+a.glass-sweep.border-foreground:not(.bg-foreground)::after,
+button.glass-sweep.border-foreground:not(.bg-foreground)::after {
+  content: "" !important;
+  position: absolute;
+  inset: -30% -50%;
+  transform: translateX(-130%) skewX(-18deg);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 2;
+  will-change: transform, opacity;
+  display: block !important;
+  animation: glass-diagonal-auto 8.5s cubic-bezier(0.4, 0.05, 0.2, 1) infinite !important;
+}
+
+/* White glass on dark CTAs (Add to cart, etc.) */
+.glass-sweep.bg-foreground::after,
+.glass-sweep-strong::after,
+button.glass-sweep.bg-foreground::after,
+a.glass-sweep.bg-foreground::after {
+  background: linear-gradient(
+    115deg,
+    transparent 28%,
+    color-mix(in oklab, white 35%, transparent) 42%,
+    color-mix(in oklab, white 85%, transparent) 50%,
+    color-mix(in oklab, white 35%, transparent) 58%,
+    transparent 72%
+  ) !important;
+}
+
+/* Black glass on white / outline CTAs — identical motion, black sheen */
+.glass-sweep-ink::after,
+.glass-sweep.bg-paper::after,
+.glass-sweep.bg-background::after,
+.glass-sweep.border-foreground:not(.bg-foreground)::after,
+a.glass-sweep.border-foreground:not(.bg-foreground)::after,
+button.glass-sweep.border-foreground:not(.bg-foreground)::after {
+  background: linear-gradient(
+    115deg,
+    transparent 28%,
+    color-mix(in oklab, black 35%, transparent) 42%,
+    color-mix(in oklab, black 85%, transparent) 50%,
+    color-mix(in oklab, black 35%, transparent) 58%,
+    transparent 72%
+  ) !important;
+}
+
+.dark .glass-sweep.bg-background::after {
+  background: linear-gradient(
+    115deg,
+    transparent 28%,
+    color-mix(in oklab, white 35%, transparent) 42%,
+    color-mix(in oklab, white 85%, transparent) 50%,
+    color-mix(in oklab, white 35%, transparent) 58%,
+    transparent 72%
+  ) !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .glass-sweep:hover::after,
+  .glass-sweep:focus-visible::after,
+  .glass-sweep-strong:hover::after,
+  .glass-sweep-ink:hover::after,
+  .glass-sweep-ink:focus-visible::after,
+  .glass-sweep.border-foreground:not(.bg-foreground):hover::after,
+  .glass-sweep.bg-paper:hover::after,
+  .glass-sweep.bg-background:hover::after,
+  a.glass-sweep.border-foreground:not(.bg-foreground):hover::after,
+  button.glass-sweep.border-foreground:not(.bg-foreground):hover::after {
+    animation: glass-diagonal-sweep 3.8s cubic-bezier(0.4, 0.05, 0.2, 1) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-sweep::after,
+  .glass-sweep-strong::after,
+  .glass-sweep-ink::after {
+    display: none !important;
+    animation: none !important;
+  }
+}
+
+/*
+ * Editorial dark bands (footer, categories, story, newsletter, related).
+ * Stay near-black in both themes so dark mode never flips them to white.
+ */
+.band {
+  color-scheme: dark;
+}
+
+.band article.group {
+  color: var(--color-paper);
+}
+
+.band article.group .text-muted-foreground {
+  color: color-mix(in oklab, var(--color-paper) 55%, transparent);
+}
+
+.band article.group .border-border {
+  border-color: color-mix(in oklab, white 18%, transparent);
+}
+
+.band article.group .bg-secondary {
+  background-color: color-mix(in oklab, white 8%, transparent);
+}
+
+.band article.group button.border-foreground {
+  border-color: var(--color-paper);
+  color: var(--color-paper);
+}
+
+.band article.group button.border-foreground:hover {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
 }
 
 @keyframes glass-diagonal-sweep {
@@ -382,10 +556,10 @@
     transform: translateX(-130%) skewX(-18deg);
     opacity: 0;
   }
-  12% {
+  8% {
     opacity: 1;
   }
-  88% {
+  92% {
     opacity: 1;
   }
   100% {
@@ -394,20 +568,20 @@
   }
 }
 
-/* Idle loop for buttons/CTAs */
+/* Idle loop for buttons/CTAs — shared by dark + light buttons */
 @keyframes glass-diagonal-auto {
   0%,
-  38% {
+  28% {
     transform: translateX(-130%) skewX(-18deg);
     opacity: 0;
   }
-  44% {
+  36% {
     opacity: 1;
   }
   82% {
     opacity: 1;
   }
-  92% {
+  94% {
     transform: translateX(130%) skewX(-18deg);
     opacity: 0;
   }

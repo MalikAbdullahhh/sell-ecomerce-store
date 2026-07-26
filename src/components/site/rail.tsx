@@ -26,7 +26,11 @@ export function Section({
   return (
     <section
       id={id}
-      className={invert ? "bg-foreground text-background" : "bg-background text-foreground"}
+      className={
+        invert
+          ? "band bg-ink text-paper dark:bg-[oklch(0.2_0_0)]"
+          : "bg-background text-foreground"
+      }
     >
       <div className={`mx-auto max-w-[1440px] px-4 py-16 md:px-10 md:py-24 ${className}`}>
         {children}

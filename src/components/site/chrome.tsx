@@ -197,47 +197,136 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
   );
 }
 
-function BottomTabs({ onSearch }: { onSearch: () => void }) {
-  const { count, setCartOpen } = useStore();
+const BOTTOM_TABS = ["home", "shop", "search", "wishlist", "cart"] as const;
+type BottomTabId = (typeof BOTTOM_TABS)[number];
+
+const jellySpring = {
+  type: "spring" as const,
+  stiffness: 140,
+  damping: 18,
+  mass: 1.05,
+  restDelta: 0.001,
+  restSpeed: 0.001,
+};
+
+function BottomTabs({
+  onSearch,
+  searchOpen,
+}: {
+  onSearch: () => void;
+  searchOpen: boolean;
+}) {
+  const { count, setCartOpen, cartOpen } = useStore();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const item = "grid h-full min-w-11 place-items-center gap-1";
+  const reduce = useReducedMotion();
+
+  const active: BottomTabId | null = searchOpen
+    ? "search"
+    : cartOpen
+      ? "cart"
+      : pathname === "/"
+        ? "home"
+        : pathname.startsWith("/shop") || pathname.startsWith("/product")
+          ? "shop"
+          : pathname.startsWith("/wishlist")
+            ? "wishlist"
+            : null;
+
+  const activeIndex = active ? BOTTOM_TABS.indexOf(active) : -1;
+
+  const item =
+    "relative z-10 grid h-full min-w-0 place-items-center gap-0.5 px-1 transition-[color,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]";
   const label = "font-mono text-[9px] uppercase tracking-[0.14em]";
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[60] grid h-16 grid-cols-5 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-      <Link to="/" className={cn(item, pathname === "/" ? "opacity-100" : "opacity-55")}>
+    <nav className="fixed bottom-0 left-0 right-0 z-[60] grid h-16 grid-cols-5 overflow-hidden border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      {activeIndex >= 0 &&
+        (reduce ? (
+          <span
+            className="pointer-events-none absolute inset-y-0 w-1/5 bg-foreground"
+            style={{ left: `${activeIndex * 20}%` }}
+            aria-hidden
+          />
+        ) : (
+          <motion.span
+            className="pointer-events-none absolute inset-y-0 w-1/5 origin-center bg-foreground"
+            initial={false}
+            animate={{
+              left: `${activeIndex * 20}%`,
+              scaleX: [1, 1.12, 0.96, 1.02, 1],
+              scaleY: [1, 0.94, 1.04, 0.99, 1],
+            }}
+            transition={{
+              left: jellySpring,
+              scaleX: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
+              scaleY: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
+            }}
+            aria-hidden
+          />
+        ))}
+
+      <Link
+        to="/"
+        aria-current={active === "home" ? "page" : undefined}
+        className={cn(item, active === "home" ? "text-background" : "text-foreground opacity-55")}
+      >
         <Home width={19} height={19} strokeWidth={1.5} />
         <span className={label}>Home</span>
       </Link>
+
       <Link
         to="/shop"
-        className={cn(item, pathname.startsWith("/shop") ? "opacity-100" : "opacity-55")}
+        aria-current={active === "shop" ? "page" : undefined}
+        className={cn(item, active === "shop" ? "text-background" : "text-foreground opacity-55")}
       >
         <Store width={19} height={19} strokeWidth={1.5} />
         <span className={label}>Shop</span>
       </Link>
+
       <button
         type="button"
         onClick={onSearch}
         aria-label="Search"
-        className={cn(item, "opacity-100")}
+        aria-pressed={active === "search"}
+        className={cn(item, active === "search" ? "text-background" : "text-foreground opacity-55")}
       >
-        <span className="grid h-10 w-10 place-items-center rounded-full border border-foreground bg-foreground text-background">
-          <Search width={18} height={18} strokeWidth={1.6} />
-        </span>
+        <Search width={19} height={19} strokeWidth={1.5} />
         <span className={label}>Search</span>
       </button>
+
       <Link
         to="/wishlist"
-        className={cn(item, pathname.startsWith("/wishlist") ? "opacity-100" : "opacity-55")}
+        aria-current={active === "wishlist" ? "page" : undefined}
+        className={cn(
+          item,
+          active === "wishlist" ? "text-background" : "text-foreground opacity-55",
+        )}
       >
         <Heart width={19} height={19} strokeWidth={1.5} />
         <span className={label}>Saved</span>
       </Link>
-      <button onClick={() => setCartOpen(true)} className={cn(item, "relative opacity-55")}>
+
+      <button
+        type="button"
+        onClick={() => setCartOpen(true)}
+        aria-label="Open cart"
+        aria-pressed={active === "cart"}
+        className={cn(
+          item,
+          "relative",
+          active === "cart" ? "text-background" : "text-foreground opacity-55",
+        )}
+      >
         <ShoppingBag width={19} height={19} strokeWidth={1.5} />
         {count > 0 && (
-          <span className="absolute right-3 top-1 grid h-4 min-w-4 place-items-center bg-foreground px-1 font-mono text-[9px] text-background">
+          <span
+            className={cn(
+              "absolute right-2 top-1 z-20 grid h-4 min-w-4 place-items-center px-1 font-mono text-[9px] transition-colors duration-500",
+              active === "cart"
+                ? "bg-background text-foreground"
+                : "bg-foreground text-background",
+            )}
+          >
             {count}
           </span>
         )}
@@ -266,27 +355,30 @@ function Footer() {
   }
 
   return (
-    <footer className="border-t border-border bg-foreground text-background">
+    <footer className="band border-t border-white/10 bg-ink text-paper dark:bg-[oklch(0.2_0_0)]">
       <div className="mx-auto max-w-[1440px] px-4 py-14 md:px-10">
         <div className="grid gap-10 md:grid-cols-[1.5fr_repeat(4,1fr)]">
           <div>
             <p className="font-display text-2xl font-semibold tracking-[-0.04em]">{brand.name}</p>
-            <p className="mt-3 max-w-xs text-sm opacity-70">{brand.blurb}</p>
+            <p className="mt-3 max-w-xs text-sm text-paper/70">{brand.blurb}</p>
             <div className="mt-5 flex gap-3">
-              <span className="grid h-11 w-11 place-items-center border border-background/30">
+              <span className="grid h-11 w-11 place-items-center rounded-xl border border-white/25">
                 <Instagram width={16} height={16} />
               </span>
             </div>
           </div>
           {cols.map((col) => (
             <div key={col.title}>
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] opacity-60">
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-paper/55">
                 {col.title}
               </p>
               <ul className="mt-4 space-y-2">
                 {col.links.map((link, i) => (
                   <li key={`${link.href}-${i}`}>
-                    <a href={link.href} className="text-sm opacity-80 hover:opacity-100">
+                    <a
+                      href={link.href}
+                      className="text-sm text-paper/80 transition-opacity hover:text-paper"
+                    >
                       {link.label}
                     </a>
                   </li>
@@ -295,7 +387,7 @@ function Footer() {
             </div>
           ))}
         </div>
-        <div className="mt-12 flex flex-col gap-3 border-t border-background/20 pt-6 font-mono text-[10px] uppercase tracking-[0.18em] opacity-60 md:flex-row md:items-center md:justify-between">
+        <div className="mt-12 flex flex-col gap-3 border-t border-white/15 pt-6 font-mono text-[10px] uppercase tracking-[0.18em] text-paper/55 md:flex-row md:items-center md:justify-between">
           <span>{brand.copyright}</span>
           <span>{brand.paymentsText}</span>
         </div>
@@ -339,7 +431,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
           <PageTransition>{children}</PageTransition>
         </main>
         <Footer />
-        <BottomTabs onSearch={() => setSearchOpen(true)} />
+        <BottomTabs onSearch={() => setSearchOpen(true)} searchOpen={searchOpen} />
         <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
         <CartDrawer />
       </div>

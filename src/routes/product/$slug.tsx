@@ -379,35 +379,37 @@ function ProductPage() {
             )}
 
             {/* Qty + actions */}
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <div className="flex h-12 items-center border border-border">
+            <div className="mt-8 flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
+              <div className="flex h-14 w-full items-center justify-between border border-border md:h-12 md:w-auto md:justify-start">
                 <button
                   aria-label="Decrease"
                   onClick={() => setQty(Math.max(1, qty - 1))}
-                  className="grid h-12 w-12 place-items-center"
+                  className="no-glass grid h-14 w-14 place-items-center md:h-12 md:w-12"
                 >
-                  <Minus width={14} height={14} />
+                  <Minus width={16} height={16} />
                 </button>
-                <span className="w-8 text-center font-mono text-sm">{qty}</span>
+                <span className="min-w-10 text-center font-mono text-base md:w-8 md:text-sm">
+                  {qty}
+                </span>
                 <button
                   aria-label="Increase"
                   onClick={() => setQty(qty + 1)}
-                  className="grid h-12 w-12 place-items-center"
+                  className="no-glass grid h-14 w-14 place-items-center md:h-12 md:w-12"
                 >
-                  <Plus width={14} height={14} />
+                  <Plus width={16} height={16} />
                 </button>
               </div>
               <button
                 onClick={add}
                 disabled={!product.inStock}
-                className="glass-sweep h-12 flex-1 bg-foreground px-8 font-mono text-xs uppercase tracking-[0.22em] text-background disabled:opacity-40"
+                className="glass-sweep glass-sweep-strong h-14 w-full bg-foreground px-8 font-mono text-[13px] uppercase tracking-[0.18em] text-background disabled:opacity-40 md:h-12 md:flex-1 md:text-xs md:tracking-[0.22em]"
               >
                 {product.inStock ? "Add to cart" : "Sold out"}
               </button>
               <Link
                 to="/checkout"
                 onClick={add}
-                className="glass-sweep grid h-12 flex-1 place-items-center border border-foreground px-8 font-mono text-xs uppercase tracking-[0.22em]"
+                className="glass-sweep glass-sweep-ink grid h-14 w-full place-items-center border border-foreground px-8 font-mono text-[13px] uppercase tracking-[0.18em] md:h-12 md:flex-1 md:text-xs md:tracking-[0.22em]"
               >
                 Buy now
               </Link>
@@ -455,9 +457,8 @@ function ProductPage() {
         <div className="mt-12 md:mt-20" id="reviews">
           {/* Mobile */}
           <Accordion
-            type="single"
-            collapsible
-            defaultValue="reviews"
+            type="multiple"
+            defaultValue={["reviews"]}
             className="w-full border-t border-border md:hidden"
           >
             <AccordionItem value="reviews" className="border-border">
@@ -888,11 +889,11 @@ function ProductPage() {
             exit={{ y: 80 }}
             className="fixed bottom-16 left-0 right-0 z-40 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-t border-border bg-background/95 p-3 backdrop-blur md:hidden"
           >
-            <span className="font-mono text-sm">{money(product.price)}</span>
+            <span className="font-mono text-base">{money(product.price)}</span>
             <button
               onClick={add}
               disabled={!product.inStock}
-              className="glass-sweep h-12 bg-foreground font-mono text-xs uppercase tracking-[0.22em] text-background disabled:opacity-40"
+              className="glass-sweep glass-sweep-strong h-14 bg-foreground font-mono text-[13px] uppercase tracking-[0.18em] text-background disabled:opacity-40"
             >
               Add to cart
             </button>
@@ -949,7 +950,7 @@ function ReviewsPanel({
         <button
           type="button"
           onClick={onWrite}
-          className="glass-sweep mt-5 h-12 w-full border border-foreground font-mono text-xs uppercase tracking-[0.2em] md:mt-6"
+          className="glass-sweep glass-sweep-ink mt-5 h-14 w-full border border-foreground font-mono text-[13px] uppercase tracking-[0.18em] md:mt-6 md:h-12 md:text-xs md:tracking-[0.2em]"
         >
           Write a review
         </button>

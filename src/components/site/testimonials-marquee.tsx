@@ -79,7 +79,7 @@ function Card({ t }: { t: TestimonialDoc }) {
   );
 
   return (
-    <article className="flex w-[300px] shrink-0 flex-col rounded-2xl bg-card p-5 shadow-sm ring-1 ring-black/[0.03] transition-shadow hover:shadow-md dark:ring-white/[0.04] sm:w-[340px]">
+    <article className="flex w-[300px] shrink-0 flex-col rounded-2xl border border-border/80 bg-card p-5 shadow-sm transition-shadow hover:shadow-md dark:border-white/10 dark:bg-[oklch(0.22_0_0)] sm:w-[340px]">
       {metaTop ? meta : person}
       <p className="mt-4 text-sm leading-relaxed text-foreground/90">
         {highlightMentions(t.quote)}
@@ -139,7 +139,7 @@ export function TestimonialsMarquee({
   const b = row2.length ? row2 : items.slice(Math.ceil(items.length / 2));
 
   return (
-    <section className="overflow-hidden py-14 md:py-20">
+    <section className="overflow-hidden border-y border-border/60 bg-background py-14 md:py-20 dark:bg-[oklch(0.16_0_0)]">
       <div className="mx-auto max-w-[1440px] px-4 md:px-10">
         <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
           {eyebrow || "Verified purchasers"}
