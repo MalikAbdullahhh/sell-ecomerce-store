@@ -6,7 +6,7 @@ import mongoose from "mongoose";
 const siteSettingsSchema = new mongoose.Schema(
   {
     key: { type: String, default: "main", unique: true },
-    brandName: { type: String, default: "APERTURE" },
+    brandName: { type: String, default: "Genz Gadgets PK" },
     tagline: { type: String, default: "Precision Tech, Monochrome" },
     announcement: {
       type: String,

@@ -46,7 +46,7 @@ async function seed() {
 
   await SiteSettings.create({
     key: "main",
-    brandName: "APERTURE",
+    brandName: "Genz Gadgets PK",
     tagline: "Precision Tech, Monochrome",
     announcement: "Free shipping over Rs 20,000 · Cash on Delivery available",
     contact: {

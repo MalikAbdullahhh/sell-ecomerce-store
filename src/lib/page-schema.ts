@@ -512,7 +512,7 @@ export const PAGE_SCHEMA: CmsPage[] = [
         key: "brand",
         label: "Brand column",
         fields: [
-          { key: "name", label: "Brand name", type: "text", default: "APERTURE" },
+          { key: "name", label: "Brand name", type: "text", default: "Genz Gadgets PK" },
           {
             key: "blurb",
             label: "Short description",

@@ -1,10 +1,10 @@
 import type { SiteSettings } from "@/lib/api";
 
 /** Shown when settings are missing or the API is offline. */
-export const DEFAULT_BRAND_NAME = "APERTURE";
+export const DEFAULT_BRAND_NAME = "Genz Gadgets PK";
 export const DEFAULT_TAGLINE = "Precision Tech, Monochrome";
 
-const SETTINGS_CACHE_KEY = "aperture-site-settings-v1";
+const SETTINGS_CACHE_KEY = "aperture-site-settings-v2";
 
 export type BrandInfo = {
   name: string;
