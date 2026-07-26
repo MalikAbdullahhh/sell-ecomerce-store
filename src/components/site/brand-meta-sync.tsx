@@ -5,10 +5,12 @@ import { useBrand } from "@/lib/store";
 
 /** Keeps document.title in sync with the brand name from settings. */
 export function BrandMetaSync() {
-  const { name, tagline } = useBrand();
+  const { name, tagline, ready } = useBrand();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
+    if (!ready || !name) return;
+
     let next = retitleWithBrand(document.title, name);
     if (pathname === "/" && tagline) {
       next = `${name} — ${tagline}`;
@@ -22,7 +24,7 @@ export function BrandMetaSync() {
         pathname === "/" && tagline ? `${name} — ${tagline}` : retitleWithBrand(content, name);
       if (updated !== content) ogTitle.setAttribute("content", updated);
     }
-  }, [name, tagline, pathname]);
+  }, [name, tagline, pathname, ready]);
 
   return null;
 }

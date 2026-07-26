@@ -79,7 +79,7 @@ function Card({ t }: { t: TestimonialDoc }) {
   );
 
   return (
-    <article className="flex w-[300px] shrink-0 flex-col rounded-2xl border border-border/80 bg-card p-5 shadow-sm transition-shadow hover:shadow-md dark:border-white/10 dark:bg-[oklch(0.22_0_0)] sm:w-[340px]">
+    <article className="flex w-[300px] shrink-0 flex-col border border-border bg-card p-5 dark:border-white/15 dark:bg-[oklch(0.22_0_0)] sm:w-[340px]">
       {metaTop ? meta : person}
       <p className="mt-4 text-sm leading-relaxed text-foreground/90">
         {highlightMentions(t.quote)}

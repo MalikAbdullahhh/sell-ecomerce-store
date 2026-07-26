@@ -278,7 +278,7 @@ function Index() {
                 <Link
                   to="/shop"
                   search={{ category: c.slug }}
-                  className="crosshair group relative block aspect-[4/3] overflow-hidden rounded-2xl border border-white/20"
+                  className="crosshair group relative block aspect-[4/3] overflow-hidden border border-white/20"
                 >
                   <img
                     src={c.image}
@@ -327,7 +327,7 @@ function Index() {
       {story.visible !== false && (
         <Section invert>
           <div className="grid gap-8 md:grid-cols-2 md:items-center">
-            <FocusIn className="crosshair relative aspect-[4/3] overflow-hidden rounded-2xl border border-white/20">
+            <FocusIn className="crosshair relative aspect-[4/3] overflow-hidden border border-white/20">
               <img
                 src={mediaUrl(story.image)}
                 alt={story.title}
@@ -450,11 +450,11 @@ function Index() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@domain.com"
-                className="box-border min-h-14 w-full min-w-0 flex-1 rounded-xl border border-white/30 bg-white/5 px-4 font-mono text-base leading-normal text-paper outline-none placeholder:text-paper/45 focus:border-paper sm:min-h-12 sm:text-sm"
+                className="box-border min-h-14 w-full min-w-0 flex-1 border border-white/30 bg-white/5 px-4 font-mono text-base leading-normal text-paper outline-none placeholder:text-paper/45 focus:border-paper sm:min-h-12 sm:text-sm"
               />
               <button
                 disabled={submitting}
-                className="glass-sweep glass-sweep-ink box-border min-h-14 w-full shrink-0 rounded-xl bg-paper px-6 font-mono text-xs uppercase tracking-[0.22em] text-ink disabled:opacity-50 sm:min-h-12 sm:w-auto"
+                className="glass-sweep glass-sweep-ink box-border min-h-14 w-full shrink-0 border border-paper bg-paper px-6 font-mono text-xs uppercase tracking-[0.22em] text-ink disabled:opacity-50 sm:min-h-12 sm:w-auto"
               >
                 {submitting ? "…" : settings?.newsletter?.buttonLabel || "Subscribe"}
               </button>

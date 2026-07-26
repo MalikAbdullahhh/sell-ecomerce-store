@@ -15,7 +15,7 @@ export const Route = createFileRoute("/myadminlogin")({
 
 function AdminLogin() {
   const { admin, adminLogin, loading } = useAuth();
-  const { name: brandName } = useBrand();
+  const { name: brandName, ready: brandReady } = useBrand();
   const navigate = useNavigate();
   const [email, setEmail] = useState("admin@aperture.tech");
   const [password, setPassword] = useState("");
@@ -42,8 +42,10 @@ function AdminLogin() {
   return (
     <div className="fixed inset-0 z-[100] grid place-items-center bg-background px-4">
       <div className="w-full max-w-md border border-border p-8">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-          {brandName} · Admin
+        <p
+          className={`font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground ${!brandReady || !brandName ? "invisible" : ""}`}
+        >
+          {brandName ? `${brandName} · Admin` : "\u00A0"}
         </p>
         <h1 className="mt-2 font-display text-3xl font-semibold tracking-[-0.04em]">Sign in</h1>
         <form onSubmit={onSubmit} className="mt-8 grid gap-4">

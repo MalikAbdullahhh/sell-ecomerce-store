@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -17,8 +18,10 @@ import {
   type SiteSettings,
 } from "@/lib/api";
 import {
+  readCachedSiteSettings,
   resolveBrand,
   SITE_SETTINGS_UPDATED_EVENT,
+  writeCachedSiteSettings,
   type BrandInfo,
 } from "@/lib/brand";
 
@@ -44,6 +47,7 @@ type StoreValue = {
   products: Product[];
   categories: CategoryDoc[];
   settings: SiteSettings | null;
+  settingsReady: boolean;
   catalogLoading: boolean;
   setCartOpen: (v: boolean) => void;
   addToCart: (input: {
@@ -86,7 +90,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>(fallbackProducts);
   const [categories, setCategories] = useState<CategoryDoc[]>([]);
   const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [settingsReady, setSettingsReady] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(true);
+
+  const applySettings = useCallback((next: SiteSettings) => {
+    setSettings(next);
+    setSettingsReady(true);
+    writeCachedSiteSettings(next);
+  }, []);
+
+  // Hydrate brand/settings from cache before first paint to avoid fallback flash.
+  useLayoutEffect(() => {
+    const cached = readCachedSiteSettings();
+    if (!cached) return;
+    setSettings(cached);
+    setSettingsReady(true);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -100,14 +119,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           setCategories(categoryResult.value.categories);
         }
         if (siteResult.status === "fulfilled") {
-          setSettings(siteResult.value.settings);
+          applySettings(siteResult.value.settings);
+        } else {
+          setSettingsReady(true);
         }
       })
       .finally(() => active && setCatalogLoading(false));
     return () => {
       active = false;
     };
-  }, []);
+  }, [applySettings]);
 
   useEffect(() => {
     try {
@@ -172,11 +193,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const refreshSettings = useCallback(async () => {
     try {
       const siteData = await cmsApi.site();
-      setSettings(siteData.settings);
+      applySettings(siteData.settings);
     } catch {
+      setSettingsReady(true);
       /* keep cached settings */
     }
-  }, []);
+  }, [applySettings]);
 
   useEffect(() => {
     const onUpdate = () => {
@@ -230,6 +252,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       products,
       categories,
       settings,
+      settingsReady,
       catalogLoading,
       setCartOpen,
       addToCart,
@@ -281,6 +304,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     products,
     categories,
     settings,
+    settingsReady,
     catalogLoading,
   ]);
 
@@ -293,10 +317,15 @@ export function useStore() {
   return ctx;
 }
 
-/** Brand name/tagline from settings, with defaults when the API fails. */
+/**
+ * Brand name/tagline from settings.
+ * Uses a local cache on first paint; only falls back to defaults after load fails.
+ */
 export function useBrand(): BrandInfo {
-  const { settings } = useStore();
-  return resolveBrand(settings);
+  const { settings, settingsReady } = useStore();
+  if (settings) return resolveBrand(settings, { ready: true });
+  if (!settingsReady) return resolveBrand(null, { ready: false, allowDefault: false });
+  return resolveBrand(null, { ready: true, allowDefault: true });
 }
 
 export const money = (n: number) =>

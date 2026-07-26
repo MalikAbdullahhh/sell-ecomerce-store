@@ -4,15 +4,53 @@ import type { SiteSettings } from "@/lib/api";
 export const DEFAULT_BRAND_NAME = "APERTURE";
 export const DEFAULT_TAGLINE = "Precision Tech, Monochrome";
 
+const SETTINGS_CACHE_KEY = "aperture-site-settings-v1";
+
 export type BrandInfo = {
   name: string;
   tagline: string;
+  /** False while waiting for settings (and no cache yet) — avoid flashing the default brand. */
+  ready: boolean;
 };
 
-export function resolveBrand(settings?: Partial<SiteSettings> | null): BrandInfo {
-  const name = (settings?.brandName || "").trim() || DEFAULT_BRAND_NAME;
-  const tagline = (settings?.tagline || "").trim() || DEFAULT_TAGLINE;
-  return { name, tagline };
+export function resolveBrand(
+  settings?: Partial<SiteSettings> | null,
+  options?: { ready?: boolean; allowDefault?: boolean },
+): BrandInfo {
+  const ready = options?.ready !== false;
+  const allowDefault = options?.allowDefault !== false;
+  const rawName = (settings?.brandName || "").trim();
+  const rawTagline = (settings?.tagline || "").trim();
+  if (!rawName && !allowDefault) {
+    return { name: "", tagline: "", ready };
+  }
+  return {
+    name: rawName || DEFAULT_BRAND_NAME,
+    tagline: rawTagline || DEFAULT_TAGLINE,
+    ready,
+  };
+}
+
+export function readCachedSiteSettings(): SiteSettings | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(SETTINGS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SiteSettings;
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function writeCachedSiteSettings(settings: SiteSettings) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(settings));
+  } catch {
+    /* ignore quota / private mode */
+  }
 }
 
 /** Rewrite static route titles that were authored with the default brand. */

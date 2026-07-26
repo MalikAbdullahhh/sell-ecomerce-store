@@ -19,7 +19,6 @@ import {
 import { useEffect, useState } from "react";
 import { adminApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { DEFAULT_BRAND_NAME } from "@/lib/brand";
 import { useBrand } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +44,7 @@ const NAV: {
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { admin, adminLogout } = useAuth();
-  const { name: brandName } = useBrand();
+  const { name: brandName, ready: brandReady } = useBrand();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
 
@@ -67,7 +66,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   const unread = unreadQuery.data?.count ?? 0;
   const logo =
-    (siteQuery.data?.settings?.brandName || "").trim() || brandName || DEFAULT_BRAND_NAME;
+    (siteQuery.data?.settings?.brandName || "").trim() || brandName;
+  const logoReady = Boolean(logo) || (brandReady && !siteQuery.isLoading);
 
   return (
     <div className="fixed inset-0 z-[100] flex bg-background text-foreground">
@@ -89,10 +89,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <div className="flex h-14 items-center justify-between border-b border-border px-4">
           <Link
             to="/admin"
-            className="font-display text-base font-semibold tracking-[-0.04em]"
+            className={cn(
+              "font-display text-base font-semibold tracking-[-0.04em]",
+              !logoReady && "invisible",
+            )}
             onClick={() => setOpen(false)}
           >
-            {logo}
+            {logo || "\u00A0"}
           </Link>
           <button
             type="button"
