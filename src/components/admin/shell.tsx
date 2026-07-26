@@ -19,6 +19,8 @@ import {
 import { useEffect, useState } from "react";
 import { adminApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { DEFAULT_BRAND_NAME } from "@/lib/brand";
+import { useBrand } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const NAV: {
@@ -43,6 +45,7 @@ const NAV: {
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { admin, adminLogout } = useAuth();
+  const { name: brandName } = useBrand();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
 
@@ -52,11 +55,19 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     refetchInterval: 15000,
   });
 
+  const siteQuery = useQuery({
+    queryKey: ["admin", "site"],
+    queryFn: () => adminApi.site(),
+    staleTime: 30_000,
+  });
+
   useEffect(() => {
     unreadQuery.refetch();
   }, [pathname]);
 
   const unread = unreadQuery.data?.count ?? 0;
+  const logo =
+    (siteQuery.data?.settings?.brandName || "").trim() || brandName || DEFAULT_BRAND_NAME;
 
   return (
     <div className="fixed inset-0 z-[100] flex bg-background text-foreground">
@@ -81,7 +92,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             className="font-display text-base font-semibold tracking-[-0.04em]"
             onClick={() => setOpen(false)}
           >
-            APERTURE
+            {logo}
           </Link>
           <button
             type="button"

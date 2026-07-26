@@ -16,6 +16,11 @@ import {
   type ProductDoc,
   type SiteSettings,
 } from "@/lib/api";
+import {
+  resolveBrand,
+  SITE_SETTINGS_UPDATED_EVENT,
+  type BrandInfo,
+} from "@/lib/brand";
 
 export type CartLine = {
   id: string;
@@ -85,15 +90,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
-    Promise.all([catalogApi.products(), catalogApi.categories(), cmsApi.site()])
-      .then(([productData, categoryData, siteData]) => {
+    Promise.allSettled([catalogApi.products(), catalogApi.categories(), cmsApi.site()])
+      .then(([productResult, categoryResult, siteResult]) => {
         if (!active) return;
-        setProducts(productData.products.map(apiProductToProduct));
-        setCategories(categoryData.categories);
-        setSettings(siteData.settings);
-      })
-      .catch(() => {
-        /* The bundled catalogue remains available if the API is offline. */
+        if (productResult.status === "fulfilled") {
+          setProducts(productResult.value.products.map(apiProductToProduct));
+        }
+        if (categoryResult.status === "fulfilled") {
+          setCategories(categoryResult.value.categories);
+        }
+        if (siteResult.status === "fulfilled") {
+          setSettings(siteResult.value.settings);
+        }
       })
       .finally(() => active && setCatalogLoading(false));
     return () => {
@@ -169,6 +177,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       /* keep cached settings */
     }
   }, []);
+
+  useEffect(() => {
+    const onUpdate = () => {
+      void refreshSettings();
+    };
+    window.addEventListener(SITE_SETTINGS_UPDATED_EVENT, onUpdate);
+    return () => window.removeEventListener(SITE_SETTINGS_UPDATED_EVENT, onUpdate);
+  }, [refreshSettings]);
 
   const refreshCatalog = useCallback(async () => {
     try {
@@ -275,6 +291,12 @@ export function useStore() {
   const ctx = useContext(StoreContext);
   if (!ctx) throw new Error("useStore must be used inside StoreProvider");
   return ctx;
+}
+
+/** Brand name/tagline from settings, with defaults when the API fails. */
+export function useBrand(): BrandInfo {
+  const { settings } = useStore();
+  return resolveBrand(settings);
 }
 
 export const money = (n: number) =>

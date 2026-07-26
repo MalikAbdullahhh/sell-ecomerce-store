@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronUp, Phone, MessageCircle, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Eyebrow } from "@/components/site/focus";
-import { money, useStore } from "@/lib/store";
+import { money, useBrand, useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { orderApi, mediaUrl, type OrderResponse } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -45,6 +45,7 @@ function Checkout() {
     setGift,
     setGiftMessage,
   } = useStore();
+  const { name: brandName } = useBrand();
   const { user, loading: authLoading } = useAuth();
   const [step, setStep] = useState(0);
   const [pay, setPay] = useState<"cod" | "online">("cod");
@@ -173,7 +174,7 @@ function Checkout() {
                 {new Date(order.createdAt).toLocaleString("en-PK")}
               </p>
             </div>
-            <p className="font-display text-xl">APERTURE</p>
+            <p className="font-display text-xl">{brandName}</p>
           </div>
           <ul className="divide-y divide-border">
             {order.items.map((item) => (

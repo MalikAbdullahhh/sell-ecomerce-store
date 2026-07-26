@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { adminBtn, adminField, Field } from "@/components/admin/field";
 import { SingleUploader } from "@/components/admin/uploader";
 import { adminApi, type ExtraCharge, type SiteSettings } from "@/lib/api";
+import { DEFAULT_BRAND_NAME, DEFAULT_TAGLINE, notifySiteSettingsUpdated } from "@/lib/brand";
 
 export const Route = createFileRoute("/admin/settings")({
   component: AdminSettings,
@@ -12,8 +13,8 @@ export const Route = createFileRoute("/admin/settings")({
 });
 
 const emptySettings = (): SiteSettings => ({
-  brandName: "Aperture",
-  tagline: "",
+  brandName: DEFAULT_BRAND_NAME,
+  tagline: DEFAULT_TAGLINE,
   announcement: "",
   announcementEmojis: ["🎉", "😊", "✨"],
   announcementSpeed: 28,
@@ -102,6 +103,7 @@ function AdminSettings() {
     onSuccess: () => {
       toast.success("Settings saved");
       qc.invalidateQueries({ queryKey: ["admin", "site"] });
+      notifySiteSettingsUpdated();
     },
     onError: (e: Error) => toast.error(e.message),
   });

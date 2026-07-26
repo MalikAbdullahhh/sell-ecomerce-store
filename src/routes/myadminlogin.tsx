@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { adminBtn, adminField, Field } from "@/components/admin/field";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useBrand } from "@/lib/store";
 
 export const Route = createFileRoute("/myadminlogin")({
   component: AdminLogin,
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/myadminlogin")({
 
 function AdminLogin() {
   const { admin, adminLogin, loading } = useAuth();
+  const { name: brandName } = useBrand();
   const navigate = useNavigate();
   const [email, setEmail] = useState("admin@aperture.tech");
   const [password, setPassword] = useState("");
@@ -41,7 +43,7 @@ function AdminLogin() {
     <div className="fixed inset-0 z-[100] grid place-items-center bg-background px-4">
       <div className="w-full max-w-md border border-border p-8">
         <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-          Aperture · Admin
+          {brandName} · Admin
         </p>
         <h1 className="mt-2 font-display text-3xl font-semibold tracking-[-0.04em]">Sign in</h1>
         <form onSubmit={onSubmit} className="mt-8 grid gap-4">

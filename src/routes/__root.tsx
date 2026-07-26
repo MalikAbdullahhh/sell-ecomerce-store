@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/lib/auth";
 import { StoreProvider } from "@/lib/store";
 import { ThemeProvider } from "@/lib/theme";
+import { BrandMetaSync } from "@/components/site/brand-meta-sync";
 import { SiteChrome } from "@/components/site/chrome";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -146,6 +147,7 @@ function RootComponent() {
       <ThemeProvider>
         <AuthProvider>
           <StoreProvider>
+            <BrandMetaSync />
             <SiteChrome>
               {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
               <Outlet />

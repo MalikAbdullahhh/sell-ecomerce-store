@@ -15,7 +15,8 @@ import {
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { categories } from "@/data/catalog";
 import { usePageContent } from "@/lib/page-content";
-import { useStore } from "@/lib/store";
+import { DEFAULT_TAGLINE } from "@/lib/brand";
+import { useBrand, useStore } from "@/lib/store";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { CartDrawer } from "./cart-drawer";
@@ -33,6 +34,7 @@ const NAV = [
 
 function TopBar({ onSearch }: { onSearch: () => void }) {
   const { count, setCartOpen } = useStore();
+  const { name: brandName } = useBrand();
   const { theme, toggleTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const [mega, setMega] = useState(false);
@@ -80,7 +82,7 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
           <div className="mx-auto grid max-w-[1440px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 md:px-10">
             <div className="flex min-w-0 items-center gap-8">
               <Link to="/" className="font-display text-lg font-semibold tracking-[-0.04em]">
-                APERTURE
+                {brandName}
               </Link>
               <nav className="hidden items-center gap-6 md:flex">
                 <button
@@ -337,6 +339,8 @@ function BottomTabs({
 }
 
 function Footer() {
+  const { settings } = useStore();
+  const { name: brandName } = useBrand();
   const { section } = usePageContent("footer");
   const brand = section<{
     name: string;
@@ -354,18 +358,33 @@ function Footer() {
     else cols.push({ title, links: [item] });
   }
 
+  const blurb = (settings?.tagline || "").trim() || brand.blurb || DEFAULT_TAGLINE;
+  const year = new Date().getFullYear();
+  const copyright =
+    (brand.copyright || "").replace(/\bAperture(?: Instruments)?\b/gi, brandName) ||
+    `© ${year} ${brandName}`;
+  const instagram = settings?.social?.instagram?.trim();
+
   return (
     <footer className="band border-t border-white/10 bg-ink text-paper dark:bg-[oklch(0.2_0_0)]">
       <div className="mx-auto max-w-[1440px] px-4 py-14 md:px-10">
         <div className="grid gap-10 md:grid-cols-[1.5fr_repeat(4,1fr)]">
           <div>
-            <p className="font-display text-2xl font-semibold tracking-[-0.04em]">{brand.name}</p>
-            <p className="mt-3 max-w-xs text-sm text-paper/70">{brand.blurb}</p>
-            <div className="mt-5 flex gap-3">
-              <span className="grid h-11 w-11 place-items-center rounded-xl border border-white/25">
-                <Instagram width={16} height={16} />
-              </span>
-            </div>
+            <p className="font-display text-2xl font-semibold tracking-[-0.04em]">{brandName}</p>
+            <p className="mt-3 max-w-xs text-sm text-paper/70">{blurb}</p>
+            {instagram ? (
+              <div className="mt-5 flex gap-3">
+                <a
+                  href={instagram}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Instagram"
+                  className="grid h-11 w-11 place-items-center rounded-xl border border-white/25 transition-opacity hover:opacity-70"
+                >
+                  <Instagram width={16} height={16} />
+                </a>
+              </div>
+            ) : null}
           </div>
           {cols.map((col) => (
             <div key={col.title}>
@@ -388,7 +407,7 @@ function Footer() {
           ))}
         </div>
         <div className="mt-12 flex flex-col gap-3 border-t border-white/15 pt-6 font-mono text-[10px] uppercase tracking-[0.18em] text-paper/55 md:flex-row md:items-center md:justify-between">
-          <span>{brand.copyright}</span>
+          <span>{copyright}</span>
           <span>{brand.paymentsText}</span>
         </div>
       </div>
