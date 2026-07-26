@@ -6,9 +6,15 @@ export const Route = createFileRoute("/journal/")({
   head: () => ({
     meta: [
       { title: "Journal — Notes from the Aperture Bench" },
-      { name: "description", content: "Process, engineering and field notes from the Aperture workshop in Rotterdam." },
+      {
+        name: "description",
+        content: "Process, engineering and field notes from the Aperture workshop in Rotterdam.",
+      },
       { property: "og:title", content: "Journal — Notes from the Aperture Bench" },
-      { property: "og:description", content: "Process, engineering and field notes from the workshop." },
+      {
+        property: "og:description",
+        content: "Process, engineering and field notes from the workshop.",
+      },
     ],
   }),
   component: JournalIndex,

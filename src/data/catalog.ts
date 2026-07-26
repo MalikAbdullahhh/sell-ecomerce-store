@@ -9,16 +9,21 @@ export type Variant = {
   id: string;
   label: string;
   type: "color" | "size";
+  value?: string;
   image?: string;
 };
 
 export type Review = {
   id: string;
+  userId?: string | null;
   author: string;
+  authorImage?: string;
   rating: number;
   date: string;
   title: string;
   body: string;
+  images?: string[];
+  videos?: string[];
 };
 
 export type Product = {
@@ -38,6 +43,7 @@ export type Product = {
   sizes?: Variant[];
   inStock: boolean;
   stock: number;
+  soldCount?: number;
   flags: ("new" | "hot")[];
   reviews: Review[];
 };
@@ -140,7 +146,11 @@ export const products: Product[] = [
     compareAt: 299,
     rating: 4.8,
     reviewCount: 412,
-    images: [u("1590658268037-6bf12165a8df"), u("1606220945770-b5b6c2c55bf1"), u("1572569511254-d8f925fe2cbb")],
+    images: [
+      u("1590658268037-6bf12165a8df"),
+      u("1606220945770-b5b6c2c55bf1"),
+      u("1572569511254-d8f925fe2cbb"),
+    ],
     short: "Adaptive ANC earbuds with a 12mm graphene driver and 32h of case runtime.",
     description:
       "Aperture One is a two-way earbud tuned in a treated room, not a marketing meeting. A 12mm graphene diaphragm handles low end without smearing midrange detail, while a four-microphone array runs feed-forward and feed-back cancellation at 48kHz. The case is milled aluminium with a magnet-indexed lid.",
@@ -166,7 +176,11 @@ export const products: Product[] = [
     price: 429,
     rating: 4.7,
     reviewCount: 208,
-    images: [u("1583394838336-acd977736f90"), u("1618366712010-f4ae9c647dcb"), u("1546435770-a3e426bf472b")],
+    images: [
+      u("1583394838336-acd977736f90"),
+      u("1618366712010-f4ae9c647dcb"),
+      u("1546435770-a3e426bf472b"),
+    ],
     short: "Closed-back reference headphones with 60h runtime and a replaceable pad system.",
     description:
       "A closed-back monitor for people who mix on trains. Field 02 uses a 40mm beryllium-coated driver, a steel headband under leather, and pads you can replace with a coin.",
@@ -192,7 +206,11 @@ export const products: Product[] = [
     compareAt: 449,
     rating: 4.6,
     reviewCount: 331,
-    images: [u("1523275335684-37898b6baf30"), u("1508685096489-7aacd43bd3b1"), u("1434493789847-2f02dc6ca35d")],
+    images: [
+      u("1523275335684-37898b6baf30"),
+      u("1508685096489-7aacd43bd3b1"),
+      u("1434493789847-2f02dc6ca35d"),
+    ],
     short: "Titanium smartwatch with a 14-day duty cycle and a sapphire face.",
     description:
       "Grade-5 titanium case, sapphire crystal, and a transflective display you can actually read outdoors. Sensors sample continuously without draining the pack.",
@@ -217,7 +235,11 @@ export const products: Product[] = [
     price: 289,
     rating: 4.4,
     reviewCount: 156,
-    images: [u("1611591437281-460bfbe1220a"), u("1602173574767-37ac01994b2a"), u("1515562141207-7a88fb7ce338")],
+    images: [
+      u("1611591437281-460bfbe1220a"),
+      u("1602173574767-37ac01994b2a"),
+      u("1515562141207-7a88fb7ce338"),
+    ],
     short: "Sleep and recovery tracking in 3.4 grams of zirconia ceramic.",
     description:
       "No screen, no notifications. Trace measures sleep staging, temperature drift and HRV, then gets out of the way.",
@@ -242,7 +264,11 @@ export const products: Product[] = [
     price: 199,
     rating: 4.5,
     reviewCount: 98,
-    images: [u("1507473885765-e6ed057f782c"), u("1524758631624-e2822e304c36"), u("1513506003901-1e6a229e2d15")],
+    images: [
+      u("1507473885765-e6ed057f782c"),
+      u("1524758631624-e2822e304c36"),
+      u("1513506003901-1e6a229e2d15"),
+    ],
     short: "Tunable 2200–6500K desk light with a physical dimmer ring.",
     description:
       "Full-spectrum LED with CRI 97 and a knurled aluminium ring that dims without an app. Matter-native if you want the app anyway.",
@@ -263,7 +289,11 @@ export const products: Product[] = [
     compareAt: 109,
     rating: 4.2,
     reviewCount: 74,
-    images: [u("1558089687-f282ffcbc126"), u("1585771724684-38269d6639fd"), u("1544428571-affb0ff33ca4")],
+    images: [
+      u("1558089687-f282ffcbc126"),
+      u("1585771724684-38269d6639fd"),
+      u("1544428571-affb0ff33ca4"),
+    ],
     short: "Air quality, temperature and presence in one matte block.",
     description:
       "Measures PM2.5, VOC, CO2, humidity and presence. Local-first: readings stay on your network unless you say otherwise.",
@@ -283,7 +313,11 @@ export const products: Product[] = [
     price: 219,
     rating: 4.9,
     reviewCount: 512,
-    images: [u("1587829741301-dc798b83add3"), u("1595225476474-87563907a212"), u("1618384887929-16ec33fab9ef")],
+    images: [
+      u("1587829741301-dc798b83add3"),
+      u("1595225476474-87563907a212"),
+      u("1618384887929-16ec33fab9ef"),
+    ],
     short: "Gasket-mounted 65% keyboard, hot-swap, PBT dye-sub caps.",
     description:
       "An aluminium 65% with a proper gasket mount, silicone dampening and a rotary encoder. Hot-swap sockets take three- and five-pin switches.",
@@ -304,7 +338,11 @@ export const products: Product[] = [
     price: 129,
     rating: 4.3,
     reviewCount: 187,
-    images: [u("1527864550417-7fd91fc51a46"), u("1615663245857-ac93bb7c39e7"), u("1563297007-0686b7003af7")],
+    images: [
+      u("1527864550417-7fd91fc51a46"),
+      u("1615663245857-ac93bb7c39e7"),
+      u("1563297007-0686b7003af7"),
+    ],
     short: "26,000 DPI sensor, 58g shell, magnetic charging puck.",
     description:
       "Low-latency wireless with a 1000Hz polling rate and a shell that stops at 58 grams without feeling hollow.",
@@ -323,9 +361,14 @@ export const products: Product[] = [
     price: 59,
     rating: 4.1,
     reviewCount: 63,
-    images: [u("1585298723682-7115561c51b7"), u("1553062407-98eeb64c6a62"), u("1591561954557-26941169b49e")],
+    images: [
+      u("1585298723682-7115561c51b7"),
+      u("1553062407-98eeb64c6a62"),
+      u("1591561954557-26941169b49e"),
+    ],
     short: "Moulded EVA case with a die-cut insert for buds, cable and dongle.",
-    description: "Water-resistant 600D shell over EVA, YKK zip, and an insert that actually holds things still.",
+    description:
+      "Water-resistant 600D shell over EVA, YKK zip, and an insert that actually holds things still.",
     specs: [
       { label: "Shell", value: "600D water-resistant" },
       { label: "Zip", value: "YKK #5" },
@@ -341,9 +384,14 @@ export const products: Product[] = [
     compareAt: 99,
     rating: 4.6,
     reviewCount: 244,
-    images: [u("1583863788434-e58a36330cf0"), u("1618410320928-25228d811631"), u("1600490036275-35f5f1656861")],
+    images: [
+      u("1583863788434-e58a36330cf0"),
+      u("1618410320928-25228d811631"),
+      u("1600490036275-35f5f1656861"),
+    ],
     short: "GaN charger, four ports, 100W total with per-port negotiation.",
-    description: "Gallium-nitride internals keep it cool at full load. Two USB-C PD 3.1 ports, two USB-A.",
+    description:
+      "Gallium-nitride internals keep it cool at full load. Two USB-C PD 3.1 ports, two USB-A.",
     specs: [
       { label: "Output", value: "100W total" },
       { label: "Ports", value: "2x USB-C, 2x USB-A" },
@@ -360,9 +408,14 @@ export const products: Product[] = [
     price: 349,
     rating: 4.7,
     reviewCount: 89,
-    images: [u("1516035069371-29a1b244cc32"), u("1502920917128-1aa500764cbd"), u("1510127034890-ba27508e9f1c")],
+    images: [
+      u("1516035069371-29a1b244cc32"),
+      u("1502920917128-1aa500764cbd"),
+      u("1510127034890-ba27508e9f1c"),
+    ],
     short: "Machined phone lens mount with a true 35mm equivalent element.",
-    description: "Aircraft aluminium mount, multicoated glass, and a clamp that grips without marking the case.",
+    description:
+      "Aircraft aluminium mount, multicoated glass, and a clamp that grips without marking the case.",
     specs: [
       { label: "Focal length", value: "35mm equiv." },
       { label: "Elements", value: "6 in 4 groups" },
@@ -379,7 +432,11 @@ export const products: Product[] = [
     price: 169,
     rating: 4.4,
     reviewCount: 121,
-    images: [u("1527443224154-c4a3942d3acf"), u("1593642532744-d377ab507dc8"), u("1547082299-de196ea013d6")],
+    images: [
+      u("1527443224154-c4a3942d3acf"),
+      u("1593642532744-d377ab507dc8"),
+      u("1547082299-de196ea013d6"),
+    ],
     short: "Gas-spring monitor arm rated to 9kg with internal cable routing.",
     description: "Cold-rolled steel arm with a machined clamp and cable channels that close flush.",
     specs: [
@@ -429,7 +486,8 @@ export const posts: Post[] = [
     readTime: "4 min",
     date: "2026-05-30",
     image: u("1517420704952-d9f39e95b43e"),
-    excerpt: "Colour is the laziest way to signal hierarchy. Weight, scale and contrast do it better.",
+    excerpt:
+      "Colour is the laziest way to signal hierarchy. Weight, scale and contrast do it better.",
     body: [
       "Colour is expensive. Not to print — to read. Every accent hue you add is a new rule the reader has to learn and hold.",
       "Remove colour and you are forced to build hierarchy out of the things that were always doing the work anyway: type weight, scale, spacing, and contrast.",
@@ -443,7 +501,8 @@ export const posts: Post[] = [
     readTime: "8 min",
     date: "2026-04-14",
     image: u("1609091839311-d5365f9ff1c5"),
-    excerpt: "Published runtime figures are usually best-case fiction. We publish ours at 50% volume with ANC on.",
+    excerpt:
+      "Published runtime figures are usually best-case fiction. We publish ours at 50% volume with ANC on.",
     body: [
       "There is no legal standard for how a headphone manufacturer measures battery life, which means every published figure is measured under whatever conditions flatter it most.",
       "We publish two numbers: an idealised figure at 50% volume with ANC off, and a realistic figure at 70% volume with ANC on. The second is the one printed on the box.",
@@ -485,7 +544,8 @@ export const posts: Post[] = [
     readTime: "9 min",
     date: "2026-01-17",
     image: u("1540959733332-eab4deabeeaf"),
-    excerpt: "Testing cancellation performance against the Yamanote line, a konbini fridge, and a pachinko parlour.",
+    excerpt:
+      "Testing cancellation performance against the Yamanote line, a konbini fridge, and a pachinko parlour.",
     body: [
       "Lab noise profiles are clean. Real noise is not. We took six pre-production units to Tokyo to find out where the cancellation model falls apart.",
       "The Yamanote line at rush hour produced the broadest low-frequency load. A pachinko parlour produced the hardest transients, and exposed a 40ms lag in our adaptive loop.",
@@ -497,46 +557,117 @@ export const posts: Post[] = [
 export const getPost = (slug: string) => posts.find((p) => p.slug === slug);
 
 export const testimonials = [
-  { name: "Rina Alvarez", role: "Sound designer", rating: 5, quote: "The Field 02 is the first closed-back I've trusted for rough mixes on the road. Nothing is flattered." },
-  { name: "Tomas Berg", role: "Industrial designer", rating: 5, quote: "Every edge is intentional. You can feel where the machining stopped and the finishing began." },
-  { name: "Priya Nandakumar", role: "Endurance athlete", rating: 4, quote: "Fourteen days on the Signal Watch is not a marketing figure. I've measured it twice." },
-  { name: "Elias Fournier", role: "Photographer", rating: 5, quote: "The Prime 35 mount clamps hard enough that I stopped worrying about it mid-shoot." },
-  { name: "Wen Li", role: "Software engineer", rating: 5, quote: "Index 65 is the only board I've owned where the stock configuration needed no modding." },
-  { name: "Aoife Doherty", role: "Architect", rating: 4, quote: "Halo Lamp renders material samples honestly. CRI 97 is not a rounding error." },
+  {
+    name: "Rina Alvarez",
+    role: "Sound designer",
+    rating: 5,
+    quote:
+      "The Field 02 is the first closed-back I've trusted for rough mixes on the road. Nothing is flattered.",
+  },
+  {
+    name: "Tomas Berg",
+    role: "Industrial designer",
+    rating: 5,
+    quote:
+      "Every edge is intentional. You can feel where the machining stopped and the finishing began.",
+  },
+  {
+    name: "Priya Nandakumar",
+    role: "Endurance athlete",
+    rating: 4,
+    quote: "Fourteen days on the Signal Watch is not a marketing figure. I've measured it twice.",
+  },
+  {
+    name: "Elias Fournier",
+    role: "Photographer",
+    rating: 5,
+    quote: "The Prime 35 mount clamps hard enough that I stopped worrying about it mid-shoot.",
+  },
+  {
+    name: "Wen Li",
+    role: "Software engineer",
+    rating: 5,
+    quote: "Index 65 is the only board I've owned where the stock configuration needed no modding.",
+  },
+  {
+    name: "Aoife Doherty",
+    role: "Architect",
+    rating: 4,
+    quote: "Halo Lamp renders material samples honestly. CRI 97 is not a rounding error.",
+  },
 ];
 
 export const faqs = [
   {
     group: "Orders & Shipping",
     items: [
-      { q: "How long does delivery take?", a: "Standard delivery is 2–4 business days domestically and 5–9 days internationally. Orders placed before 14:00 ship the same day." },
-      { q: "Is shipping free?", a: "Shipping is free on all orders over $75. Below that, flat-rate shipping is $6.50." },
-      { q: "Can I change my address after ordering?", a: "Yes, until the order enters the Packed stage. Use the Track Order link in your confirmation email." },
-      { q: "Do you offer Cash on Delivery?", a: "Cash on Delivery is available on domestic orders up to $600. A signature is required at handover." },
+      {
+        q: "How long does delivery take?",
+        a: "Standard delivery is 2–4 business days domestically and 5–9 days internationally. Orders placed before 14:00 ship the same day.",
+      },
+      {
+        q: "Is shipping free?",
+        a: "Shipping is free on all orders over $75. Below that, flat-rate shipping is $6.50.",
+      },
+      {
+        q: "Can I change my address after ordering?",
+        a: "Yes, until the order enters the Packed stage. Use the Track Order link in your confirmation email.",
+      },
+      {
+        q: "Do you offer Cash on Delivery?",
+        a: "Cash on Delivery is available on domestic orders up to $600. A signature is required at handover.",
+      },
     ],
   },
   {
     group: "Returns",
     items: [
-      { q: "What is the return window?", a: "30 days from delivery, unused and in original packaging. Opened audio products are accepted if hygiene seals are intact." },
-      { q: "Who pays return shipping?", a: "We do, for faults and for first exchanges. Change-of-mind returns are $8 deducted from the refund." },
-      { q: "How long do refunds take?", a: "Refunds are issued within 3 business days of the return being scanned at our warehouse." },
+      {
+        q: "What is the return window?",
+        a: "30 days from delivery, unused and in original packaging. Opened audio products are accepted if hygiene seals are intact.",
+      },
+      {
+        q: "Who pays return shipping?",
+        a: "We do, for faults and for first exchanges. Change-of-mind returns are $8 deducted from the refund.",
+      },
+      {
+        q: "How long do refunds take?",
+        a: "Refunds are issued within 3 business days of the return being scanned at our warehouse.",
+      },
     ],
   },
   {
     group: "Payments",
     items: [
-      { q: "Which payment methods do you accept?", a: "Visa, Mastercard, Amex, Apple Pay, Google Pay, and Cash on Delivery on eligible orders." },
-      { q: "Can I pay in instalments?", a: "Three-payment instalments are available at checkout on orders between $150 and $2,000." },
-      { q: "Is my card stored?", a: "Card details never touch our servers. Tokenisation is handled by our payment processor." },
+      {
+        q: "Which payment methods do you accept?",
+        a: "Visa, Mastercard, Amex, Apple Pay, Google Pay, and Cash on Delivery on eligible orders.",
+      },
+      {
+        q: "Can I pay in instalments?",
+        a: "Three-payment instalments are available at checkout on orders between $150 and $2,000.",
+      },
+      {
+        q: "Is my card stored?",
+        a: "Card details never touch our servers. Tokenisation is handled by our payment processor.",
+      },
     ],
   },
   {
     group: "Products",
     items: [
-      { q: "What warranty do products carry?", a: "One year as standard, extendable to three years free of charge if you register within 30 days." },
-      { q: "Do you sell spare parts?", a: "Yes. Ear pads, cells, cables and clamps are stocked for five years after a product is discontinued." },
-      { q: "Are firmware updates required?", a: "No. Products are fully functional out of the box; updates are optional and reversible." },
+      {
+        q: "What warranty do products carry?",
+        a: "One year as standard, extendable to three years free of charge if you register within 30 days.",
+      },
+      {
+        q: "Do you sell spare parts?",
+        a: "Yes. Ear pads, cells, cables and clamps are stocked for five years after a product is discontinued.",
+      },
+      {
+        q: "Are firmware updates required?",
+        a: "No. Products are fully functional out of the box; updates are optional and reversible.",
+      },
     ],
   },
 ];

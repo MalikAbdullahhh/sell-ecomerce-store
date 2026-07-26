@@ -11,7 +11,9 @@ export const Route = createFileRoute("/journal/$slug")({
   },
   head: ({ loaderData }) => {
     if (!loaderData) {
-      return { meta: [{ title: "Article not found — Aperture" }, { name: "robots", content: "noindex" }] };
+      return {
+        meta: [{ title: "Article not found — Aperture" }, { name: "robots", content: "noindex" }],
+      };
     }
     const p = loaderData.post;
     return {
@@ -51,7 +53,9 @@ function PostPage() {
       </div>
 
       <section className="mx-auto max-w-[1440px] border-t border-border px-4 py-14 md:px-10">
-        <p className="font-mono text-[10px] uppercase tracking-[0.22em] opacity-60">More from the Journal</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.22em] opacity-60">
+          More from the Journal
+        </p>
         <div className="mt-6">
           <Rail>
             {more.map((p) => (

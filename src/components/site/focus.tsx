@@ -28,10 +28,22 @@ export function Brackets({ className, size = 22 }: { className?: string; size?: 
   const s = { width: size, height: size };
   return (
     <div className={cn("pointer-events-none absolute inset-0", className)}>
-      <span className="absolute left-0 top-0 border-l border-t border-current opacity-60" style={s} />
-      <span className="absolute right-0 top-0 border-r border-t border-current opacity-60" style={s} />
-      <span className="absolute bottom-0 left-0 border-b border-l border-current opacity-60" style={s} />
-      <span className="absolute bottom-0 right-0 border-b border-r border-current opacity-60" style={s} />
+      <span
+        className="absolute left-0 top-0 border-l border-t border-current opacity-60"
+        style={s}
+      />
+      <span
+        className="absolute right-0 top-0 border-r border-t border-current opacity-60"
+        style={s}
+      />
+      <span
+        className="absolute bottom-0 left-0 border-b border-l border-current opacity-60"
+        style={s}
+      />
+      <span
+        className="absolute bottom-0 right-0 border-b border-r border-current opacity-60"
+        style={s}
+      />
     </div>
   );
 }
@@ -54,7 +66,9 @@ export function Stars({ rating, size = 12 }: { rating: number; size?: number }) 
 
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <p className={cn("font-mono text-[11px] uppercase tracking-[0.22em] opacity-60", className)}>{children}</p>
+    <p className={cn("font-mono text-[11px] uppercase tracking-[0.22em] opacity-60", className)}>
+      {children}
+    </p>
   );
 }
 

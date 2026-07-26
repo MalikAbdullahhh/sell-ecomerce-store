@@ -27,7 +27,9 @@ function Wishlist() {
 
       {saved.length === 0 ? (
         <div className="mt-12 border border-border p-10 text-center">
-          <p className="text-lg">Nothing saved yet. Tap the heart on any product to keep it here.</p>
+          <p className="text-lg">
+            Nothing saved yet. Tap the heart on any product to keep it here.
+          </p>
           <Link
             to="/shop"
             className="mt-5 inline-grid h-12 place-items-center bg-foreground px-8 font-mono text-xs uppercase tracking-[0.22em] text-background"

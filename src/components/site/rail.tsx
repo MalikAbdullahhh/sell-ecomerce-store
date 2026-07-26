@@ -16,14 +16,21 @@ export function Section({
   children,
   invert = false,
   className = "",
+  id,
 }: {
   children: ReactNode;
   invert?: boolean;
   className?: string;
+  id?: string;
 }) {
   return (
-    <section className={invert ? "bg-foreground text-background" : "bg-background text-foreground"}>
-      <div className={`mx-auto max-w-[1440px] px-4 py-16 md:px-10 md:py-24 ${className}`}>{children}</div>
+    <section
+      id={id}
+      className={invert ? "bg-foreground text-background" : "bg-background text-foreground"}
+    >
+      <div className={`mx-auto max-w-[1440px] px-4 py-16 md:px-10 md:py-24 ${className}`}>
+        {children}
+      </div>
     </section>
   );
 }

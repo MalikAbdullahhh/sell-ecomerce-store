@@ -4,7 +4,20 @@ import { Minus, Plus, X } from "lucide-react";
 import { money, useStore } from "@/lib/store";
 
 export function CartDrawer() {
-  const { cartOpen, setCartOpen, lines, lineProduct, setQty, removeLine, subtotal, count } = useStore();
+  const {
+    cartOpen,
+    setCartOpen,
+    lines,
+    lineProduct,
+    setQty,
+    removeLine,
+    subtotal,
+    giftTotal,
+    shipping,
+    charges,
+    total,
+    count,
+  } = useStore();
 
   return (
     <AnimatePresence>
@@ -26,7 +39,11 @@ export function CartDrawer() {
           >
             <header className="flex items-center justify-between border-b border-border px-4 py-3">
               <p className="font-mono text-xs uppercase tracking-[0.22em]">Cart / {count} items</p>
-              <button onClick={() => setCartOpen(false)} aria-label="Close cart" className="grid h-11 w-11 place-items-center">
+              <button
+                onClick={() => setCartOpen(false)}
+                aria-label="Close cart"
+                className="grid h-11 w-11 place-items-center"
+              >
                 <X width={18} height={18} />
               </button>
             </header>
@@ -43,12 +60,17 @@ export function CartDrawer() {
                     if (!p) return null;
                     return (
                       <li key={line.id} className="flex gap-3 py-4">
-                        <img src={p.images[0]} alt="" className="h-20 w-20 shrink-0 border border-border object-cover" />
+                        <img
+                          src={p.images[0]}
+                          alt=""
+                          className="h-20 w-20 shrink-0 border border-border object-cover"
+                        />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">{p.name}</p>
                           <p className="font-mono text-[11px] text-muted-foreground">
                             {line.color}
                             {line.size ? ` · ${line.size}` : ""}
+                            {line.gift ? " · Gift wrap" : ""}
                           </p>
                           <div className="mt-2 flex items-center gap-3">
                             <div className="flex items-center border border-border">
@@ -85,9 +107,31 @@ export function CartDrawer() {
             </div>
 
             <footer className="border-t border-border px-4 pb-6 pt-4">
-              <div className="flex items-center justify-between font-mono text-sm">
-                <span className="uppercase tracking-[0.18em]">Subtotal</span>
-                <span>{money(subtotal)}</span>
+              <dl className="space-y-2 font-mono text-xs">
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Subtotal</dt>
+                  <dd>{money(subtotal)}</dd>
+                </div>
+                {giftTotal > 0 && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Gift wrapping</dt>
+                    <dd>{money(giftTotal)}</dd>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Shipping</dt>
+                  <dd>{shipping === 0 ? "Free" : money(shipping)}</dd>
+                </div>
+                {charges.map((c) => (
+                  <div key={c.label} className="flex justify-between">
+                    <dt className="text-muted-foreground">{c.label}</dt>
+                    <dd>{money(c.amount)}</dd>
+                  </div>
+                ))}
+              </dl>
+              <div className="mt-3 flex items-center justify-between border-t border-border pt-3 font-mono text-sm">
+                <span className="uppercase tracking-[0.18em]">Total</span>
+                <span>{money(total)}</span>
               </div>
               <div className="mt-4 grid gap-2">
                 <Link

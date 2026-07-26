@@ -8,7 +8,11 @@ export const Route = createFileRoute("/compare")({
   head: () => ({
     meta: [
       { title: "Compare Products — Aperture" },
-      { name: "description", content: "Put two or three Aperture products side by side and compare their published specifications." },
+      {
+        name: "description",
+        content:
+          "Put two or three Aperture products side by side and compare their published specifications.",
+      },
       { property: "og:title", content: "Compare Products — Aperture" },
       { property: "og:description", content: "Compare Aperture products spec for spec." },
     ],
@@ -34,7 +38,9 @@ function Compare() {
               key={p.slug}
               onClick={() => toggleCompare(p.slug)}
               className={`min-h-11 border px-3 font-mono text-[11px] ${
-                compare.includes(p.slug) ? "border-foreground bg-foreground text-background" : "border-border"
+                compare.includes(p.slug)
+                  ? "border-foreground bg-foreground text-background"
+                  : "border-border"
               }`}
             >
               {p.name}
@@ -56,7 +62,11 @@ function Compare() {
                 {selected.map((p) => (
                   <th key={p.slug} className="p-3 text-left align-bottom">
                     <div className="relative">
-                      <img src={p.images[0]} alt="" className="aspect-square w-full border border-border object-cover" />
+                      <img
+                        src={p.images[0]}
+                        alt=""
+                        className="aspect-square w-full border border-border object-cover"
+                      />
                       <button
                         onClick={() => toggleCompare(p.slug)}
                         aria-label={`Remove ${p.name}`}
@@ -65,7 +75,11 @@ function Compare() {
                         <X width={13} height={13} />
                       </button>
                     </div>
-                    <Link to="/product/$slug" params={{ slug: p.slug }} className="mt-3 block font-sans text-base font-medium">
+                    <Link
+                      to="/product/$slug"
+                      params={{ slug: p.slug }}
+                      className="mt-3 block font-sans text-base font-medium"
+                    >
                       {p.name}
                     </Link>
                     <p className="mt-1">{money(p.price)}</p>

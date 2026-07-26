@@ -1,27 +1,51 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { Minus, Plus, RotateCcw, ShieldCheck, Lock } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  Minus,
+  Plus,
+  RotateCcw,
+  ShieldCheck,
+  Lock,
+  ImagePlus,
+  Play,
+  User,
+  X,
+  Phone,
+  MessageCircle,
+  Pencil,
+  Trash2,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Brackets, Eyebrow, Stars, Tag } from "@/components/site/focus";
 import { ProductCard } from "@/components/site/product-card";
 import { Rail, RailItem, Section, SectionHead } from "@/components/site/rail";
+import { MediaLightbox, type MediaItem } from "@/components/site/media-lightbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { getProduct, products, type Product } from "@/data/catalog";
-import { GIFT_FEE, money, useStore } from "@/lib/store";
+import { getProduct, products, type Product, type Review } from "@/data/catalog";
+import { GIFT_FEE, apiProductToProduct, money, useStore } from "@/lib/store";
+import { catalogApi, mediaUrl, reviewApi } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/product/$slug")({
-  loader: ({ params }) => {
-    const product = getProduct(params.slug);
+  loader: async ({ params }) => {
+    let product: Product | undefined;
+    try {
+      product = apiProductToProduct((await catalogApi.product(params.slug)).product);
+    } catch {
+      product = getProduct(params.slug);
+    }
     if (!product) throw notFound();
     return { product };
   },
   head: ({ loaderData }) => {
     if (!loaderData) {
-      return { meta: [{ title: "Product not found — Aperture" }, { name: "robots", content: "noindex" }] };
+      return {
+        meta: [{ title: "Product not found — Aperture" }, { name: "robots", content: "noindex" }],
+      };
     }
     const p = loaderData.product;
     return {
@@ -40,14 +64,43 @@ export const Route = createFileRoute("/product/$slug")({
 
 function ProductPage() {
   const { product } = Route.useLoaderData() as { product: Product };
-  const { addToCart, setCartOpen } = useStore();
+  const { addToCart, setCartOpen, products: liveProducts, settings } = useStore();
+  const { user } = useAuth();
+  const giftFee = settings?.shipping?.giftFee ?? GIFT_FEE;
+  const contact = settings?.contact;
   const [color, setColor] = useState(product.colors[0].label);
   const [size, setSize] = useState(product.sizes?.[0]?.label);
   const [qty, setQty] = useState(1);
   const [imgIndex, setImgIndex] = useState(0);
   const [gift, setGift] = useState(false);
+  const [giftMessage, setGiftMessage] = useState("");
   const [showSticky, setShowSticky] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewSaving, setReviewSaving] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewBody, setReviewBody] = useState("");
+  const [reviewAuthor, setReviewAuthor] = useState("");
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
+  const [keepImages, setKeepImages] = useState<string[]>([]);
+  const [keepVideos, setKeepVideos] = useState<string[]>([]);
+  const [reviewFiles, setReviewFiles] = useState<{ file: File; url: string; isVideo: boolean }[]>(
+    [],
+  );
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const galleryRef = useRef<HTMLDivElement>(null);
+
+  // Flatten every review image/video into one gallery so the lightbox can
+  // page through the whole product's media with next/back controls.
+  const reviewMedia = useMemo<MediaItem[]>(() => {
+    const items: MediaItem[] = [];
+    for (const r of product.reviews) {
+      (r.images || []).forEach((url) => items.push({ url, type: "image" }));
+      (r.videos || []).forEach((url) => items.push({ url, type: "video" }));
+    }
+    return items;
+  }, [product.reviews]);
+
+  const mediaIndexOf = (url: string) => reviewMedia.findIndex((m) => m.url === url);
 
   useEffect(() => {
     setColor(product.colors[0].label);
@@ -66,17 +119,31 @@ function ProductPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    if (!reviewOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setReviewOpen(false);
+        setEditingReview(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [reviewOpen]);
+
   const discount = product.compareAt
     ? Math.round(((product.compareAt - product.price) / product.compareAt) * 100)
     : 0;
-  const related = products.filter((p) => p.slug !== product.slug).slice(0, 6);
+  const related = (liveProducts.length ? liveProducts : products)
+    .filter((p) => p.slug !== product.slug)
+    .slice(0, 6);
   const breakdown = [5, 4, 3, 2, 1].map((star) => ({
     star,
     pct: star === 5 ? 68 : star === 4 ? 22 : star === 3 ? 6 : star === 2 ? 3 : 1,
   }));
 
   const add = () => {
-    addToCart({ slug: product.slug, color, size, qty });
+    addToCart({ slug: product.slug, color, size, qty, gift, giftMessage });
     setCartOpen(true);
     toast(`${product.name} × ${qty} added to cart`);
   };
@@ -176,14 +243,18 @@ function ProductPage() {
                     onClick={() => setColor(c.label)}
                     className={cn(
                       "flex h-11 items-center gap-2 border px-3 font-mono text-[11px]",
-                      color === c.label ? "border-foreground ring-1 ring-foreground" : "border-border",
+                      color === c.label
+                        ? "border-foreground ring-1 ring-foreground"
+                        : "border-border",
                     )}
                   >
                     <span
                       className={cn(
                         "h-4 w-4 border border-border",
-                        c.id === "ink" ? "bg-foreground" : "bg-secondary",
+                        !c.value && (c.id === "ink" ? "bg-foreground" : "bg-secondary"),
                       )}
+                      style={{ backgroundColor: c.value || undefined }}
+                      aria-hidden="true"
                     />
                     {c.label}
                   </button>
@@ -193,7 +264,9 @@ function ProductPage() {
 
             {product.sizes && (
               <div className="mt-6">
-                <p className="font-mono text-[10px] uppercase tracking-[0.22em] opacity-60">Option</p>
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] opacity-60">
+                  Option
+                </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {product.sizes.map((s) => (
                     <button
@@ -216,11 +289,19 @@ function ProductPage() {
             {/* Qty + actions */}
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <div className="flex h-12 items-center border border-border">
-                <button aria-label="Decrease" onClick={() => setQty(Math.max(1, qty - 1))} className="grid h-12 w-12 place-items-center">
+                <button
+                  aria-label="Decrease"
+                  onClick={() => setQty(Math.max(1, qty - 1))}
+                  className="grid h-12 w-12 place-items-center"
+                >
                   <Minus width={14} height={14} />
                 </button>
                 <span className="w-8 text-center font-mono text-sm">{qty}</span>
-                <button aria-label="Increase" onClick={() => setQty(qty + 1)} className="grid h-12 w-12 place-items-center">
+                <button
+                  aria-label="Increase"
+                  onClick={() => setQty(qty + 1)}
+                  className="grid h-12 w-12 place-items-center"
+                >
                   <Plus width={14} height={14} />
                 </button>
               </div>
@@ -243,10 +324,18 @@ function ProductPage() {
             {/* Gift wrap */}
             <div className="mt-6 border border-border p-4">
               <div className="flex items-center justify-between gap-4">
-                <span className="font-mono text-xs">Add gift wrapping (+{money(GIFT_FEE)})</span>
+                <span className="font-mono text-xs">Add gift wrapping (+{money(giftFee)})</span>
                 <Switch checked={gift} onCheckedChange={setGift} />
               </div>
-              {gift && <Textarea placeholder="Gift message" className="mt-3 font-mono text-xs" rows={3} />}
+              {gift && (
+                <Textarea
+                  placeholder="Gift message (shown to the recipient)"
+                  className="mt-3 font-mono text-xs"
+                  rows={3}
+                  value={giftMessage}
+                  onChange={(e) => setGiftMessage(e.target.value)}
+                />
+              )}
             </div>
 
             <p className="mt-6 font-mono text-xs text-muted-foreground">
@@ -283,7 +372,10 @@ function ProductPage() {
               ))}
             </TabsList>
 
-            <TabsContent value="description" className="max-w-2xl py-8 leading-relaxed text-muted-foreground">
+            <TabsContent
+              value="description"
+              className="max-w-2xl py-8 leading-relaxed text-muted-foreground"
+            >
               {product.description}
             </TabsContent>
 
@@ -304,47 +396,119 @@ function ProductPage() {
                 <div>
                   <p className="font-display text-6xl">{product.rating}</p>
                   <Stars rating={product.rating} size={15} />
-                  <p className="mt-1 font-mono text-[11px] text-muted-foreground">{product.reviewCount} reviews</p>
+                  <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                    {product.reviewCount} reviews
+                  </p>
                   <div className="mt-5 space-y-2">
                     {breakdown.map((b) => (
                       <div key={b.star} className="flex items-center gap-2 font-mono text-[11px]">
                         <span className="w-3">{b.star}</span>
                         <span className="h-1.5 flex-1 bg-border">
-                          <span className="block h-full bg-foreground" style={{ width: `${b.pct}%` }} />
+                          <span
+                            className="block h-full bg-foreground"
+                            style={{ width: `${b.pct}%` }}
+                          />
                         </span>
                         <span className="w-8 text-right">{b.pct}%</span>
                       </div>
                     ))}
                   </div>
-                  <button className="mt-6 h-12 w-full border border-foreground font-mono text-xs uppercase tracking-[0.2em]">
+                  <button
+                    onClick={() => {
+                      setEditingReview(null);
+                      setReviewRating(5);
+                      setReviewBody("");
+                      setReviewAuthor("");
+                      setReviewFiles([]);
+                      setKeepImages([]);
+                      setKeepVideos([]);
+                      setReviewOpen(true);
+                    }}
+                    className="mt-6 h-12 w-full border border-foreground font-mono text-xs uppercase tracking-[0.2em]"
+                  >
                     Write a review
                   </button>
                 </div>
-                <ul className="divide-y divide-border">
-                  {product.reviews.map((r) => (
-                    <li key={r.id} className="py-5">
-                      <div className="flex items-center gap-3">
-                        <Stars rating={r.rating} />
-                        <p className="text-sm font-medium">{r.title}</p>
-                      </div>
-                      <p className="mt-2 text-sm text-muted-foreground">{r.body}</p>
-                      <p className="mt-2 font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                        {r.author} · {r.date}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
+                {product.reviews.length === 0 ? (
+                  <p className="py-8 text-sm text-muted-foreground">
+                    No reviews yet — be the first to share your experience.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-border">
+                    {product.reviews.map((r) => (
+                      <ReviewItem
+                        key={r.id}
+                        review={r}
+                        isOwner={Boolean(user && r.userId && String(r.userId) === String(user.id))}
+                        onOpenMedia={(url) => setLightboxIndex(mediaIndexOf(url))}
+                        onEdit={() => {
+                          setEditingReview(r);
+                          setReviewRating(r.rating);
+                          setReviewBody(r.body);
+                          setReviewFiles([]);
+                          const toPath = (u: string) => {
+                            const i = u.indexOf("/uploads/");
+                            return i >= 0 ? u.slice(i) : u;
+                          };
+                          setKeepImages((r.images || []).map(toPath));
+                          setKeepVideos((r.videos || []).map(toPath));
+                          setReviewOpen(true);
+                        }}
+                        onDelete={async () => {
+                          if (!confirm("Delete your review?")) return;
+                          try {
+                            await reviewApi.deleteMine(r.id);
+                            toast.success("Review deleted");
+                            window.location.reload();
+                          } catch (err) {
+                            toast.error(err instanceof Error ? err.message : "Could not delete");
+                          }
+                        }}
+                      />
+                    ))}
+                  </ul>
+                )}
               </div>
             </TabsContent>
 
-            <TabsContent value="shipping" className="max-w-2xl space-y-3 py-8 text-muted-foreground">
+            <TabsContent
+              value="shipping"
+              className="max-w-2xl space-y-3 py-8 text-muted-foreground"
+            >
               <p>Standard delivery is 2–4 business days domestically, 5–9 days internationally.</p>
               <p>Free over $75. Cash on Delivery available on domestic orders up to $600.</p>
-              <p>30-day returns, unused and in original packaging. We cover return shipping on faults.</p>
+              <p>
+                30-day returns, unused and in original packaging. We cover return shipping on
+                faults.
+              </p>
             </TabsContent>
           </Tabs>
         </div>
       </div>
+
+      <section className="mx-auto max-w-[1440px] px-4 pb-8 md:px-10">
+        <div className="border-t border-border pt-8">
+          <Eyebrow>Contact & help</Eyebrow>
+          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
+            {settings?.help?.helpText ||
+              "Questions about this product? Reach us by call or WhatsApp — we reply within one working day."}
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <a
+              href={`tel:${contact?.phone || ""}`}
+              className="flex h-11 items-center gap-2 border border-foreground px-4 font-mono text-xs transition-colors hover:bg-foreground hover:text-background"
+            >
+              <Phone width={15} /> {settings?.help?.callLabel || "Call"} · {contact?.phone || ""}
+            </a>
+            <a
+              href={`https://wa.me/${(contact?.whatsapp || "").replace(/\D/g, "")}`}
+              className="flex h-11 items-center gap-2 bg-foreground px-4 font-mono text-xs text-background"
+            >
+              <MessageCircle width={15} /> {settings?.help?.whatsappLabel || "WhatsApp"}
+            </a>
+          </div>
+        </div>
+      </section>
 
       <Section invert>
         <SectionHead eyebrow="Same discipline" title="You might also like" />
@@ -356,6 +520,210 @@ function ProductPage() {
           ))}
         </Rail>
       </Section>
+
+      <MediaLightbox
+        items={reviewMedia}
+        index={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+        onIndexChange={setLightboxIndex}
+      />
+
+      <AnimatePresence>
+        {reviewOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[80] grid place-items-center bg-foreground/60 p-4"
+            onClick={() => {
+              setReviewOpen(false);
+              setEditingReview(null);
+            }}
+          >
+            <motion.form
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              onClick={(e) => e.stopPropagation()}
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!reviewBody.trim()) {
+                  toast.error("Please write a comment.");
+                  return;
+                }
+                const form = new FormData();
+                form.set("rating", String(reviewRating));
+                form.set("body", reviewBody.trim());
+                reviewFiles.forEach((m) => form.append(m.isVideo ? "videos" : "images", m.file));
+                setReviewSaving(true);
+                try {
+                  if (editingReview) {
+                    form.set("keepImages", JSON.stringify(keepImages));
+                    form.set("keepVideos", JSON.stringify(keepVideos));
+                    await reviewApi.updateMine(editingReview.id, form);
+                    toast.success("Review updated.");
+                  } else {
+                    form.set("slug", product.slug);
+                    if (!user && reviewAuthor.trim()) form.set("author", reviewAuthor.trim());
+                    await reviewApi.create(form);
+                    toast.success("Review published — thank you.");
+                  }
+                  setReviewOpen(false);
+                  setEditingReview(null);
+                  window.location.reload();
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Could not save review");
+                } finally {
+                  setReviewSaving(false);
+                }
+              }}
+              className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto bg-background p-6"
+            >
+              <button
+                type="button"
+                aria-label="Close review"
+                onClick={() => {
+                  setReviewOpen(false);
+                  setEditingReview(null);
+                }}
+                className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center hover:bg-secondary"
+              >
+                <X width={18} />
+              </button>
+              <Eyebrow>Product review</Eyebrow>
+              <h2 className="mt-2 text-3xl">
+                {editingReview ? "Edit your review" : `Review ${product.name}`}
+              </h2>
+
+              {user ? (
+                <div className="mt-4 flex items-center gap-3 border border-border p-3">
+                  <ReviewAvatar src={mediaUrl(user.avatar)} name={user.name} size={36} />
+                  <div>
+                    <p className="text-sm font-medium">Posting as {user.name}</p>
+                    <p className="font-mono text-[10px] text-muted-foreground">{user.email}</p>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="mt-6 grid gap-3">
+                {!user && !editingReview && (
+                  <input
+                    value={reviewAuthor}
+                    onChange={(e) => setReviewAuthor(e.target.value)}
+                    className="h-12 border border-border bg-transparent px-3 font-mono text-sm outline-none focus:border-foreground"
+                    placeholder="Your name (optional)"
+                  />
+                )}
+                <div>
+                  <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Rating
+                  </p>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setReviewRating(n)}
+                        aria-label={`${n} stars`}
+                        className="text-2xl transition-transform hover:scale-110"
+                      >
+                        <span className={n <= reviewRating ? "text-foreground" : "text-border"}>
+                          ★
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <Textarea
+                  required
+                  rows={5}
+                  value={reviewBody}
+                  onChange={(e) => setReviewBody(e.target.value)}
+                  placeholder="Share your experience…"
+                />
+
+                {(keepImages.length > 0 || keepVideos.length > 0 || reviewFiles.length > 0) && (
+                  <div className="flex flex-wrap gap-2">
+                    {keepImages.map((src) => (
+                      <div key={src} className="relative h-20 w-20 border border-border">
+                        <img src={mediaUrl(src)} alt="" className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          aria-label="Remove"
+                          onClick={() => setKeepImages((prev) => prev.filter((u) => u !== src))}
+                          className="absolute right-0 top-0 grid h-5 w-5 place-items-center bg-foreground text-background"
+                        >
+                          <X width={11} height={11} />
+                        </button>
+                      </div>
+                    ))}
+                    {keepVideos.map((src) => (
+                      <div key={src} className="relative h-20 w-20 border border-border">
+                        <video src={mediaUrl(src)} className="h-full w-full object-cover" muted />
+                        <button
+                          type="button"
+                          aria-label="Remove"
+                          onClick={() => setKeepVideos((prev) => prev.filter((u) => u !== src))}
+                          className="absolute right-0 top-0 grid h-5 w-5 place-items-center bg-foreground text-background"
+                        >
+                          <X width={11} height={11} />
+                        </button>
+                      </div>
+                    ))}
+                    {reviewFiles.map((m, i) => (
+                      <div key={m.url} className="relative h-20 w-20 border border-border">
+                        {m.isVideo ? (
+                          <video src={m.url} className="h-full w-full object-cover" muted />
+                        ) : (
+                          <img src={m.url} alt="" className="h-full w-full object-cover" />
+                        )}
+                        <button
+                          type="button"
+                          aria-label="Remove"
+                          onClick={() => {
+                            URL.revokeObjectURL(m.url);
+                            setReviewFiles((prev) => prev.filter((_, idx) => idx !== i));
+                          }}
+                          className="absolute right-0 top-0 grid h-5 w-5 place-items-center bg-foreground text-background"
+                        >
+                          <X width={11} height={11} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <label className="flex min-h-12 cursor-pointer items-center gap-3 border border-border px-3 font-mono text-xs transition-colors hover:border-foreground">
+                  <ImagePlus width={17} /> Add photos or videos
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple
+                    className="sr-only"
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      setReviewFiles((prev) => [
+                        ...prev,
+                        ...files.map((file) => ({
+                          file,
+                          url: URL.createObjectURL(file),
+                          isVideo: file.type.startsWith("video/"),
+                        })),
+                      ]);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                <button
+                  disabled={reviewSaving}
+                  className="h-12 bg-foreground font-mono text-xs uppercase tracking-[0.2em] text-background disabled:opacity-50"
+                >
+                  {reviewSaving ? "Saving…" : editingReview ? "Save changes" : "Publish review"}
+                </button>
+              </div>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Sticky mobile bar */}
       <AnimatePresence>
@@ -378,5 +746,118 @@ function ProductPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function ReviewAvatar({ src, name, size = 40 }: { src?: string; name: string; size?: number }) {
+  const [failed, setFailed] = useState(false);
+  const dim = { width: size, height: size };
+  if (src && !failed) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        style={dim}
+        onError={() => setFailed(true)}
+        className="shrink-0 rounded-full border border-border object-cover"
+      />
+    );
+  }
+  return (
+    <span
+      style={dim}
+      className="grid shrink-0 place-items-center rounded-full border border-border bg-secondary text-muted-foreground"
+    >
+      <User width={size * 0.5} height={size * 0.5} strokeWidth={1.6} />
+    </span>
+  );
+}
+
+function ReviewItem({
+  review,
+  isOwner,
+  onOpenMedia,
+  onEdit,
+  onDelete,
+}: {
+  review: Review;
+  isOwner?: boolean;
+  onOpenMedia: (url: string) => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+}) {
+  const media: MediaItem[] = [
+    ...(review.images || []).map((url) => ({ url, type: "image" as const })),
+    ...(review.videos || []).map((url) => ({ url, type: "video" as const })),
+  ];
+  return (
+    <li className="py-6">
+      <div className="flex items-start gap-3">
+        <ReviewAvatar src={review.authorImage} name={review.author} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <p className="text-sm font-medium">{review.author}</p>
+            <Stars rating={review.rating} size={12} />
+          </div>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{review.body}</p>
+
+          {media.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {media.map((m) => (
+                <button
+                  key={m.url}
+                  type="button"
+                  onClick={() => onOpenMedia(m.url)}
+                  className="group relative h-20 w-20 overflow-hidden border border-border"
+                >
+                  {m.type === "video" ? (
+                    <>
+                      <video src={m.url} className="h-full w-full object-cover" muted />
+                      <span className="absolute inset-0 grid place-items-center bg-black/30 text-white transition-colors group-hover:bg-black/50">
+                        <Play width={18} height={18} fill="currentColor" />
+                      </span>
+                    </>
+                  ) : (
+                    <img
+                      src={m.url}
+                      alt=""
+                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+              {review.date}
+            </p>
+            {isOwner && (
+              <div className="ml-auto flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={onEdit}
+                  aria-label="Edit review"
+                  title="Edit"
+                  className="grid h-9 w-9 place-items-center text-sky-600 transition-colors hover:bg-sky-600/10 dark:text-sky-400"
+                >
+                  <Pencil width={15} height={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={onDelete}
+                  aria-label="Delete review"
+                  title="Delete"
+                  className="grid h-9 w-9 place-items-center text-red-600 transition-colors hover:bg-red-600/10 dark:text-red-400"
+                >
+                  <Trash2 width={15} height={15} />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </li>
   );
 }

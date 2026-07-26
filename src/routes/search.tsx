@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Eyebrow } from "@/components/site/focus";
 import { ProductCard } from "@/components/site/product-card";
-import { products } from "@/data/catalog";
+import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/search")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -11,7 +11,10 @@ export const Route = createFileRoute("/search")({
   head: () => ({
     meta: [
       { title: "Search Results — Aperture" },
-      { name: "description", content: "Search the Aperture catalogue of audio, wearables, smart home and desk hardware." },
+      {
+        name: "description",
+        content: "Search the Aperture catalogue of audio, wearables, smart home and desk hardware.",
+      },
       { property: "og:title", content: "Search Results — Aperture" },
       { property: "og:description", content: "Search the full Aperture catalogue." },
     ],
@@ -21,6 +24,7 @@ export const Route = createFileRoute("/search")({
 
 function SearchPage() {
   const { q } = Route.useSearch();
+  const { products } = useStore();
   const [sort, setSort] = useState("relevance");
 
   const results = useMemo(() => {
@@ -29,14 +33,17 @@ function SearchPage() {
       ? products.filter(
           (p) =>
             p.name.toLowerCase().includes(term) ||
-            p.category.includes(term) ||
-            p.short.toLowerCase().includes(term),
+            p.brand.toLowerCase().includes(term) ||
+            p.category.toLowerCase().includes(term) ||
+            p.short.toLowerCase().includes(term) ||
+            p.description.toLowerCase().includes(term),
         )
       : products;
     if (sort === "price-asc") return [...list].sort((a, b) => a.price - b.price);
     if (sort === "price-desc") return [...list].sort((a, b) => b.price - a.price);
+    if (sort === "rating") return [...list].sort((a, b) => b.rating - a.rating);
     return list;
-  }, [q, sort]);
+  }, [q, sort, products]);
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-10 md:py-16">
@@ -55,6 +62,7 @@ function SearchPage() {
           <option value="relevance">Relevance</option>
           <option value="price-asc">Price: low to high</option>
           <option value="price-desc">Price: high to low</option>
+          <option value="rating">Highest rated</option>
         </select>
       </div>
 

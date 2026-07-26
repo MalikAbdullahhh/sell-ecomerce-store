@@ -2,17 +2,26 @@ import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { products } from "@/data/catalog";
-import { money } from "@/lib/store";
+import { money, useStore } from "@/lib/store";
 
-const TRENDING = ["Aperture One", "Titanium watch", "GaN charger", "65% keyboard"];
+const TRENDING = ["Aperture One", "audio", "watch", "charger", "keyboard"];
 
 export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { products } = useStore();
   const [q, setQ] = useState("");
 
   useEffect(() => {
     if (open) setQ("");
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -21,11 +30,13 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
       .filter(
         (p) =>
           p.name.toLowerCase().includes(term) ||
-          p.category.includes(term) ||
-          p.short.toLowerCase().includes(term),
+          p.brand.toLowerCase().includes(term) ||
+          p.category.toLowerCase().includes(term) ||
+          p.short.toLowerCase().includes(term) ||
+          p.description.toLowerCase().includes(term),
       )
-      .slice(0, 6);
-  }, [q]);
+      .slice(0, 8);
+  }, [q, products]);
 
   return (
     <AnimatePresence>
@@ -46,7 +57,12 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
                 placeholder="Search the catalogue"
                 className="h-11 w-full bg-transparent font-mono text-base outline-none placeholder:text-muted-foreground"
               />
-              <button onClick={onClose} aria-label="Close search" className="grid h-11 w-11 place-items-center">
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close search"
+                className="grid h-11 w-11 place-items-center"
+              >
                 <X width={18} height={18} />
               </button>
             </div>
@@ -55,11 +71,14 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
               {q.trim() === "" ? (
                 <div className="space-y-8">
                   <div>
-                    <p className="font-mono text-[11px] uppercase tracking-[0.22em] opacity-60">Trending</p>
+                    <p className="font-mono text-[11px] uppercase tracking-[0.22em] opacity-60">
+                      Trending
+                    </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {TRENDING.map((t) => (
                         <button
                           key={t}
+                          type="button"
                           onClick={() => setQ(t)}
                           className="border border-border px-3 py-2 font-mono text-xs hover:bg-foreground hover:text-background"
                         >
@@ -83,10 +102,16 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
                         onClick={onClose}
                         className="flex items-center gap-4 py-3"
                       >
-                        <img src={p.images[0]} alt="" className="h-14 w-14 border border-border object-cover" />
+                        <img
+                          src={p.images[0]}
+                          alt=""
+                          className="h-14 w-14 border border-border object-cover"
+                        />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium">{p.name}</span>
-                          <span className="block truncate font-mono text-xs text-muted-foreground">{p.short}</span>
+                          <span className="block truncate font-mono text-xs text-muted-foreground">
+                            {p.brand} · {p.short}
+                          </span>
                         </span>
                         <span className="font-mono text-sm">{money(p.price)}</span>
                       </Link>

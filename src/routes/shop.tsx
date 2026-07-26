@@ -2,16 +2,24 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Eyebrow } from "@/components/site/focus";
-import { emptyFilters, FilterChips, FilterPanel, type FilterState } from "@/components/site/filters";
+import {
+  emptyFilters,
+  FilterChips,
+  FilterPanel,
+  type FilterState,
+} from "@/components/site/filters";
 import { ProductCard } from "@/components/site/product-card";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { categories, products } from "@/data/catalog";
+import { categories as fallbackCategories } from "@/data/catalog";
+import { usePageContent } from "@/lib/page-content";
+import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/shop")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    category: typeof search.category === "string" ? search.category : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): { category?: string } => {
+    const category = typeof search.category === "string" ? search.category : undefined;
+    return category ? { category } : {};
+  },
   head: () => ({
     meta: [
       { title: "Shop All Products — Aperture" },
@@ -21,7 +29,10 @@ export const Route = createFileRoute("/shop")({
           "Browse Aperture audio, wearables, smart home, optics and desk hardware. Filter by price, brand, rating and finish.",
       },
       { property: "og:title", content: "Shop All Products — Aperture" },
-      { property: "og:description", content: "Filter the full Aperture catalogue by price, brand, rating and finish." },
+      {
+        property: "og:description",
+        content: "Filter the full Aperture catalogue by price, brand, rating and finish.",
+      },
     ],
   }),
   component: Shop,
@@ -35,8 +46,13 @@ const SORTS = {
 } as const;
 
 function Shop() {
+  const { products, categories: apiCategories } = useStore();
+  const { section } = usePageContent("shop");
   const { category } = Route.useSearch();
-  const [filters, setFilters] = useState<FilterState>({ ...emptyFilters, category: category ?? null });
+  const [filters, setFilters] = useState<FilterState>({
+    ...emptyFilters,
+    category: category ?? null,
+  });
   const [sort, setSort] = useState<keyof typeof SORTS>("featured");
   const [loading, setLoading] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -49,7 +65,7 @@ function Shop() {
     setLoading(true);
     const t = setTimeout(() => setLoading(false), 320);
     return () => clearTimeout(t);
-  }, [filters, sort]);
+  }, [filters, sort, products]);
 
   const results = useMemo(() => {
     const list = products.filter((p) => {
@@ -65,21 +81,30 @@ function Shop() {
     if (sort === "price-desc") list.sort((a, b) => b.price - a.price);
     if (sort === "rating") list.sort((a, b) => b.rating - a.rating);
     return list;
-  }, [filters, sort]);
+  }, [filters, sort, products]);
 
   const catName = filters.category
-    ? (categories.find((c) => c.slug === filters.category)?.name ?? filters.category)
+    ? (apiCategories.find((c) => c.slug === filters.category)?.name ??
+      fallbackCategories.find((c) => c.slug === filters.category)?.name ??
+      filters.category)
     : "All";
+
+  const header = section<{ title: string; countSuffix: string; emptyText: string }>("header");
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-8 md:px-10 md:py-12">
       <nav className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-        <Link to="/">Home</Link> / <Link to="/shop">Shop</Link> / <span className="text-foreground">{catName}</span>
+        <Link to="/">Home</Link> / <Link to="/shop">Shop</Link> /{" "}
+        <span className="text-foreground">{catName}</span>
       </nav>
 
       <header className="mt-4">
-        <Eyebrow>{results.length} products in focus</Eyebrow>
-        <h1 className="mt-2 text-4xl md:text-5xl">{catName === "All" ? "Everything we make" : catName}</h1>
+        <Eyebrow>
+          {results.length} {header.countSuffix}
+        </Eyebrow>
+        <h1 className="mt-2 text-4xl md:text-5xl">
+          {catName === "All" ? header.title : catName}
+        </h1>
       </header>
 
       <div className="mt-10 grid gap-10 md:grid-cols-[240px_minmax(0,1fr)]">
@@ -121,7 +146,7 @@ function Shop() {
             </div>
           ) : results.length === 0 ? (
             <div className="mt-16 border border-border p-10 text-center">
-              <p className="text-lg">No products match these filters — try widening your price range.</p>
+              <p className="text-lg">{header.emptyText}</p>
               <button
                 onClick={() => setFilters(emptyFilters)}
                 className="mt-5 h-12 bg-foreground px-6 font-mono text-xs uppercase tracking-[0.22em] text-background"

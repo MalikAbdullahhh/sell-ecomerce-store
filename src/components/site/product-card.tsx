@@ -56,7 +56,9 @@ export function ProductCard({ product, className }: { product: Product; classNam
           {discount > 0 && <Tag>-{discount}%</Tag>}
           {product.flags.includes("hot") && <Tag>Hot</Tag>}
           {product.flags.includes("new") && <Tag>New</Tag>}
-          {!product.inStock && <Tag className="bg-background text-foreground ring-1 ring-foreground">Sold out</Tag>}
+          {!product.inStock && (
+            <Tag className="bg-background text-foreground ring-1 ring-foreground">Sold out</Tag>
+          )}
         </div>
       </Link>
 
