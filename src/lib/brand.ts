@@ -1,6 +1,6 @@
 import type { SiteSettings } from "@/lib/api";
 
-/** Shown when settings are missing or the API is offline. */
+/** Permanent store brand — used everywhere, no settings fetch required. */
 export const DEFAULT_BRAND_NAME = "Genz Gadgets PK";
 export const DEFAULT_TAGLINE = "Precision Tech, Monochrome";
 
@@ -9,25 +9,16 @@ const SETTINGS_CACHE_KEY = "aperture-site-settings-v2";
 export type BrandInfo = {
   name: string;
   tagline: string;
-  /** False while waiting for settings (and no cache yet) — avoid flashing the default brand. */
   ready: boolean;
 };
 
-export function resolveBrand(
-  settings?: Partial<SiteSettings> | null,
-  options?: { ready?: boolean; allowDefault?: boolean },
-): BrandInfo {
-  const ready = options?.ready !== false;
-  const allowDefault = options?.allowDefault !== false;
-  const rawName = (settings?.brandName || "").trim();
-  const rawTagline = (settings?.tagline || "").trim();
-  if (!rawName && !allowDefault) {
-    return { name: "", tagline: "", ready };
-  }
+/** Always returns the permanent brand name immediately. */
+export function resolveBrand(settings?: Partial<SiteSettings> | null): BrandInfo {
+  const tagline = (settings?.tagline || "").trim() || DEFAULT_TAGLINE;
   return {
-    name: rawName || DEFAULT_BRAND_NAME,
-    tagline: rawTagline || DEFAULT_TAGLINE,
-    ready,
+    name: DEFAULT_BRAND_NAME,
+    tagline,
+    ready: true,
   };
 }
 
@@ -54,7 +45,7 @@ export function writeCachedSiteSettings(settings: SiteSettings) {
 }
 
 /** Rewrite static route titles that were authored with the default brand. */
-export function retitleWithBrand(title: string, brandName: string): string {
+export function retitleWithBrand(title: string, brandName: string = DEFAULT_BRAND_NAME): string {
   const b = (brandName || "").trim() || DEFAULT_BRAND_NAME;
   if (!title) return title;
   return title

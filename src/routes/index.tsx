@@ -24,13 +24,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Aperture — Precision Tech, Strictly Monochrome" },
+      { title: "Genz Gadgets PK — Precision Tech, Strictly Monochrome" },
       {
         name: "description",
         content:
           "Audio, wearables, smart home and desk hardware built to published tolerances. Free shipping over $75, Cash on Delivery available.",
       },
-      { property: "og:title", content: "Aperture — Precision Tech, Strictly Monochrome" },
+      { property: "og:title", content: "Genz Gadgets PK — Precision Tech, Strictly Monochrome" },
       {
         property: "og:description",
         content: "Precision consumer electronics built in small runs and documented in full.",

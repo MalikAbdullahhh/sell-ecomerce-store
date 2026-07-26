@@ -318,14 +318,12 @@ export function useStore() {
 }
 
 /**
- * Brand name/tagline from settings.
- * Uses a local cache on first paint; only falls back to defaults after load fails.
+ * Permanent brand name (Genz Gadgets PK) — available immediately, no API wait.
+ * Tagline still comes from settings when loaded.
  */
 export function useBrand(): BrandInfo {
-  const { settings, settingsReady } = useStore();
-  if (settings) return resolveBrand(settings, { ready: true });
-  if (!settingsReady) return resolveBrand(null, { ready: false, allowDefault: false });
-  return resolveBrand(null, { ready: true, allowDefault: true });
+  const { settings } = useStore();
+  return resolveBrand(settings);
 }
 
 export const money = (n: number) =>

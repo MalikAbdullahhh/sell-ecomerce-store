@@ -99,7 +99,11 @@ function AdminSettings() {
   }, [data]);
 
   const saveMut = useMutation({
-    mutationFn: () => adminApi.saveSite(form),
+    mutationFn: () =>
+      adminApi.saveSite({
+        ...form,
+        brandName: DEFAULT_BRAND_NAME,
+      }),
     onSuccess: () => {
       toast.success("Settings saved");
       qc.invalidateQueries({ queryKey: ["admin", "site"] });
@@ -134,9 +138,13 @@ function AdminSettings() {
             <Field label="Brand name">
               <input
                 className={adminField}
-                value={form.brandName}
-                onChange={(e) => setForm((f) => ({ ...f, brandName: e.target.value }))}
+                value={DEFAULT_BRAND_NAME}
+                readOnly
+                title="Brand name is fixed in the theme for now"
               />
+              <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+                Fixed site-wide — no load from settings
+              </p>
             </Field>
             <Field label="Tagline">
               <input

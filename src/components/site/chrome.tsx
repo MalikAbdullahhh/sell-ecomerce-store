@@ -81,14 +81,8 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
         <div ref={megaWrapRef}>
           <div className="mx-auto grid max-w-[1440px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-3 md:px-10">
             <div className="flex min-w-0 items-center gap-8">
-              <Link
-                to="/"
-                className={cn(
-                  "font-display text-lg font-semibold tracking-[-0.04em]",
-                  !brandName && "invisible",
-                )}
-              >
-                {brandName || "\u00A0"}
+              <Link to="/" className="font-display text-lg font-semibold tracking-[-0.04em]">
+                {brandName}
               </Link>
               <nav className="hidden items-center gap-6 md:flex">
                 <button
@@ -345,7 +339,7 @@ function BottomTabs({
 }
 
 function Footer() {
-  const { settings, settingsReady } = useStore();
+  const { settings } = useStore();
   const { name: brandName } = useBrand();
   const { section } = usePageContent("footer");
   const brand = section<{
@@ -364,13 +358,11 @@ function Footer() {
     else cols.push({ title, links: [item] });
   }
 
-  const blurb =
-    (settings?.tagline || "").trim() || brand.blurb || (settingsReady ? DEFAULT_TAGLINE : "");
+  const blurb = (settings?.tagline || "").trim() || brand.blurb || DEFAULT_TAGLINE;
   const year = new Date().getFullYear();
-  const copyright = brandName
-    ? (brand.copyright || "").replace(/\bAperture(?: Instruments)?\b/gi, brandName) ||
-      `© ${year} ${brandName}`
-    : brand.copyright || `\u00A0`;
+  const copyright =
+    (brand.copyright || "").replace(/\bAperture(?: Instruments)?\b/gi, brandName) ||
+    `© ${year} ${brandName}`;
   const instagram = settings?.social?.instagram?.trim();
 
   return (
@@ -378,17 +370,8 @@ function Footer() {
       <div className="mx-auto max-w-[1440px] px-4 py-14 md:px-10">
         <div className="grid gap-10 md:grid-cols-[1.5fr_repeat(4,1fr)]">
           <div>
-            <p
-              className={cn(
-                "font-display text-2xl font-semibold tracking-[-0.04em]",
-                !brandName && "invisible",
-              )}
-            >
-              {brandName || "\u00A0"}
-            </p>
-            <p className={cn("mt-3 max-w-xs text-sm text-paper/70", !blurb && "invisible")}>
-              {blurb || "\u00A0"}
-            </p>
+            <p className="font-display text-2xl font-semibold tracking-[-0.04em]">{brandName}</p>
+            <p className="mt-3 max-w-xs text-sm text-paper/70">{blurb}</p>
             {instagram ? (
               <div className="mt-5 flex gap-3">
                 <a

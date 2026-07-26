@@ -44,7 +44,7 @@ const NAV: {
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { admin, adminLogout } = useAuth();
-  const { name: brandName, ready: brandReady } = useBrand();
+  const { name: brandName } = useBrand();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
 
@@ -54,20 +54,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     refetchInterval: 15000,
   });
 
-  const siteQuery = useQuery({
-    queryKey: ["admin", "site"],
-    queryFn: () => adminApi.site(),
-    staleTime: 30_000,
-  });
-
   useEffect(() => {
     unreadQuery.refetch();
   }, [pathname]);
 
   const unread = unreadQuery.data?.count ?? 0;
-  const logo =
-    (siteQuery.data?.settings?.brandName || "").trim() || brandName;
-  const logoReady = Boolean(logo) || (brandReady && !siteQuery.isLoading);
 
   return (
     <div className="fixed inset-0 z-[100] flex bg-background text-foreground">
@@ -89,13 +80,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         <div className="flex h-14 items-center justify-between border-b border-border px-4">
           <Link
             to="/admin"
-            className={cn(
-              "font-display text-base font-semibold tracking-[-0.04em]",
-              !logoReady && "invisible",
-            )}
+            className="font-display text-base font-semibold tracking-[-0.04em]"
             onClick={() => setOpen(false)}
           >
-            {logo || "\u00A0"}
+            {brandName}
           </Link>
           <button
             type="button"
