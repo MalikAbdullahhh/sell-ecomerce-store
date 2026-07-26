@@ -47,6 +47,12 @@
   }
 }
 
+@utility glass-sweep {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
 @utility crosshair {
   @media (hover: hover) and (pointer: fine) {
     cursor: crosshair;
@@ -188,6 +194,24 @@
 
   html {
     scroll-behavior: smooth;
+    scroll-padding-top: 5.5rem;
+  }
+
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+
+  .lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+  }
+
+  .lenis.lenis-stopped {
+    overflow: clip;
   }
 
   body {
@@ -217,11 +241,202 @@
   a,
   button {
     transition:
-      color 0.2s ease,
-      background-color 0.2s ease,
-      border-color 0.2s ease,
-      opacity 0.2s ease,
-      transform 0.2s ease;
+      color 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /*
+   * Premium glass diagonal sweep — auto-plays every few seconds,
+   * and restarts on hover / focus-visible.
+   */
+  button:not(:disabled):not(.no-glass),
+  [role="button"]:not(.no-glass),
+  a.glass-sweep,
+  a.bg-foreground,
+  a.bg-background,
+  a.h-11,
+  a.h-12,
+  button.h-11,
+  button.h-12,
+  .glass-sweep,
+  .product-card-glass {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  button:not(:disabled):not(.no-glass)::after,
+  [role="button"]:not(.no-glass)::after,
+  a.glass-sweep::after,
+  a.bg-foreground::after,
+  a.bg-background::after,
+  a.h-11::after,
+  a.h-12::after,
+  button.h-11:not(:disabled)::after,
+  button.h-12:not(:disabled)::after,
+  .glass-sweep::after,
+  .product-card-glass::after {
+    content: "";
+    position: absolute;
+    inset: -20% -45%;
+    background: linear-gradient(
+      115deg,
+      transparent 34%,
+      color-mix(in oklab, white 14%, transparent) 44%,
+      color-mix(in oklab, white 42%, transparent) 50%,
+      color-mix(in oklab, white 14%, transparent) 56%,
+      transparent 66%
+    );
+    transform: translateX(-130%) skewX(-18deg);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 2;
+    will-change: transform, opacity;
+    animation: glass-diagonal-auto 7s cubic-bezier(0.45, 0.05, 0.25, 1) infinite;
+  }
+
+  /* Product cards: shorter idle — restarts sooner */
+  .product-card-glass::after {
+    animation: glass-diagonal-auto-card 4.8s cubic-bezier(0.45, 0.05, 0.25, 1) infinite;
+  }
+
+  /* Stronger flash on filled CTAs + product cards */
+  button.bg-foreground:not(:disabled)::after,
+  a.bg-foreground::after,
+  button.bg-background:not(:disabled)::after,
+  a.bg-background::after,
+  button.h-12.bg-foreground:not(:disabled)::after,
+  a.h-12.bg-foreground::after,
+  .glass-sweep-strong::after,
+  .product-card-glass::after {
+    background: linear-gradient(
+      115deg,
+      transparent 32%,
+      color-mix(in oklab, white 22%, transparent) 44%,
+      color-mix(in oklab, white 58%, transparent) 50%,
+      color-mix(in oklab, white 22%, transparent) 56%,
+      transparent 68%
+    );
+  }
+
+  /* Stagger so sweeps don't fire in lockstep */
+  button:not(:disabled):not(.no-glass):nth-of-type(2n)::after,
+  .glass-sweep:nth-of-type(2n)::after,
+  a.h-12:nth-of-type(2n)::after {
+    animation-delay: 1.6s;
+  }
+
+  button:not(:disabled):not(.no-glass):nth-of-type(3n)::after,
+  .glass-sweep:nth-of-type(3n)::after,
+  a.h-12:nth-of-type(3n)::after {
+    animation-delay: 3.2s;
+  }
+
+  button:not(:disabled):not(.no-glass):nth-of-type(4n)::after,
+  .glass-sweep:nth-of-type(4n)::after,
+  a.h-12:nth-of-type(4n)::after {
+    animation-delay: 4.8s;
+  }
+
+  .group:nth-child(2n) .product-card-glass::after {
+    animation-delay: 0.9s;
+  }
+
+  .group:nth-child(3n) .product-card-glass::after {
+    animation-delay: 1.8s;
+  }
+
+  .group:nth-child(4n) .product-card-glass::after {
+    animation-delay: 2.7s;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    button:not(:disabled):not(.no-glass):hover::after,
+    button:not(:disabled):not(.no-glass):focus-visible::after,
+    [role="button"]:not(.no-glass):hover::after,
+    [role="button"]:not(.no-glass):focus-visible::after,
+    a.glass-sweep:hover::after,
+    a.glass-sweep:focus-visible::after,
+    a.bg-foreground:hover::after,
+    a.bg-foreground:focus-visible::after,
+    a.bg-background:hover::after,
+    a.bg-background:focus-visible::after,
+    a.h-11:hover::after,
+    a.h-12:hover::after,
+    a.h-11:focus-visible::after,
+    a.h-12:focus-visible::after,
+    .glass-sweep:hover::after,
+    .glass-sweep:focus-visible::after,
+    .product-card-glass:hover::after {
+      animation: glass-diagonal-sweep 2.4s cubic-bezier(0.45, 0.05, 0.25, 1);
+    }
+  }
+}
+
+@keyframes glass-diagonal-sweep {
+  0% {
+    transform: translateX(-130%) skewX(-18deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(130%) skewX(-18deg);
+    opacity: 0;
+  }
+}
+
+/* Idle loop for buttons/CTAs */
+@keyframes glass-diagonal-auto {
+  0%,
+  38% {
+    transform: translateX(-130%) skewX(-18deg);
+    opacity: 0;
+  }
+  44% {
+    opacity: 1;
+  }
+  82% {
+    opacity: 1;
+  }
+  92% {
+    transform: translateX(130%) skewX(-18deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(130%) skewX(-18deg);
+    opacity: 0;
+  }
+}
+
+/* Cards: less wait between passes */
+@keyframes glass-diagonal-auto-card {
+  0%,
+  12% {
+    transform: translateX(-130%) skewX(-18deg);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 1;
+  }
+  84% {
+    transform: translateX(130%) skewX(-18deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(130%) skewX(-18deg);
+    opacity: 0;
   }
 }
 
@@ -306,10 +521,27 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  button::after,
+  [role="button"]::after,
+  .glass-sweep::after,
+  a.glass-sweep::after,
+  a.bg-foreground::after,
+  a.bg-background::after,
+  a.h-11::after,
+  a.h-12::after,
+  .product-card-glass::after {
+    display: none !important;
   }
 }

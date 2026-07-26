@@ -259,14 +259,14 @@ function Checkout() {
           {user && (
             <Link
               to="/account/orders"
-              className="grid h-12 place-items-center bg-foreground px-8 font-mono text-xs uppercase tracking-[0.22em] text-background"
+              className="glass-sweep grid h-12 place-items-center bg-foreground px-8 font-mono text-xs uppercase tracking-[0.22em] text-background"
             >
               Track order
             </Link>
           )}
           <Link
             to="/shop"
-            className="grid h-12 place-items-center border border-foreground px-8 font-mono text-xs uppercase tracking-[0.22em]"
+            className="glass-sweep grid h-12 place-items-center border border-foreground px-8 font-mono text-xs uppercase tracking-[0.22em]"
           >
             Keep shopping
           </Link>
@@ -575,7 +575,7 @@ function Checkout() {
             {step > 0 && (
               <button
                 onClick={() => setStep(step - 1)}
-                className="h-12 border border-foreground px-8 font-mono text-xs uppercase tracking-[0.22em]"
+                className="glass-sweep h-12 border border-foreground px-8 font-mono text-xs uppercase tracking-[0.22em]"
               >
                 Back
               </button>
@@ -583,7 +583,7 @@ function Checkout() {
             <button
               onClick={continueStep}
               disabled={placing || lines.length === 0}
-              className="h-12 bg-foreground px-8 font-mono text-xs uppercase tracking-[0.22em] text-background"
+              className="glass-sweep h-12 bg-foreground px-8 font-mono text-xs uppercase tracking-[0.22em] text-background"
             >
               {placing ? "Placing…" : step === 2 ? "Place order" : "Continue"}
             </button>
@@ -760,7 +760,7 @@ function Checkout() {
           {step > 0 && (
             <button
               onClick={() => setStep(step - 1)}
-              className="h-12 border border-foreground px-5 font-mono text-xs uppercase tracking-[0.2em]"
+              className="glass-sweep h-12 border border-foreground px-5 font-mono text-xs uppercase tracking-[0.2em]"
             >
               Back
             </button>
@@ -768,7 +768,7 @@ function Checkout() {
           <button
             onClick={continueStep}
             disabled={placing || lines.length === 0}
-            className="h-12 flex-1 bg-foreground font-mono text-xs uppercase tracking-[0.22em] text-background"
+            className="glass-sweep h-12 flex-1 bg-foreground font-mono text-xs uppercase tracking-[0.22em] text-background"
           >
             {placing ? "Placing…" : step === 2 ? "Place order" : "Continue"}
           </button>

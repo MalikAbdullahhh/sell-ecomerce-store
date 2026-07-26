@@ -149,7 +149,7 @@ function Shop() {
               <p className="text-lg">{header.emptyText}</p>
               <button
                 onClick={() => setFilters(emptyFilters)}
-                className="mt-5 h-12 bg-foreground px-6 font-mono text-xs uppercase tracking-[0.22em] text-background"
+                className="glass-sweep mt-5 h-12 bg-foreground px-6 font-mono text-xs uppercase tracking-[0.22em] text-background"
               >
                 Clear filters
               </button>

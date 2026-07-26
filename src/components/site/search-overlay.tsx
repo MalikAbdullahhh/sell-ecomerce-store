@@ -67,7 +67,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
               </button>
             </div>
 
-            <div className="no-scrollbar mt-6 flex-1 overflow-y-auto">
+            <div className="no-scrollbar mt-6 flex-1 overflow-y-auto" data-lenis-prevent>
               {q.trim() === "" ? (
                 <div className="space-y-8">
                   <div>

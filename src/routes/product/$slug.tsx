@@ -14,8 +14,10 @@ import {
   MessageCircle,
   Pencil,
   Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Brackets, Eyebrow, Stars, Tag } from "@/components/site/focus";
 import { ProductCard } from "@/components/site/product-card";
@@ -72,6 +74,7 @@ function ProductPage() {
   const [size, setSize] = useState(product.sizes?.[0]?.label);
   const [qty, setQty] = useState(1);
   const [imgIndex, setImgIndex] = useState(0);
+  const [imgDir, setImgDir] = useState(0);
   const [gift, setGift] = useState(false);
   const [giftMessage, setGiftMessage] = useState("");
   const [showSticky, setShowSticky] = useState(false);
@@ -148,6 +151,18 @@ function ProductPage() {
     toast(`${product.name} × ${qty} added to cart`);
   };
 
+  const imageCount = product.images.length;
+  const goImage = useCallback(
+    (next: number, dir: number) => {
+      if (imageCount <= 1) return;
+      setImgDir(dir);
+      setImgIndex(((next % imageCount) + imageCount) % imageCount);
+    },
+    [imageCount],
+  );
+  const prevImage = useCallback(() => goImage(imgIndex - 1, -1), [goImage, imgIndex]);
+  const nextImage = useCallback(() => goImage(imgIndex + 1, 1), [goImage, imgIndex]);
+
   return (
     <div>
       <div className="mx-auto max-w-[1440px] px-4 pb-16 pt-6 md:px-10">
@@ -164,39 +179,103 @@ function ProductPage() {
                 {product.images.map((src, i) => (
                   <button
                     key={src}
-                    onClick={() => setImgIndex(i)}
+                    type="button"
+                    onClick={() => goImage(i, i > imgIndex ? 1 : -1)}
                     className={cn(
-                      "aspect-square overflow-hidden border",
-                      i === imgIndex ? "border-foreground" : "border-border opacity-60",
+                      "aspect-square overflow-hidden border transition-opacity duration-300",
+                      i === imgIndex ? "border-foreground opacity-100" : "border-border opacity-55 hover:opacity-90",
                     )}
                   >
                     <img src={src} alt="" className="h-full w-full object-cover" />
                   </button>
                 ))}
               </div>
-              <div className="crosshair relative aspect-square w-full overflow-hidden border border-border bg-secondary">
-                <AnimatePresence mode="wait">
+              <div
+                className="crosshair relative aspect-square w-full touch-pan-y overflow-hidden border border-border bg-secondary select-none"
+                onKeyDown={(e) => {
+                  if (e.key === "ArrowLeft") {
+                    e.preventDefault();
+                    prevImage();
+                  }
+                  if (e.key === "ArrowRight") {
+                    e.preventDefault();
+                    nextImage();
+                  }
+                }}
+                tabIndex={0}
+                role="region"
+                aria-roledescription="image carousel"
+                aria-label={`${product.name} images`}
+              >
+                <AnimatePresence initial={false} custom={imgDir} mode="popLayout">
                   <motion.img
                     key={`${imgIndex}-${color}`}
                     src={product.images[imgIndex]}
-                    alt={product.name}
-                    initial={{ opacity: 0, filter: "blur(12px)", scale: 1.04 }}
-                    animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute inset-0 h-full w-full object-cover"
+                    alt={`${product.name} — image ${imgIndex + 1} of ${imageCount}`}
+                    custom={imgDir}
+                    drag={imageCount > 1 ? "x" : false}
+                    dragConstraints={{ left: 0, right: 0 }}
+                    dragElastic={0.18}
+                    onDragEnd={(_e, info) => {
+                      const swipe = info.offset.x;
+                      const velocity = info.velocity.x;
+                      if (swipe < -64 || velocity < -500) nextImage();
+                      else if (swipe > 64 || velocity > 500) prevImage();
+                    }}
+                    initial={
+                      imgDir === 0
+                        ? { opacity: 0, scale: 1.03 }
+                        : { opacity: 0, x: imgDir > 0 ? 72 : -72, scale: 1.02 }
+                    }
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{
+                      opacity: 0,
+                      x: imgDir > 0 ? -56 : 56,
+                      transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
+                    }}
+                    transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                    className="absolute inset-0 h-full w-full cursor-grab object-cover active:cursor-grabbing"
+                    draggable={false}
                   />
                 </AnimatePresence>
-                <Brackets size={26} className="text-foreground" />
+                <Brackets size={26} className="pointer-events-none text-foreground" />
+
+                {imageCount > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      aria-label="Previous image"
+                      onClick={prevImage}
+                      className="absolute left-2 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center border border-foreground/20 bg-background/80 text-foreground backdrop-blur-sm transition-all duration-300 hover:bg-foreground hover:text-background md:left-3"
+                    >
+                      <ChevronLeft width={20} height={20} strokeWidth={1.5} />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Next image"
+                      onClick={nextImage}
+                      className="absolute right-2 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center border border-foreground/20 bg-background/80 text-foreground backdrop-blur-sm transition-all duration-300 hover:bg-foreground hover:text-background md:right-3"
+                    >
+                      <ChevronRight width={20} height={20} strokeWidth={1.5} />
+                    </button>
+                    <div className="pointer-events-none absolute bottom-3 right-3 z-10 bg-background/75 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground backdrop-blur-sm">
+                      {String(imgIndex + 1).padStart(2, "0")} / {String(imageCount).padStart(2, "0")}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
             <div className="mt-3 flex justify-center gap-1.5 md:hidden">
               {product.images.map((src, i) => (
                 <button
                   key={src}
+                  type="button"
                   aria-label={`Image ${i + 1}`}
-                  onClick={() => setImgIndex(i)}
-                  className={cn("h-1.5 w-6", i === imgIndex ? "bg-foreground" : "bg-border")}
+                  onClick={() => goImage(i, i > imgIndex ? 1 : -1)}
+                  className={cn(
+                    "h-1.5 transition-all duration-300",
+                    i === imgIndex ? "w-7 bg-foreground" : "w-4 bg-border",
+                  )}
                 />
               ))}
             </div>
@@ -308,14 +387,14 @@ function ProductPage() {
               <button
                 onClick={add}
                 disabled={!product.inStock}
-                className="h-12 flex-1 bg-foreground px-8 font-mono text-xs uppercase tracking-[0.22em] text-background disabled:opacity-40"
+                className="glass-sweep h-12 flex-1 bg-foreground px-8 font-mono text-xs uppercase tracking-[0.22em] text-background disabled:opacity-40"
               >
                 {product.inStock ? "Add to cart" : "Sold out"}
               </button>
               <Link
                 to="/checkout"
                 onClick={add}
-                className="grid h-12 flex-1 place-items-center border border-foreground px-8 font-mono text-xs uppercase tracking-[0.22em]"
+                className="glass-sweep grid h-12 flex-1 place-items-center border border-foreground px-8 font-mono text-xs uppercase tracking-[0.22em]"
               >
                 Buy now
               </Link>
@@ -715,7 +794,7 @@ function ProductPage() {
                 </label>
                 <button
                   disabled={reviewSaving}
-                  className="h-12 bg-foreground font-mono text-xs uppercase tracking-[0.2em] text-background disabled:opacity-50"
+                  className="glass-sweep h-12 bg-foreground font-mono text-xs uppercase tracking-[0.2em] text-background disabled:opacity-50"
                 >
                   {reviewSaving ? "Saving…" : editingReview ? "Save changes" : "Publish review"}
                 </button>
@@ -738,7 +817,7 @@ function ProductPage() {
             <button
               onClick={add}
               disabled={!product.inStock}
-              className="h-12 bg-foreground font-mono text-xs uppercase tracking-[0.22em] text-background disabled:opacity-40"
+              className="glass-sweep h-12 bg-foreground font-mono text-xs uppercase tracking-[0.22em] text-background disabled:opacity-40"
             >
               Add to cart
             </button>

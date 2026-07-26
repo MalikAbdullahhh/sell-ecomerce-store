@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { CartDrawer } from "./cart-drawer";
 import { SearchOverlay } from "./search-overlay";
 import { AnnouncementMarquee } from "./announcement-marquee";
+import { SmoothScroll } from "./smooth-scroll";
 
 const NAV = [
   { to: "/shop", label: "Shop" },
@@ -203,7 +204,7 @@ function BottomTabs({ onSearch }: { onSearch: () => void }) {
   const label = "font-mono text-[9px] uppercase tracking-[0.14em]";
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[60] grid h-16 grid-cols-5 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-[60] grid h-16 grid-cols-6 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
       <Link to="/" className={cn(item, pathname === "/" ? "opacity-100" : "opacity-55")}>
         <Home width={19} height={19} strokeWidth={1.5} />
         <span className={label}>Home</span>
@@ -235,6 +236,13 @@ function BottomTabs({ onSearch }: { onSearch: () => void }) {
         )}
         <span className={label}>Cart</span>
       </button>
+      <Link
+        to="/account"
+        className={cn(item, pathname.startsWith("/account") ? "opacity-100" : "opacity-55")}
+      >
+        <User width={19} height={19} strokeWidth={1.5} />
+        <span className={label}>Profile</span>
+      </Link>
     </nav>
   );
 }
@@ -324,17 +332,19 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <AnnouncementMarquee />
-      <TopBar onSearch={() => setSearchOpen(true)} />
-      <main className="flex-1 pb-16 md:pb-0">
-        <PageTransition>{children}</PageTransition>
-      </main>
-      <Footer />
-      <BottomTabs onSearch={() => setSearchOpen(true)} />
-      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
-      <CartDrawer />
-    </div>
+    <SmoothScroll>
+      <div className="flex min-h-screen flex-col">
+        <AnnouncementMarquee />
+        <TopBar onSearch={() => setSearchOpen(true)} />
+        <main className="flex-1 pb-16 md:pb-0">
+          <PageTransition>{children}</PageTransition>
+        </main>
+        <Footer />
+        <BottomTabs onSearch={() => setSearchOpen(true)} />
+        <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
+        <CartDrawer />
+      </div>
+    </SmoothScroll>
   );
 }
 

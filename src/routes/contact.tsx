@@ -75,7 +75,7 @@ function Contact() {
             placeholder={form.messagePlaceholder}
             className="w-full border border-border bg-transparent p-3 font-mono text-sm outline-none focus:border-foreground sm:col-span-2"
           />
-          <button className="h-12 bg-foreground px-8 font-mono text-xs uppercase tracking-[0.22em] text-background sm:col-span-2 sm:justify-self-start">
+          <button className="glass-sweep h-12 bg-foreground px-8 font-mono text-xs uppercase tracking-[0.22em] text-background sm:col-span-2 sm:justify-self-start">
             {form.buttonLabel}
           </button>
         </form>

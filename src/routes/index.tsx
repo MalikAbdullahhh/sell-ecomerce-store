@@ -454,7 +454,7 @@ function Index() {
               />
               <button
                 disabled={submitting}
-                className="box-border min-h-14 w-full shrink-0 bg-background px-6 font-mono text-xs uppercase tracking-[0.22em] text-foreground disabled:opacity-50 sm:min-h-12 sm:w-auto"
+                className="glass-sweep box-border min-h-14 w-full shrink-0 bg-background px-6 font-mono text-xs uppercase tracking-[0.22em] text-foreground disabled:opacity-50 sm:min-h-12 sm:w-auto"
               >
                 {submitting ? "…" : settings?.newsletter?.buttonLabel || "Subscribe"}
               </button>

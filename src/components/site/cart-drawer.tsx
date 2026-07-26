@@ -48,7 +48,7 @@ export function CartDrawer() {
               </button>
             </header>
 
-            <div className="no-scrollbar flex-1 overflow-y-auto px-4">
+            <div className="no-scrollbar flex-1 overflow-y-auto px-4" data-lenis-prevent>
               {lines.length === 0 ? (
                 <p className="py-10 font-mono text-sm text-muted-foreground">
                   Empty. Nothing in focus yet.
@@ -137,14 +137,14 @@ export function CartDrawer() {
                 <Link
                   to="/checkout"
                   onClick={() => setCartOpen(false)}
-                  className="grid h-12 place-items-center bg-foreground font-mono text-xs uppercase tracking-[0.22em] text-background"
+                  className="glass-sweep grid h-12 place-items-center bg-foreground font-mono text-xs uppercase tracking-[0.22em] text-background"
                 >
                   Checkout
                 </Link>
                 <Link
                   to="/cart"
                   onClick={() => setCartOpen(false)}
-                  className="grid h-12 place-items-center border border-foreground font-mono text-xs uppercase tracking-[0.22em]"
+                  className="glass-sweep grid h-12 place-items-center border border-foreground font-mono text-xs uppercase tracking-[0.22em]"
                 >
                   View cart
                 </Link>

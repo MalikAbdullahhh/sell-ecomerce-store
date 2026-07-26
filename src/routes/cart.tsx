@@ -46,7 +46,7 @@ function CartPage() {
           <p className="text-lg">Nothing in focus yet.</p>
           <Link
             to="/shop"
-            className="mt-5 inline-grid h-12 place-items-center bg-foreground px-8 font-mono text-xs uppercase tracking-[0.22em] text-background"
+            className="glass-sweep mt-5 inline-grid h-12 place-items-center bg-foreground px-8 font-mono text-xs uppercase tracking-[0.22em] text-background"
           >
             Browse products
           </Link>
@@ -153,7 +153,7 @@ function CartPage() {
             </div>
             <Link
               to="/checkout"
-              className="mt-5 grid h-12 place-items-center bg-foreground font-mono text-xs uppercase tracking-[0.22em] text-background"
+              className="glass-sweep mt-5 grid h-12 place-items-center bg-foreground font-mono text-xs uppercase tracking-[0.22em] text-background"
             >
               Checkout
             </Link>
