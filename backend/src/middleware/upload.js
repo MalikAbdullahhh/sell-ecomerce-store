@@ -2,9 +2,20 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import os from "os";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-export const uploadsDir = path.join(__dirname, "..", "uploads");
+
+/**
+ * On Vercel the deploy filesystem is read-only; only /tmp is writable.
+ * Files there are ephemeral (gone after the function instance recycles),
+ * so production image hosting should move to Cloudinary/S3 later.
+ */
+const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+
+export const uploadsDir = isServerless
+  ? path.join(os.tmpdir(), "aperture-uploads")
+  : path.join(__dirname, "..", "uploads");
 
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
