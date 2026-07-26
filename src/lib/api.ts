@@ -3,9 +3,13 @@ const UPLOADS_URL = import.meta.env.VITE_UPLOADS_URL || "http://localhost:5000";
 
 export function mediaUrl(path?: string | null) {
   if (!path) return "";
+  // Absolute CDN / external URLs (Cloudinary, Unsplash, etc.)
   if (/^https?:\/\//i.test(path)) return path;
+  if (path.startsWith("//")) return `https:${path}`;
+  // Legacy local uploads stored as /uploads/...
   if (path.startsWith("/uploads")) return `${UPLOADS_URL}${path}`;
   if (path.startsWith("/")) return `${UPLOADS_URL}${path}`;
+  // Bare filename from older local uploads
   return `${UPLOADS_URL}/uploads/${path}`;
 }
 

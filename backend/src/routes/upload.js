@@ -1,7 +1,6 @@
 import { Router } from "express";
-import path from "path";
 import { requireAdmin, requireUser } from "../middleware/auth.js";
-import { upload, uploadsDir } from "../middleware/upload.js";
+import { persistFile, persistFiles, storageProvider, upload } from "../middleware/upload.js";
 import { asyncHandler } from "../utils/helpers.js";
 
 const router = Router();
@@ -11,15 +10,8 @@ router.post(
   requireAdmin,
   upload.array("files", 20),
   asyncHandler(async (req, res) => {
-    const files = (req.files || []).map((f) => ({
-      filename: f.filename,
-      url: `/uploads/${f.filename}`,
-      absoluteUrl: `${req.protocol}://${req.get("host")}/uploads/${f.filename}`,
-      mimetype: f.mimetype,
-      size: f.size,
-      originalName: f.originalname,
-    }));
-    res.status(201).json({ files });
+    const files = await persistFiles(req.files || [], req, { folder: "media" });
+    res.status(201).json({ files, provider: storageProvider });
   }),
 );
 
@@ -29,14 +21,8 @@ router.post(
   upload.single("file"),
   asyncHandler(async (req, res) => {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-    const f = req.file;
-    res.status(201).json({
-      filename: f.filename,
-      url: `/uploads/${f.filename}`,
-      absoluteUrl: `${req.protocol}://${req.get("host")}/uploads/${f.filename}`,
-      mimetype: f.mimetype,
-      size: f.size,
-    });
+    const saved = await persistFile(req.file, req, { folder: "media" });
+    res.status(201).json({ ...saved, provider: storageProvider });
   }),
 );
 
@@ -45,13 +31,8 @@ router.post(
   "/review",
   upload.array("files", 8),
   asyncHandler(async (req, res) => {
-    const files = (req.files || []).map((f) => ({
-      filename: f.filename,
-      url: `/uploads/${f.filename}`,
-      absoluteUrl: `${req.protocol}://${req.get("host")}/uploads/${f.filename}`,
-      mimetype: f.mimetype,
-    }));
-    res.status(201).json({ files });
+    const files = await persistFiles(req.files || [], req, { folder: "reviews" });
+    res.status(201).json({ files, provider: storageProvider });
   }),
 );
 
@@ -64,11 +45,12 @@ router.post(
     if (!String(req.file.mimetype || "").startsWith("image/")) {
       return res.status(400).json({ message: "Payment proof must be an image" });
     }
-    const url = `/uploads/${req.file.filename}`;
+    const saved = await persistFile(req.file, req, { folder: "payment-proofs" });
     res.status(201).json({
-      filename: req.file.filename,
-      url,
-      absoluteUrl: `${req.protocol}://${req.get("host")}${url}`,
+      filename: saved.filename,
+      url: saved.url,
+      absoluteUrl: saved.absoluteUrl,
+      provider: storageProvider,
     });
   }),
 );
@@ -79,12 +61,11 @@ router.post(
   upload.single("file"),
   asyncHandler(async (req, res) => {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-    const url = `/uploads/${req.file.filename}`;
-    req.user.avatar = url;
+    const saved = await persistFile(req.file, req, { folder: "avatars" });
+    req.user.avatar = saved.url;
     await req.user.save();
-    res.json({ user: req.user.toSafeJSON(), url });
+    res.json({ user: req.user.toSafeJSON(), url: saved.url, provider: storageProvider });
   }),
 );
 
 export default router;
-export { uploadsDir, path };

@@ -3,7 +3,7 @@ import Review from "../models/Review.js";
 import Product from "../models/Product.js";
 import { requireAdmin, optionalUser, requireUser } from "../middleware/auth.js";
 import { asyncHandler, defaultReviewerName } from "../utils/helpers.js";
-import { upload } from "../middleware/upload.js";
+import { upload, persistFileUrl } from "../middleware/upload.js";
 
 const router = Router();
 
@@ -54,13 +54,19 @@ router.post(
 
     const imageFiles = req.files?.images || [];
     const videoFiles = req.files?.videos || [];
+    const uploadedImages = await Promise.all(
+      imageFiles.map((f) => persistFileUrl(f, req, { folder: "reviews" })),
+    );
+    const uploadedVideos = await Promise.all(
+      videoFiles.map((f) => persistFileUrl(f, req, { folder: "reviews" })),
+    );
     const images = [
       ...(Array.isArray(req.body.imageUrls) ? req.body.imageUrls : []),
-      ...imageFiles.map((f) => `/uploads/${f.filename}`),
+      ...uploadedImages,
     ];
     const videos = [
       ...(Array.isArray(req.body.videoUrls) ? req.body.videoUrls : []),
-      ...videoFiles.map((f) => `/uploads/${f.filename}`),
+      ...uploadedVideos,
     ];
 
     const name = author?.trim() || req.user?.name || defaultReviewerName();
@@ -133,13 +139,19 @@ router.patch(
 
     const imageFiles = req.files?.images || [];
     const videoFiles = req.files?.videos || [];
+    const uploadedImages = await Promise.all(
+      imageFiles.map((f) => persistFileUrl(f, req, { folder: "reviews" })),
+    );
+    const uploadedVideos = await Promise.all(
+      videoFiles.map((f) => persistFileUrl(f, req, { folder: "reviews" })),
+    );
     review.images = [
       ...(Array.isArray(keepImages) ? keepImages : []),
-      ...imageFiles.map((f) => `/uploads/${f.filename}`),
+      ...uploadedImages,
     ].slice(0, 6);
     review.videos = [
       ...(Array.isArray(keepVideos) ? keepVideos : []),
-      ...videoFiles.map((f) => `/uploads/${f.filename}`),
+      ...uploadedVideos,
     ].slice(0, 2);
 
     // Keep author in sync with profile

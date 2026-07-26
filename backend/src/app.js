@@ -4,7 +4,8 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import { connectDB } from "./config/db.js";
-import { uploadsDir } from "./middleware/upload.js";
+import { cloudinaryEnabled } from "./config/cloudinary.js";
+import { storageProvider, uploadsDir } from "./middleware/upload.js";
 
 import authRoutes from "./routes/auth.js";
 import uploadRoutes from "./routes/upload.js";
@@ -60,7 +61,11 @@ app.use(
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.use("/uploads", express.static(uploadsDir));
+
+// Local disk fallback only — Cloudinary URLs are absolute CDN links.
+if (!cloudinaryEnabled) {
+  app.use("/uploads", express.static(uploadsDir));
+}
 
 /** Ensure DB is ready before any API handler (important on serverless). */
 app.use(async (_req, _res, next) => {
@@ -73,7 +78,13 @@ app.use(async (_req, _res, next) => {
 });
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "aperture-api", currency: "PKR" });
+  res.json({
+    ok: true,
+    service: "aperture-api",
+    currency: "PKR",
+    storage: storageProvider,
+    cloudinary: cloudinaryEnabled,
+  });
 });
 
 app.use("/api/auth", authRoutes);
