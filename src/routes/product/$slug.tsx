@@ -24,6 +24,12 @@ import { ProductCard } from "@/components/site/product-card";
 import { Rail, RailItem, Section, SectionHead } from "@/components/site/rail";
 import { MediaLightbox, type MediaItem } from "@/components/site/media-lightbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { getProduct, products, type Product, type Review } from "@/data/catalog";
@@ -165,13 +171,20 @@ function ProductPage() {
 
   return (
     <div>
-      <div className="mx-auto max-w-[1440px] px-4 pb-16 pt-6 md:px-10">
-        <nav className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+      <div className="mx-auto max-w-[1440px] px-4 pb-28 pt-4 md:px-10 md:pb-16 md:pt-6">
+        <nav className="hidden font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground md:block">
           <Link to="/">Home</Link> / <Link to="/shop">Shop</Link> /{" "}
           <span className="text-foreground">{product.name}</span>
         </nav>
+        <button
+          type="button"
+          onClick={() => window.history.back()}
+          className="mb-3 inline-flex items-center gap-1 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground md:hidden"
+        >
+          <ChevronLeft width={14} height={14} /> Back
+        </button>
 
-        <div className="mt-6 grid gap-10 md:grid-cols-2 md:gap-14">
+        <div className="mt-2 grid gap-8 md:mt-6 md:grid-cols-2 md:gap-14">
           {/* Gallery */}
           <div ref={galleryRef} className="md:sticky md:top-24 md:self-start">
             <div className="flex gap-3">
@@ -286,14 +299,14 @@ function ProductPage() {
             <Eyebrow>
               {product.brand} / {product.category}
             </Eyebrow>
-            <h1 className="mt-2 text-4xl md:text-5xl">{product.name}</h1>
+            <h1 className="mt-2 text-[1.75rem] leading-tight md:text-5xl">{product.name}</h1>
             <a href="#reviews" className="mt-3 flex items-center gap-2 text-muted-foreground">
               <Stars rating={product.rating} size={14} />
               <span className="font-mono text-xs underline">{product.reviewCount} reviews</span>
             </a>
 
-            <div className="mt-5 flex items-center gap-3">
-              <span className="font-mono text-2xl">{money(product.price)}</span>
+            <div className="mt-4 flex flex-wrap items-center gap-3 md:mt-5">
+              <span className="font-mono text-xl md:text-2xl">{money(product.price)}</span>
               {product.compareAt && (
                 <>
                   <span className="font-mono text-sm text-muted-foreground line-through">
@@ -421,24 +434,124 @@ function ProductPage() {
               Free delivery by Thu 30 Jul · Cash on Delivery available
             </p>
 
-            <div className="mt-6 grid grid-cols-3 divide-x divide-border border border-border">
+            <div className="mt-6 grid grid-cols-3 divide-x divide-border overflow-hidden rounded-2xl border border-border md:rounded-xl">
               {[
                 { icon: Lock, t: "Secure checkout" },
                 { icon: RotateCcw, t: "30-day returns" },
                 { icon: ShieldCheck, t: "1-year warranty" },
               ].map(({ icon: Icon, t }) => (
-                <div key={t} className="flex flex-col items-center gap-2 px-2 py-4 text-center">
+                <div key={t} className="flex flex-col items-center gap-1.5 px-1.5 py-3 text-center md:gap-2 md:px-2 md:py-4">
                   <Icon width={16} height={16} strokeWidth={1.4} />
-                  <span className="font-mono text-[9px] uppercase tracking-[0.14em]">{t}</span>
+                  <span className="font-mono text-[8px] uppercase tracking-[0.12em] md:text-[9px] md:tracking-[0.14em]">
+                    {t}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="mt-20" id="reviews">
-          <Tabs defaultValue="description">
+        {/* Detail sections — mobile accordion (reviews open), desktop tabs */}
+        <div className="mt-12 md:mt-20" id="reviews">
+          {/* Mobile */}
+          <Accordion
+            type="single"
+            collapsible
+            defaultValue="reviews"
+            className="w-full border-t border-border md:hidden"
+          >
+            <AccordionItem value="reviews" className="border-border">
+              <AccordionTrigger className="py-4 font-mono text-[12px] uppercase tracking-[0.16em] hover:no-underline">
+                Reviews ({product.reviewCount})
+              </AccordionTrigger>
+              <AccordionContent className="pb-6">
+                <ReviewsPanel
+                  product={product}
+                  breakdown={breakdown}
+                  userId={user?.id}
+                  onWrite={() => {
+                    setEditingReview(null);
+                    setReviewRating(5);
+                    setReviewBody("");
+                    setReviewAuthor("");
+                    setReviewFiles([]);
+                    setKeepImages([]);
+                    setKeepVideos([]);
+                    setReviewOpen(true);
+                  }}
+                  onOpenMedia={(url) => setLightboxIndex(mediaIndexOf(url))}
+                  onEdit={(r) => {
+                    setEditingReview(r);
+                    setReviewRating(r.rating);
+                    setReviewBody(r.body);
+                    setReviewFiles([]);
+                    const toPath = (u: string) => {
+                      const i = u.indexOf("/uploads/");
+                      return i >= 0 ? u.slice(i) : u;
+                    };
+                    setKeepImages((r.images || []).map(toPath));
+                    setKeepVideos((r.videos || []).map(toPath));
+                    setReviewOpen(true);
+                  }}
+                  onDelete={async (r) => {
+                    if (!confirm("Delete your review?")) return;
+                    try {
+                      await reviewApi.deleteMine(r.id);
+                      toast.success("Review deleted");
+                      window.location.reload();
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "Could not delete");
+                    }
+                  }}
+                />
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="description" className="border-border">
+              <AccordionTrigger className="py-4 font-mono text-[12px] uppercase tracking-[0.16em] hover:no-underline">
+                Description
+              </AccordionTrigger>
+              <AccordionContent className="pb-6 text-[15px] leading-relaxed text-muted-foreground">
+                {product.description}
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="specifications" className="border-border">
+              <AccordionTrigger className="py-4 font-mono text-[12px] uppercase tracking-[0.16em] hover:no-underline">
+                Specifications
+              </AccordionTrigger>
+              <AccordionContent className="pb-6">
+                <dl className="space-y-3">
+                  {product.specs.map((s) => (
+                    <div
+                      key={s.label}
+                      className="flex items-start justify-between gap-4 border-b border-border/70 pb-3 font-mono text-[13px] last:border-0"
+                    >
+                      <dt className="text-muted-foreground">{s.label}</dt>
+                      <dd className="max-w-[55%] text-right">{s.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="shipping" className="border-border">
+              <AccordionTrigger className="py-4 font-mono text-[12px] uppercase tracking-[0.16em] hover:no-underline">
+                Shipping & returns
+              </AccordionTrigger>
+              <AccordionContent className="space-y-3 pb-6 text-[15px] leading-relaxed text-muted-foreground">
+                <p>Standard delivery is 2–4 business days domestically, 5–9 days internationally.</p>
+                <p>Free over $75. Cash on Delivery available on domestic orders up to $600.</p>
+                <p>
+                  30-day returns, unused and in original packaging. We cover return shipping on
+                  faults.
+                </p>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+
+          {/* Desktop */}
+          <Tabs defaultValue="description" className="hidden md:block">
             <TabsList className="no-scrollbar h-auto w-full justify-start overflow-x-auto rounded-none border-b border-border bg-transparent p-0">
               {["description", "specifications", "reviews", "shipping"].map((t) => (
                 <TabsTrigger
@@ -471,83 +584,45 @@ function ProductPage() {
             </TabsContent>
 
             <TabsContent value="reviews" className="py-8">
-              <div className="grid gap-10 md:grid-cols-[280px_minmax(0,1fr)]">
-                <div>
-                  <p className="font-display text-6xl">{product.rating}</p>
-                  <Stars rating={product.rating} size={15} />
-                  <p className="mt-1 font-mono text-[11px] text-muted-foreground">
-                    {product.reviewCount} reviews
-                  </p>
-                  <div className="mt-5 space-y-2">
-                    {breakdown.map((b) => (
-                      <div key={b.star} className="flex items-center gap-2 font-mono text-[11px]">
-                        <span className="w-3">{b.star}</span>
-                        <span className="h-1.5 flex-1 bg-border">
-                          <span
-                            className="block h-full bg-foreground"
-                            style={{ width: `${b.pct}%` }}
-                          />
-                        </span>
-                        <span className="w-8 text-right">{b.pct}%</span>
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => {
-                      setEditingReview(null);
-                      setReviewRating(5);
-                      setReviewBody("");
-                      setReviewAuthor("");
-                      setReviewFiles([]);
-                      setKeepImages([]);
-                      setKeepVideos([]);
-                      setReviewOpen(true);
-                    }}
-                    className="mt-6 h-12 w-full border border-foreground font-mono text-xs uppercase tracking-[0.2em]"
-                  >
-                    Write a review
-                  </button>
-                </div>
-                {product.reviews.length === 0 ? (
-                  <p className="py-8 text-sm text-muted-foreground">
-                    No reviews yet — be the first to share your experience.
-                  </p>
-                ) : (
-                  <ul className="divide-y divide-border">
-                    {product.reviews.map((r) => (
-                      <ReviewItem
-                        key={r.id}
-                        review={r}
-                        isOwner={Boolean(user && r.userId && String(r.userId) === String(user.id))}
-                        onOpenMedia={(url) => setLightboxIndex(mediaIndexOf(url))}
-                        onEdit={() => {
-                          setEditingReview(r);
-                          setReviewRating(r.rating);
-                          setReviewBody(r.body);
-                          setReviewFiles([]);
-                          const toPath = (u: string) => {
-                            const i = u.indexOf("/uploads/");
-                            return i >= 0 ? u.slice(i) : u;
-                          };
-                          setKeepImages((r.images || []).map(toPath));
-                          setKeepVideos((r.videos || []).map(toPath));
-                          setReviewOpen(true);
-                        }}
-                        onDelete={async () => {
-                          if (!confirm("Delete your review?")) return;
-                          try {
-                            await reviewApi.deleteMine(r.id);
-                            toast.success("Review deleted");
-                            window.location.reload();
-                          } catch (err) {
-                            toast.error(err instanceof Error ? err.message : "Could not delete");
-                          }
-                        }}
-                      />
-                    ))}
-                  </ul>
-                )}
-              </div>
+              <ReviewsPanel
+                product={product}
+                breakdown={breakdown}
+                userId={user?.id}
+                onWrite={() => {
+                  setEditingReview(null);
+                  setReviewRating(5);
+                  setReviewBody("");
+                  setReviewAuthor("");
+                  setReviewFiles([]);
+                  setKeepImages([]);
+                  setKeepVideos([]);
+                  setReviewOpen(true);
+                }}
+                onOpenMedia={(url) => setLightboxIndex(mediaIndexOf(url))}
+                onEdit={(r) => {
+                  setEditingReview(r);
+                  setReviewRating(r.rating);
+                  setReviewBody(r.body);
+                  setReviewFiles([]);
+                  const toPath = (u: string) => {
+                    const i = u.indexOf("/uploads/");
+                    return i >= 0 ? u.slice(i) : u;
+                  };
+                  setKeepImages((r.images || []).map(toPath));
+                  setKeepVideos((r.videos || []).map(toPath));
+                  setReviewOpen(true);
+                }}
+                onDelete={async (r) => {
+                  if (!confirm("Delete your review?")) return;
+                  try {
+                    await reviewApi.deleteMine(r.id);
+                    toast.success("Review deleted");
+                    window.location.reload();
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Could not delete");
+                  }
+                }}
+              />
             </TabsContent>
 
             <TabsContent
@@ -828,6 +903,79 @@ function ProductPage() {
   );
 }
 
+function ReviewsPanel({
+  product,
+  breakdown,
+  userId,
+  onWrite,
+  onOpenMedia,
+  onEdit,
+  onDelete,
+}: {
+  product: Product;
+  breakdown: { star: number; pct: number }[];
+  userId?: string | number;
+  onWrite: () => void;
+  onOpenMedia: (url: string) => void;
+  onEdit: (r: Review) => void;
+  onDelete: (r: Review) => void | Promise<void>;
+}) {
+  return (
+    <div className="grid gap-6 md:grid-cols-[280px_minmax(0,1fr)] md:gap-10">
+      <div className="rounded-2xl border border-border bg-secondary/40 p-4 md:rounded-none md:border-0 md:bg-transparent md:p-0">
+        <div className="flex items-end gap-3 md:block">
+          <p className="font-display text-4xl md:text-6xl">{product.rating}</p>
+          <div className="pb-1 md:mt-0 md:pb-0">
+            <Stars rating={product.rating} size={15} />
+            <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+              {product.reviewCount} reviews
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 space-y-2 md:mt-5">
+          {breakdown.map((b) => (
+            <div key={b.star} className="flex items-center gap-2 font-mono text-[11px]">
+              <span className="w-3">{b.star}</span>
+              <span className="h-1.5 flex-1 rounded-full bg-border">
+                <span
+                  className="block h-full rounded-full bg-foreground"
+                  style={{ width: `${b.pct}%` }}
+                />
+              </span>
+              <span className="w-8 text-right">{b.pct}%</span>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={onWrite}
+          className="glass-sweep mt-5 h-12 w-full border border-foreground font-mono text-xs uppercase tracking-[0.2em] md:mt-6"
+        >
+          Write a review
+        </button>
+      </div>
+      {product.reviews.length === 0 ? (
+        <p className="py-4 text-sm text-muted-foreground md:py-8">
+          No reviews yet — be the first to share your experience.
+        </p>
+      ) : (
+        <ul className="divide-y divide-border">
+          {product.reviews.map((r) => (
+            <ReviewItem
+              key={r.id}
+              review={r}
+              isOwner={Boolean(userId && r.userId && String(r.userId) === String(userId))}
+              onOpenMedia={onOpenMedia}
+              onEdit={() => onEdit(r)}
+              onDelete={() => onDelete(r)}
+            />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function ReviewAvatar({ src, name, size = 40 }: { src?: string; name: string; size?: number }) {
   const [failed, setFailed] = useState(false);
   const dim = { width: size, height: size };
@@ -870,7 +1018,7 @@ function ReviewItem({
     ...(review.videos || []).map((url) => ({ url, type: "video" as const })),
   ];
   return (
-    <li className="py-6">
+    <li className="py-4 md:py-6">
       <div className="flex items-start gap-3">
         <ReviewAvatar src={review.authorImage} name={review.author} />
         <div className="min-w-0 flex-1">

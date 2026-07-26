@@ -119,7 +119,7 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
               <button
                 onClick={onSearch}
                 aria-label="Search"
-                className="grid h-11 w-11 place-items-center"
+                className="hidden h-11 w-11 place-items-center md:grid"
               >
                 <Search width={18} height={18} strokeWidth={1.5} />
               </button>
@@ -197,14 +197,14 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
   );
 }
 
-function BottomTabs() {
+function BottomTabs({ onSearch }: { onSearch: () => void }) {
   const { count, setCartOpen } = useStore();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const item = "grid h-full min-w-11 place-items-center gap-1";
   const label = "font-mono text-[9px] uppercase tracking-[0.14em]";
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[60] grid h-16 grid-cols-4 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-[60] grid h-16 grid-cols-5 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
       <Link to="/" className={cn(item, pathname === "/" ? "opacity-100" : "opacity-55")}>
         <Home width={19} height={19} strokeWidth={1.5} />
         <span className={label}>Home</span>
@@ -216,6 +216,17 @@ function BottomTabs() {
         <Store width={19} height={19} strokeWidth={1.5} />
         <span className={label}>Shop</span>
       </Link>
+      <button
+        type="button"
+        onClick={onSearch}
+        aria-label="Search"
+        className={cn(item, "opacity-100")}
+      >
+        <span className="grid h-10 w-10 place-items-center rounded-full border border-foreground bg-foreground text-background">
+          <Search width={18} height={18} strokeWidth={1.6} />
+        </span>
+        <span className={label}>Search</span>
+      </button>
       <Link
         to="/wishlist"
         className={cn(item, pathname.startsWith("/wishlist") ? "opacity-100" : "opacity-55")}
@@ -296,18 +307,17 @@ function Footer() {
 function PageTransition({ children }: { children: ReactNode }) {
   const reduce = useReducedMotion();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // No mode="wait" / exit — waiting for the previous page to fade out
+  // briefly flashes home (or shop) before the product page appears.
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div
-        key={pathname}
-        initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
-        animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
-        exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
-        transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }}
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
+    <motion.div
+      key={pathname}
+      initial={reduce ? false : { opacity: 0.01 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: reduce ? 0 : 0.18, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {children}
+    </motion.div>
   );
 }
 
@@ -329,7 +339,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
           <PageTransition>{children}</PageTransition>
         </main>
         <Footer />
-        <BottomTabs />
+        <BottomTabs onSearch={() => setSearchOpen(true)} />
         <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
         <CartDrawer />
       </div>
