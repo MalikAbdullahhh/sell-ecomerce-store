@@ -72,26 +72,43 @@ export function cloudinaryPublicStatus() {
 function formatCloudinaryError(err) {
   const http = err?.http_code || err?.statusCode || err?.status;
   const raw = err?.message || String(err);
-  if (/missing permissions|actions=\["create"\]/i.test(raw)) {
+  const detail = err?.error?.message || raw;
+
+  if (
+    /missing permissions|actions=\["create"\]/i.test(detail) ||
+    /missing permissions|actions=\["create"\]/i.test(raw)
+  ) {
     return new Error(
       `Cloudinary API key cannot upload (missing "create" permission). ` +
-        `In Cloudinary Console → Settings → API Keys, open this key and enable Upload/Create, ` +
-        `or create a new full-access key and update CLOUDINARY_API_KEY + CLOUDINARY_API_SECRET on the backend Vercel project.`,
+        `Cloudinary Console → Settings → API Keys → open this key → enable Upload/Create ` +
+        `(or create a new full-access API key). Then update CLOUDINARY_API_KEY + CLOUDINARY_API_SECRET ` +
+        `on the backend Vercel project and redeploy.`,
     );
   }
-  if (http === 401 || http === 403 || /status code - 40[13]/i.test(raw)) {
+
+  // Bare "403" from the SDK almost always means restricted key permissions or wrong secret.
+  if (http === 403 || /status code - 403/i.test(raw)) {
     return new Error(
-      `Cloudinary rejected the upload (${http || 403}). ` +
-        `On the backend Vercel project, set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET ` +
-        `(or CLOUDINARY_URL) to values from Cloudinary → Settings → API Keys, then redeploy. Details: ${raw}`,
+      `Cloudinary upload forbidden (403). Your API key is likely missing Upload/Create permission, ` +
+        `or the key/secret/cloud name do not match. ` +
+        `Fix in Cloudinary → Settings → API Keys, set env vars on the backend Vercel project, redeploy. ` +
+        `(${detail})`,
     );
   }
-  return err instanceof Error ? err : new Error(raw);
+
+  if (http === 401 || /status code - 401/i.test(raw)) {
+    return new Error(
+      `Cloudinary authentication failed (401). Check CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET on the backend Vercel project.`,
+    );
+  }
+
+  return err instanceof Error ? err : new Error(detail);
 }
 
 /**
  * Upload a Multer memory file (buffer) to Cloudinary.
  * Uses resource_type "auto" so images and videos both work.
+ * On 403, retries once via REST to capture X-Cld-Error for clearer messaging.
  */
 export function uploadBufferToCloudinary(file, { folder, publicId } = {}) {
   if (!cloudinaryEnabled) {
@@ -101,23 +118,62 @@ export function uploadBufferToCloudinary(file, { folder, publicId } = {}) {
     return Promise.reject(new Error("Missing file buffer for Cloudinary upload"));
   }
 
+  const options = {
+    folder: folder || CLOUDINARY_FOLDER,
+    public_id: publicId,
+    resource_type: "auto",
+    overwrite: false,
+    unique_filename: true,
+    use_filename: false,
+  };
+
   return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder: folder || CLOUDINARY_FOLDER,
-        public_id: publicId,
-        resource_type: "auto",
-        overwrite: false,
-        unique_filename: true,
-        use_filename: false,
-      },
-      (err, result) => {
-        if (err) return reject(formatCloudinaryError(err));
-        resolve(result);
-      },
-    );
+    const stream = cloudinary.uploader.upload_stream(options, async (err, result) => {
+      if (!err) return resolve(result);
+
+      const http = err?.http_code || err?.statusCode;
+      if (http === 403 || /status code - 403/i.test(err?.message || "")) {
+        try {
+          const detail = await probeCloudinaryForbidden(file);
+          return reject(formatCloudinaryError({ ...err, error: { message: detail }, message: detail, http_code: 403 }));
+        } catch {
+          return reject(formatCloudinaryError(err));
+        }
+      }
+      return reject(formatCloudinaryError(err));
+    });
     stream.end(file.buffer);
   });
+}
+
+/** Hit Upload API directly to read X-Cld-Error (SDK often strips it). */
+async function probeCloudinaryForbidden(file) {
+  const auth = Buffer.from(`${creds.api_key}:${creds.api_secret}`).toString("base64");
+  const form = new FormData();
+  form.append(
+    "file",
+    new Blob([file.buffer], { type: file.mimetype || "application/octet-stream" }),
+    file.originalname || "upload.bin",
+  );
+  form.append("folder", CLOUDINARY_FOLDER);
+
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${creds.cloud_name}/auto/upload`,
+    {
+      method: "POST",
+      headers: { Authorization: `Basic ${auth}` },
+      body: form,
+    },
+  );
+  const headerErr = res.headers.get("x-cld-error");
+  let bodyMsg = "";
+  try {
+    const json = await res.json();
+    bodyMsg = json?.error?.message || "";
+  } catch {
+    /* ignore */
+  }
+  return headerErr || bodyMsg || `HTTP ${res.status}`;
 }
 
 export { cloudinary };

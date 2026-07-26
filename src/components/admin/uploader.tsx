@@ -24,13 +24,17 @@ export function Uploader({
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
 
   async function onPick(files: FileList | null) {
     if (!files?.length) return;
+    const list = Array.from(files);
     setBusy(true);
+    setProgress({ done: 0, total: list.length });
     try {
-      const list = Array.from(files);
+      // Upload in one request; update progress when the request settles.
       const { files: uploaded } = await adminApi.upload(list);
+      setProgress({ done: list.length, total: list.length });
       const urls = uploaded.map((f) => f.url);
       onChange(multiple ? [...value, ...urls] : urls.slice(0, 1));
       toast.success(urls.length === 1 ? "Uploaded" : `${urls.length} files uploaded`);
@@ -38,22 +42,39 @@ export function Uploader({
       toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setBusy(false);
+      setProgress(null);
       if (inputRef.current) inputRef.current.value = "";
     }
   }
 
   function remove(idx: number) {
+    if (busy) return;
     onChange(value.filter((_, i) => i !== idx));
   }
 
   return (
-    <div className={cn("space-y-2", className)}>
-      <div className="flex flex-wrap gap-2">
+    <div className={cn("relative space-y-2", className)}>
+      {busy && (
+        <div
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 border border-border bg-background/85 backdrop-blur-sm"
+          role="status"
+          aria-live="polite"
+        >
+          <Loader2 width={22} height={22} className="animate-spin" />
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em]">
+            Uploading
+            {progress ? ` ${progress.done}/${progress.total}` : "…"}
+          </p>
+          <p className="text-xs text-muted-foreground">Please wait — do not close this panel</p>
+        </div>
+      )}
+
+      <div className={cn("flex flex-wrap gap-2", busy && "pointer-events-none opacity-40")}>
         {value.map((url, i) => {
           const src = mediaUrl(url);
-          const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(url);
+          const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(url) || /\/video\//i.test(url);
           return (
-            <div key={`${url}-${i}`} className="relative h-20 w-20 border border-border">
+            <div key={`${url}-${i}`} className="relative h-20 w-20 overflow-hidden border border-border">
               {isVideo ? (
                 <video src={src} className="h-full w-full object-cover" muted />
               ) : (
@@ -90,12 +111,14 @@ export function Uploader({
         accept={accept}
         multiple={multiple}
         className="hidden"
+        disabled={busy}
         onChange={(e) => onPick(e.target.files)}
       />
-      <div className="flex gap-2">
+      <div className={cn("flex gap-2", busy && "pointer-events-none opacity-40")}>
         <input
           placeholder="Or paste URL"
-          className="h-9 flex-1 border border-border bg-transparent px-2 font-mono text-xs outline-none focus:border-foreground"
+          disabled={busy}
+          className="h-9 flex-1 border border-border bg-transparent px-2 font-mono text-xs outline-none focus:border-foreground disabled:opacity-50"
           onKeyDown={(e) => {
             if (e.key !== "Enter") return;
             e.preventDefault();

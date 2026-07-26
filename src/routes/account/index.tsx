@@ -80,6 +80,11 @@ function Account() {
                   <UserIcon width={28} height={28} strokeWidth={1.4} />
                 </span>
               )}
+              {avatarBusy && (
+                <div className="absolute inset-0 z-10 grid place-items-center bg-background/70">
+                  <span className="h-6 w-6 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
+                </div>
+              )}
               <button
                 type="button"
                 disabled={avatarBusy}
@@ -87,7 +92,7 @@ function Account() {
                 className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-foreground/85 py-1 font-mono text-[9px] uppercase tracking-[0.14em] text-background disabled:opacity-60"
               >
                 <Camera width={11} height={11} />
-                {avatarBusy ? "…" : "Photo"}
+                {avatarBusy ? "Uploading…" : "Photo"}
               </button>
               <input
                 ref={avatarInputRef}

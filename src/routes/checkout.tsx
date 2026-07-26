@@ -459,8 +459,16 @@ function Checkout() {
                         className={field}
                         placeholder="Transaction ID (optional)"
                       />
-                      <label className="flex min-h-12 cursor-pointer items-center justify-between gap-3 border border-dashed border-border px-3 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors hover:border-foreground">
-                        <span>
+                      <label
+                        className={cn(
+                          "relative flex min-h-12 cursor-pointer items-center justify-between gap-3 border border-dashed border-border px-3 font-mono text-[11px] uppercase tracking-[0.14em] transition-colors hover:border-foreground",
+                          uploadingProof && "pointer-events-none opacity-70",
+                        )}
+                      >
+                        <span className="inline-flex items-center gap-2">
+                          {uploadingProof && (
+                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
+                          )}
                           {uploadingProof
                             ? "Uploading…"
                             : paymentProofUrl

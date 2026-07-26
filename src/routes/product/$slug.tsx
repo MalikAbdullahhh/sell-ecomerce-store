@@ -733,14 +733,27 @@ function ProductPage() {
               }}
               className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto bg-background p-6"
             >
+              {reviewSaving && (
+                <div
+                  className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-2 bg-background/85 backdrop-blur-sm"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <span className="h-7 w-7 animate-spin rounded-full border-2 border-foreground border-t-transparent" />
+                  <p className="font-mono text-[11px] uppercase tracking-[0.16em]">
+                    {reviewFiles.length ? "Uploading media…" : "Saving review…"}
+                  </p>
+                </div>
+              )}
               <button
                 type="button"
                 aria-label="Close review"
+                disabled={reviewSaving}
                 onClick={() => {
                   setReviewOpen(false);
                   setEditingReview(null);
                 }}
-                className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center hover:bg-secondary"
+                className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center hover:bg-secondary disabled:opacity-40"
               >
                 <X width={18} />
               </button>
