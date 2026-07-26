@@ -133,7 +133,7 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
               <Link
                 to="/account"
                 aria-label="Account"
-                className="hidden h-11 w-11 place-items-center md:grid"
+                className="grid h-11 w-11 place-items-center"
               >
                 <User width={18} height={18} strokeWidth={1.5} />
               </Link>
@@ -197,14 +197,14 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
   );
 }
 
-function BottomTabs({ onSearch }: { onSearch: () => void }) {
+function BottomTabs() {
   const { count, setCartOpen } = useStore();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const item = "grid h-full min-w-11 place-items-center gap-1";
   const label = "font-mono text-[9px] uppercase tracking-[0.14em]";
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[60] grid h-16 grid-cols-6 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-[60] grid h-16 grid-cols-4 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
       <Link to="/" className={cn(item, pathname === "/" ? "opacity-100" : "opacity-55")}>
         <Home width={19} height={19} strokeWidth={1.5} />
         <span className={label}>Home</span>
@@ -216,10 +216,6 @@ function BottomTabs({ onSearch }: { onSearch: () => void }) {
         <Store width={19} height={19} strokeWidth={1.5} />
         <span className={label}>Shop</span>
       </Link>
-      <button onClick={onSearch} className={cn(item, "opacity-55")}>
-        <Search width={19} height={19} strokeWidth={1.5} />
-        <span className={label}>Search</span>
-      </button>
       <Link
         to="/wishlist"
         className={cn(item, pathname.startsWith("/wishlist") ? "opacity-100" : "opacity-55")}
@@ -236,13 +232,6 @@ function BottomTabs({ onSearch }: { onSearch: () => void }) {
         )}
         <span className={label}>Cart</span>
       </button>
-      <Link
-        to="/account"
-        className={cn(item, pathname.startsWith("/account") ? "opacity-100" : "opacity-55")}
-      >
-        <User width={19} height={19} strokeWidth={1.5} />
-        <span className={label}>Profile</span>
-      </Link>
     </nav>
   );
 }
@@ -340,7 +329,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
           <PageTransition>{children}</PageTransition>
         </main>
         <Footer />
-        <BottomTabs onSearch={() => setSearchOpen(true)} />
+        <BottomTabs />
         <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
         <CartDrawer />
       </div>

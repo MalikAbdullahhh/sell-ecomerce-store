@@ -4,7 +4,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import { connectDB } from "./config/db.js";
-import { cloudinaryEnabled } from "./config/cloudinary.js";
+import { cloudinaryEnabled, cloudinaryPublicStatus } from "./config/cloudinary.js";
 import { storageProvider, uploadsDir } from "./middleware/upload.js";
 import { ensureAdminFromEnv } from "./bootstrap/ensureAdmin.js";
 
@@ -89,7 +89,7 @@ app.get("/api/health", (_req, res) => {
     service: "aperture-api",
     currency: "PKR",
     storage: storageProvider,
-    cloudinary: cloudinaryEnabled,
+    cloudinary: cloudinaryPublicStatus(),
   });
 });
 
@@ -106,8 +106,12 @@ app.use("/api/newsletter", newsletterRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
-  const status = err.status || err.name === "ValidationError" ? 400 : 500;
-  res.status(typeof status === "number" ? status : 500).json({
+  const status =
+    err.status ||
+    err.http_code ||
+    (err.name === "ValidationError" ? 400 : 500);
+  const code = typeof status === "number" ? status : 500;
+  res.status(code >= 400 && code < 600 ? code : 500).json({
     message: err.message || "Server error",
   });
 });

@@ -291,7 +291,13 @@ function Account() {
             if (mode === "login") await login(email, password);
             else await register({ name: String(form.get("name") || ""), email, password });
             toast.success(mode === "login" ? "Signed in." : "Account created.");
-            navigate({ to: "/", hash: "newsletter" });
+            await navigate({ to: "/", resetScroll: true });
+            // Lenis + scroll restoration can leave mid-page; force top.
+            requestAnimationFrame(() => {
+              window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+              document.documentElement.scrollTop = 0;
+              document.body.scrollTop = 0;
+            });
           } catch (err) {
             toast.error(err instanceof Error ? err.message : "Authentication failed");
           } finally {
