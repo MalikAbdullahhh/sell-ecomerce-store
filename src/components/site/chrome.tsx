@@ -1,9 +1,11 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
+  Facebook,
   Heart,
   Home,
   Instagram,
+  Linkedin,
   Moon,
   Search,
   ShoppingBag,
@@ -11,6 +13,7 @@ import {
   Sun,
   User,
   X,
+  Youtube,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePageContent } from "@/lib/page-content";
@@ -367,6 +370,43 @@ function BottomTabs({ onSearch, searchOpen }: { onSearch: () => void; searchOpen
   );
 }
 
+const SOCIAL_ORDER = [
+  "instagram",
+  "facebook",
+  "twitter",
+  "x",
+  "youtube",
+  "tiktok",
+  "linkedin",
+] as const;
+
+function XSocialIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.727-8.835L1.254 2.25H8.08l4.253 5.622L18.244 2.25zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77z" />
+    </svg>
+  );
+}
+
+function TikTokIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 0 0-.79-.05A6.34 6.34 0 0 0 3.15 15.3a6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.73a8.19 8.19 0 0 0 4.76 1.52V6.79a4.85 4.85 0 0 1-1-.1z" />
+    </svg>
+  );
+}
+
+function SocialIcon({ network }: { network: string }) {
+  const key = network.toLowerCase();
+  if (key === "instagram") return <Instagram width={16} height={16} />;
+  if (key === "facebook") return <Facebook width={16} height={16} />;
+  if (key === "youtube") return <Youtube width={16} height={16} />;
+  if (key === "linkedin") return <Linkedin width={16} height={16} />;
+  if (key === "twitter" || key === "x") return <XSocialIcon />;
+  if (key === "tiktok") return <TikTokIcon />;
+  return <span className="font-mono text-[10px] uppercase">{key.slice(0, 2)}</span>;
+}
+
 function Footer() {
   const { settings } = useStore();
   const { name: brandName } = useBrand();
@@ -392,7 +432,15 @@ function Footer() {
   const copyright =
     (brand.copyright || "").replace(/\bAperture(?: Instruments)?\b/gi, brandName) ||
     `© ${year} ${brandName}`;
-  const instagram = settings?.social?.instagram?.trim();
+
+  const socialEntries = Object.entries(settings?.social || {})
+    .map(([network, url]) => [network, (url || "").trim()] as const)
+    .filter(([, url]) => Boolean(url))
+    .sort(([a], [b]) => {
+      const ai = SOCIAL_ORDER.indexOf(a.toLowerCase() as (typeof SOCIAL_ORDER)[number]);
+      const bi = SOCIAL_ORDER.indexOf(b.toLowerCase() as (typeof SOCIAL_ORDER)[number]);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
 
   return (
     <footer className="band border-t border-white/10 bg-ink text-paper dark:bg-[oklch(0.2_0_0)]">
@@ -401,17 +449,20 @@ function Footer() {
           <div>
             <p className="font-display text-2xl font-semibold tracking-[-0.04em]">{brandName}</p>
             <p className="mt-3 max-w-xs text-sm text-paper/70">{blurb}</p>
-            {instagram ? (
-              <div className="mt-5 flex gap-3">
-                <a
-                  href={instagram}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Instagram"
-                  className="grid h-11 w-11 place-items-center border border-white/25 transition-opacity hover:opacity-70"
-                >
-                  <Instagram width={16} height={16} />
-                </a>
+            {socialEntries.length > 0 ? (
+              <div className="mt-5 flex flex-wrap gap-3">
+                {socialEntries.map(([network, url]) => (
+                  <a
+                    key={network}
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={network === "twitter" || network === "x" ? "X" : network.charAt(0).toUpperCase() + network.slice(1)}
+                    className="grid h-11 w-11 place-items-center border border-white/25 transition-opacity hover:opacity-70"
+                  >
+                    <SocialIcon network={network} />
+                  </a>
+                ))}
               </div>
             ) : null}
           </div>

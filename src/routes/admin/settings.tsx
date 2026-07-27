@@ -19,7 +19,14 @@ const emptySettings = (): SiteSettings => ({
   announcementEmojis: ["🎉", "😊", "✨"],
   announcementSpeed: 28,
   contact: { email: "", phone: "", whatsapp: "", hours: "", address: "" },
-  social: { instagram: "", facebook: "", twitter: "", youtube: "", tiktok: "" },
+  social: {
+    instagram: "",
+    facebook: "",
+    twitter: "",
+    youtube: "",
+    tiktok: "",
+    linkedin: "",
+  },
   payment: {
     codEnabled: true,
     onlineEnabled: true,
