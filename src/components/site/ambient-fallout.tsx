@@ -54,13 +54,13 @@ export function AmbientFallout() {
         return (
           <motion.div
             key={i}
-            className="absolute text-primary/20 dark:text-primary/25"
+            className="absolute text-primary/10 dark:text-primary/14"
             style={{ left: p.left, top: "-8%" }}
             animate={{
               y: ["0vh", "112vh"],
               x: [0, p.drift, 0],
               rotate: [0, p.drift > 0 ? 18 : -18, 0],
-              opacity: [0, 0.55, 0.55, 0],
+              opacity: [0, 0.35, 0.35, 0],
             }}
             transition={{
               duration: p.duration,

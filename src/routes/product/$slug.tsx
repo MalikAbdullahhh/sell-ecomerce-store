@@ -179,15 +179,7 @@ function ProductPage() {
   const nextImage = useCallback(() => goImage(imgIndex + 1, 1), [goImage, imgIndex]);
 
   return (
-    <div className="relative overflow-hidden">
-      <div
-        className="premium-blob -left-18 top-28 h-56 w-56 bg-primary/30 md:h-72 md:w-72"
-        aria-hidden
-      />
-      <div
-        className="premium-blob right-0 top-[42%] h-52 w-52 bg-[oklch(0.48_0.18_32/.28)] [animation-delay:1.7s]"
-        aria-hidden
-      />
+    <div className="relative">
       <div className="mx-auto max-w-[1440px] px-4 pb-28 pt-4 md:px-10 md:pb-16 md:pt-6">
         <nav className="hidden font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground md:block">
           <Link to="/">Home</Link> / <Link to="/shop">Shop</Link> /{" "}
@@ -1100,7 +1092,7 @@ function ReviewsPanel({
 }) {
   return (
     <div className="grid gap-6 md:grid-cols-[280px_minmax(0,1fr)] md:gap-10">
-      <div className="premium-surface premium-glow rounded-2xl border border-border p-4 md:rounded-none md:border-0 md:bg-transparent md:p-0">
+      <div className="rounded-2xl border border-border bg-card p-4 md:rounded-none md:border-0 md:bg-transparent md:p-0">
         <div className="flex items-end gap-3 md:block">
           <p className="font-display text-4xl md:text-6xl">{product.rating}</p>
           <div className="pb-1 md:mt-0 md:pb-0">
@@ -1114,9 +1106,9 @@ function ReviewsPanel({
           {breakdown.map((b) => (
             <div key={b.star} className="flex items-center gap-2 font-mono text-[11px]">
               <span className="w-3">{b.star}</span>
-              <span className="h-1.5 flex-1 rounded-full bg-border">
+              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                 <span
-                  className="premium-badge block h-full rounded-full"
+                  className="block h-full rounded-full bg-primary"
                   style={{ width: `${b.pct}%` }}
                 />
               </span>
@@ -1127,7 +1119,7 @@ function ReviewsPanel({
         <button
           type="button"
           onClick={onWrite}
-          className="glass-sweep glass-sweep-ink premium-pill mt-5 h-14 w-full font-mono text-[13px] uppercase tracking-[0.18em] md:mt-6 md:h-12 md:text-xs md:tracking-[0.2em]"
+          className="premium-badge mt-5 h-14 w-full font-mono text-[13px] uppercase tracking-[0.18em] md:mt-6 md:h-12 md:text-xs md:tracking-[0.2em]"
         >
           Write a review
         </button>

@@ -35,6 +35,7 @@ export function ProductCard({ product, className }: { product: Product; classNam
       <Link
         to="/product/$slug"
         params={{ slug: product.slug }}
+        preload="intent"
         className="product-card-glass premium-surface premium-glow crosshair relative block aspect-square overflow-hidden border border-border"
       >
         <motion.img
@@ -106,7 +107,12 @@ export function ProductCard({ product, className }: { product: Product; classNam
 
       <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
         <div className="min-w-0">
-          <Link to="/product/$slug" params={{ slug: product.slug }} className="block">
+          <Link
+            to="/product/$slug"
+            params={{ slug: product.slug }}
+            preload="intent"
+            className="block"
+          >
             <h3 className="truncate text-[15px] font-medium tracking-tight transition-opacity duration-300 group-hover:opacity-80">
               {product.name}
             </h3>

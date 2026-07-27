@@ -9,7 +9,10 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
-    defaultPreloadStaleTime: 0,
+    defaultPreload: "intent",
+    defaultPreloadStaleTime: 30_000,
+    // Keep previous page until the next route is ready — avoids blank/home flash mid-nav.
+    defaultPendingMs: 200,
   });
 
   return router;

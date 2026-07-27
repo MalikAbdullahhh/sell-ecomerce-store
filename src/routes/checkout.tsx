@@ -323,7 +323,7 @@ function Checkout() {
           {user && (
             <Link
               to="/account/orders"
-              className="glass-sweep grid h-12 place-items-center bg-foreground px-8 font-mono text-xs uppercase tracking-[0.22em] text-background"
+              className="glass-sweep grid h-12 place-items-center bg-primary px-8 font-mono text-xs uppercase tracking-[0.22em] text-primary-foreground"
             >
               Track order
             </Link>
@@ -347,7 +347,7 @@ function Checkout() {
             </a>
             <a
               href={`https://wa.me/${contact.whatsapp.replace(/\D/g, "")}`}
-              className="flex h-11 items-center gap-2 bg-foreground px-4 font-mono text-xs text-background"
+              className="flex h-11 items-center gap-2 bg-primary px-4 font-mono text-xs text-primary-foreground"
             >
               <MessageCircle width={15} /> WhatsApp
             </a>
@@ -368,7 +368,7 @@ function Checkout() {
             <span
               className={cn(
                 "h-1 flex-1 transition-colors duration-500",
-                i <= step ? "bg-foreground" : "bg-border",
+                i <= step ? "bg-primary" : "bg-border",
               )}
             />
             <span
@@ -638,7 +638,7 @@ function Checkout() {
                         type="button"
                         onClick={() => void applyDiscount()}
                         disabled={applyingDiscount || !discountInput.trim()}
-                        className="h-11 border border-foreground px-4 font-mono text-[11px] uppercase tracking-[0.18em] disabled:opacity-50"
+                        className="h-11 bg-primary px-4 font-mono text-[11px] uppercase tracking-[0.18em] text-primary-foreground disabled:opacity-50"
                       >
                         {applyingDiscount ? "…" : "Apply"}
                       </button>
@@ -724,7 +724,7 @@ function Checkout() {
             <button
               onClick={continueStep}
               disabled={placing || lines.length === 0}
-              className="glass-sweep h-12 bg-foreground px-8 font-mono text-xs uppercase tracking-[0.22em] text-background"
+              className="glass-sweep h-12 bg-primary px-8 font-mono text-xs uppercase tracking-[0.22em] text-primary-foreground"
             >
               {placing ? "Placing…" : step === 2 ? "Place order" : "Continue"}
             </button>
@@ -755,7 +755,7 @@ function Checkout() {
               type="button"
               onClick={() => void applyDiscount()}
               disabled={applyingDiscount || !discountInput.trim()}
-              className="h-11 border border-foreground px-4 font-mono text-[11px] uppercase tracking-[0.18em] disabled:opacity-50"
+              className="h-11 bg-primary px-4 font-mono text-[11px] uppercase tracking-[0.18em] text-primary-foreground disabled:opacity-50"
             >
               {applyingDiscount ? "…" : "Apply"}
             </button>
@@ -819,7 +819,7 @@ function Checkout() {
           </a>
           <a
             href={`https://wa.me/${(settings?.contact.whatsapp || "").replace(/\D/g, "")}`}
-            className="flex h-11 items-center gap-2 bg-foreground px-4 font-mono text-xs text-background"
+            className="flex h-11 items-center gap-2 bg-primary px-4 font-mono text-xs text-primary-foreground"
           >
             <MessageCircle width={15} /> WhatsApp
           </a>
@@ -875,7 +875,7 @@ function Checkout() {
                 <button
                   onClick={() => (accountMode ? void placeOrder(true) : setAccountMode(true))}
                   disabled={placing}
-                  className="h-12 bg-foreground px-4 font-mono text-xs uppercase tracking-[0.18em] text-background disabled:opacity-50"
+                  className="h-12 bg-primary px-4 font-mono text-xs uppercase tracking-[0.18em] text-primary-foreground disabled:opacity-50"
                 >
                   {accountMode ? "Create & place order" : "Continue with account"}
                 </button>
@@ -967,7 +967,7 @@ function Checkout() {
                     type="button"
                     onClick={() => void applyDiscount()}
                     disabled={applyingDiscount || !discountInput.trim()}
-                    className="h-11 border border-foreground px-4 font-mono text-[11px] uppercase tracking-[0.18em] disabled:opacity-50"
+                    className="h-11 bg-primary px-4 font-mono text-[11px] uppercase tracking-[0.18em] text-primary-foreground disabled:opacity-50"
                   >
                     {applyingDiscount ? "…" : "Apply"}
                   </button>
@@ -999,7 +999,7 @@ function Checkout() {
           <button
             onClick={continueStep}
             disabled={placing || lines.length === 0}
-            className="glass-sweep h-12 flex-1 bg-foreground font-mono text-xs uppercase tracking-[0.22em] text-background"
+            className="glass-sweep h-12 flex-1 bg-primary font-mono text-xs uppercase tracking-[0.22em] text-primary-foreground"
           >
             {placing ? "Placing…" : step === 2 ? "Place order" : "Continue"}
           </button>

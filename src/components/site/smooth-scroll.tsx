@@ -18,14 +18,16 @@ const options = {
 function ScrollToTopOnNavigate() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const hash = useRouterState({ select: (s) => s.location.hash });
+  // Wait until the new route is ready — scrolling during pending shows the old page at top (home flash).
+  const status = useRouterState({ select: (s) => s.status });
   const lenis = useLenis();
 
   useEffect(() => {
-    // Only force top when there is no hash target (anchors handle #sections).
     if (hash) return;
+    if (status !== "idle") return;
     lenis?.scrollTo(0, { immediate: true });
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-  }, [pathname, hash, lenis]);
+  }, [pathname, hash, lenis, status]);
 
   return null;
 }
