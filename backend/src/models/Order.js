@@ -65,6 +65,7 @@ const orderSchema = new mongoose.Schema(
     },
     chargesTotal: { type: Number, default: 0 },
     discount: { type: Number, default: 0 },
+    couponCode: { type: String, default: "" },
     total: { type: Number, required: true },
     currency: { type: String, default: "PKR" },
     notes: { type: String, default: "" },

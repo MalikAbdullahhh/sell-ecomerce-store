@@ -99,7 +99,7 @@ function AggregateRating({
         <>
           <motion.div
             aria-hidden
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[120%] w-[70%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-foreground/[0.06] blur-3xl"
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[120%] w-[70%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/20 blur-3xl"
             animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.9, 0.5] }}
             transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
           />
@@ -107,7 +107,7 @@ function AggregateRating({
             <motion.div
               key={i}
               aria-hidden
-              className="pointer-events-none absolute text-foreground/10"
+              className="pointer-events-none absolute text-primary/25"
               style={{ left: f.left, top: f.top }}
               animate={{ y: [0, -14, 0], rotate: [0, 12, 0], opacity: [0.3, 0.7, 0.3] }}
               transition={{
@@ -133,7 +133,7 @@ function AggregateRating({
             whileInView={reduce ? { opacity: 1 } : { opacity: 1, scale: 1, filter: "blur(0px)" }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-3 font-display text-[24vw] leading-[0.85] md:text-[11rem]"
+            className="premium-text mt-3 font-display text-[24vw] leading-[0.85] md:text-[11rem]"
           >
             {rating.toFixed(1)}
           </motion.p>
@@ -165,9 +165,7 @@ function Index() {
   const trendingBand = section<Band & { actionLabel: string }>("trending");
   const categoriesBand = section<Band>("categories");
   const arrivalsBand = section<Band & { actionLabel: string }>("arrivals");
-  const story = section<
-    Band & { body: string; linkLabel: string; image: string }
-  >("brandStory");
+  const story = section<Band & { body: string; linkLabel: string; image: string }>("brandStory");
   const promises = section<{
     visible: boolean;
     items: { icon: string; title: string; subtitle: string }[];
@@ -230,13 +228,13 @@ function Index() {
 
       {/* Flash sale */}
       {flash.visible !== false && (
-        <section className="band mt-8 bg-ink text-paper md:mt-12 dark:bg-[oklch(0.2_0_0)]">
+        <section className="band mt-8 bg-[linear-gradient(125deg,oklch(0.26_0.07_30),oklch(0.2_0.025_32)_48%,oklch(0.28_0.1_28))] text-paper md:mt-12">
           <div className="mx-auto grid max-w-[1440px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-6 md:px-10">
             <div className="min-w-0">
               <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-paper/55">
                 {flash.eyebrow}
               </p>
-              <p className="mt-1 truncate text-lg md:text-xl">{flash.title}</p>
+              <p className="premium-text mt-1 truncate text-lg md:text-xl">{flash.title}</p>
             </div>
             {flash.showCountdown !== false && <Countdown hours={flash.countdownHours} />}
           </div>

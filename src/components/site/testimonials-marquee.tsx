@@ -79,7 +79,7 @@ function Card({ t }: { t: TestimonialDoc }) {
   );
 
   return (
-    <article className="flex w-[300px] shrink-0 flex-col border border-border bg-card p-5 dark:border-white/15 dark:bg-[oklch(0.22_0_0)] sm:w-[340px]">
+    <article className="testimonial-card flex w-[300px] shrink-0 flex-col p-5 sm:w-[340px]">
       {metaTop ? meta : person}
       <p className="mt-4 text-sm leading-relaxed text-foreground/90">
         {highlightMentions(t.quote)}
@@ -139,7 +139,7 @@ export function TestimonialsMarquee({
   const b = row2.length ? row2 : items.slice(Math.ceil(items.length / 2));
 
   return (
-    <section className="overflow-hidden border-y border-border/60 bg-background py-14 md:py-20 dark:bg-[oklch(0.16_0_0)]">
+    <section className="relative overflow-hidden border-y border-border/40 bg-background/60 py-14 backdrop-blur-[2px] md:py-20">
       <div className="mx-auto max-w-[1440px] px-4 md:px-10">
         <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
           {eyebrow || "Verified purchasers"}

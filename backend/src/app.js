@@ -18,6 +18,7 @@ import journalRoutes from "./routes/journals.js";
 import cmsRoutes from "./routes/cms.js";
 import adminRoutes from "./routes/admin.js";
 import newsletterRoutes from "./routes/newsletter.js";
+import discountsRoutes from "./routes/discounts.js";
 
 const app = express();
 
@@ -98,6 +99,7 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/discounts", discountsRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/journals", journalRoutes);
 app.use("/api/cms", cmsRoutes);

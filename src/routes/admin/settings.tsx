@@ -34,6 +34,7 @@ const emptySettings = (): SiteSettings => ({
   },
   shipping: { freeThreshold: 0, flatFee: 0, giftFee: 0, currency: "PKR" },
   extraCharges: [],
+  discountCodes: [],
   help: { callLabel: "", whatsappLabel: "", helpText: "" },
   newsletter: {
     enabled: true,
@@ -94,6 +95,7 @@ function AdminSettings() {
       },
       shipping: { ...emptySettings().shipping, ...data.settings.shipping },
       extraCharges: data.settings.extraCharges || [],
+      discountCodes: Array.isArray(data.settings.discountCodes) ? data.settings.discountCodes : [],
       help: { ...emptySettings().help, ...data.settings.help },
     });
   }, [data]);
@@ -481,6 +483,118 @@ function AdminSettings() {
                   >
                     ×
                   </button>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="space-y-3 border border-border p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-mono text-[11px] uppercase tracking-[0.18em]">Discount codes</h2>
+              <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+                Limit usage by total redemptions (used uses increments on successful orders).
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                setForm((f) => ({
+                  ...f,
+                  discountCodes: [
+                    ...(f.discountCodes || []),
+                    {
+                      code: "",
+                      type: "percent",
+                      value: 0,
+                      maxUses: 0,
+                      usedUses: 0,
+                      enabled: true,
+                    },
+                  ],
+                }))
+              }
+              className="border border-foreground px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em]"
+            >
+              + Add code
+            </button>
+          </div>
+
+          {(form.discountCodes || []).length === 0 && (
+            <p className="font-mono text-[11px] text-muted-foreground">No discount codes yet.</p>
+          )}
+
+          <div className="space-y-3">
+            {(form.discountCodes || []).map((dc, i) => {
+              const update = (patch: Partial<(typeof form.discountCodes)[number]>) =>
+                setForm((f) => ({
+                  ...f,
+                  discountCodes: (f.discountCodes || []).map((c, idx) =>
+                    idx === i ? { ...c, ...patch } : c,
+                  ),
+                }));
+
+              return (
+                <div
+                  key={i}
+                  className="grid grid-cols-[minmax(0,1fr)_100px_120px_auto] items-center gap-2"
+                >
+                  <input
+                    className={adminField}
+                    placeholder="Code (e.g. GENZ10)"
+                    value={dc.code || ""}
+                    onChange={(e) => update({ code: e.target.value })}
+                  />
+                  <select
+                    className={adminField}
+                    value={dc.type || "percent"}
+                    onChange={(e) => update({ type: e.target.value as "percent" | "flat" })}
+                  >
+                    <option value="percent">Percent (%)</option>
+                    <option value="flat">Flat (Rs)</option>
+                  </select>
+                  <input
+                    type="number"
+                    className={adminField}
+                    placeholder="Value"
+                    value={Number(dc.value) || 0}
+                    onChange={(e) => update({ value: Number(e.target.value) || 0 })}
+                  />
+
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.12em]">
+                      <input
+                        type="checkbox"
+                        checked={dc.enabled !== false}
+                        onChange={(e) => update({ enabled: e.target.checked })}
+                      />
+                      On
+                    </label>
+                  </div>
+
+                  <input
+                    type="number"
+                    className={adminField}
+                    placeholder="Max uses"
+                    value={Number(dc.maxUses) || 0}
+                    onChange={(e) => update({ maxUses: Number(e.target.value) || 0 })}
+                  />
+
+                  <div className="flex items-center justify-between gap-2 col-span-4">
+                    <p className="font-mono text-[11px] text-muted-foreground">
+                      Used: <span className="text-foreground">{Number(dc.usedUses) || 0}</span> /{" "}
+                      <span className="text-foreground">{Number(dc.maxUses) || 0}</span>
+                    </p>
+                    <button
+                      type="button"
+                      className="border border-border px-3 py-2 font-mono text-[10px] uppercase tracking-[0.16em] disabled:opacity-50"
+                      disabled={!(Number(dc.usedUses) > 0)}
+                      onClick={() => update({ usedUses: 0 })}
+                    >
+                      Reset used
+                    </button>
+                  </div>
                 </div>
               );
             })}

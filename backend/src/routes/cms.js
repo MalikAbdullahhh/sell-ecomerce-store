@@ -17,6 +17,11 @@ async function ensureSettings() {
     s.extraCharges = [];
     await s.save();
   }
+  // Migrate older documents that predate discount codes.
+  if (!Array.isArray(s.discountCodes)) {
+    s.discountCodes = [];
+    await s.save();
+  }
   // Migrate leftover seed/default brand name to the current store default.
   const current = (s.brandName || "").trim();
   if (!current || current === "APERTURE" || current === "Aperture") {
@@ -57,6 +62,7 @@ router.put(
       "newsletter",
       "testimonialsSection",
       "extraCharges",
+      "discountCodes",
       "instagramShots",
     ];
     for (const key of allowed) {

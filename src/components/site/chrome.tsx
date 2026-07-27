@@ -19,6 +19,7 @@ import { DEFAULT_TAGLINE } from "@/lib/brand";
 import { useBrand, useStore } from "@/lib/store";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { AmbientFallout } from "./ambient-fallout";
 import { CartDrawer } from "./cart-drawer";
 import { SearchOverlay } from "./search-overlay";
 import { AnnouncementMarquee } from "./announcement-marquee";
@@ -211,13 +212,7 @@ const jellySpring = {
   restSpeed: 0.001,
 };
 
-function BottomTabs({
-  onSearch,
-  searchOpen,
-}: {
-  onSearch: () => void;
-  searchOpen: boolean;
-}) {
+function BottomTabs({ onSearch, searchOpen }: { onSearch: () => void; searchOpen: boolean }) {
   const { count, setCartOpen, cartOpen } = useStore();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const reduce = useReducedMotion();
@@ -324,9 +319,7 @@ function BottomTabs({
           <span
             className={cn(
               "absolute right-2 top-1 z-20 grid h-4 min-w-4 place-items-center px-1 font-mono text-[9px] transition-colors duration-500",
-              active === "cart"
-                ? "bg-background text-foreground"
-                : "bg-foreground text-background",
+              active === "cart" ? "bg-background text-foreground" : "bg-foreground text-background",
             )}
           >
             {count}
@@ -443,16 +436,19 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
 
   return (
     <SmoothScroll>
-      <div className="flex min-h-screen flex-col">
-        <AnnouncementMarquee />
-        <TopBar onSearch={() => setSearchOpen(true)} />
-        <main className="flex-1 pb-16 md:pb-0">
-          <PageTransition>{children}</PageTransition>
-        </main>
-        <Footer />
-        <BottomTabs onSearch={() => setSearchOpen(true)} searchOpen={searchOpen} />
-        <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
-        <CartDrawer />
+      <div className="relative flex min-h-screen flex-col">
+        <AmbientFallout />
+        <div className="relative z-[2] flex min-h-screen flex-col">
+          <AnnouncementMarquee />
+          <TopBar onSearch={() => setSearchOpen(true)} />
+          <main className="flex-1 pb-16 md:pb-0">
+            <PageTransition>{children}</PageTransition>
+          </main>
+          <Footer />
+          <BottomTabs onSearch={() => setSearchOpen(true)} searchOpen={searchOpen} />
+          <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
+          <CartDrawer />
+        </div>
       </div>
     </SmoothScroll>
   );

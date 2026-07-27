@@ -104,7 +104,9 @@ export const cmsApi = {
     api<{ faqs: { group: string; items: { q: string; a: string; id: string }[] }[] }>("/cms/faqs"),
   testimonials: () => api<{ testimonials: TestimonialDoc[] }>("/cms/testimonials"),
   legalList: () =>
-    api<{ docs: { slug: string; title: string; summary: string; updated?: string }[] }>("/cms/legal"),
+    api<{ docs: { slug: string; title: string; summary: string; updated?: string }[] }>(
+      "/cms/legal",
+    ),
   legal: (slug: string) => api<{ doc: LegalDocApi }>(`/cms/legal/${slug}`),
 };
 
@@ -117,6 +119,21 @@ export const orderApi = {
     fd.append("file", file);
     return api<{ url: string }>("/upload/payment-proof", { method: "POST", formData: fd });
   },
+};
+
+export const discountApi = {
+  validate: (body: { code: string; subtotal: number }) =>
+    api<{
+      valid: true;
+      code: string;
+      type: "percent" | "flat";
+      value: number;
+      discountAmount: number;
+      discountedSubtotal: number;
+      maxUses: number;
+      usedUses: number;
+      remainingUses: number;
+    }>("/discounts/validate", { method: "POST", body }),
 };
 
 export const newsletterApi = {
@@ -391,6 +408,14 @@ export type SiteSettings = {
     currency: string;
   };
   extraCharges?: ExtraCharge[];
+  discountCodes?: {
+    code: string;
+    type: "percent" | "flat";
+    value: number;
+    maxUses: number;
+    usedUses: number;
+    enabled?: boolean;
+  }[];
   help: {
     callLabel: string;
     whatsappLabel: string;
@@ -518,6 +543,8 @@ export type OrderDoc = {
   shippingFee: number;
   charges?: { label: string; amount: number }[];
   chargesTotal?: number;
+  discount?: number;
+  couponCode?: string;
   total: number;
   currency: string;
   estimatedDelivery?: string;
@@ -545,6 +572,7 @@ export type OrderPayload = {
     gift?: boolean;
     giftMessage?: string;
   }[];
+  discountCode?: string;
   notes?: string;
   createAccount?: boolean;
   accountPassword?: string;

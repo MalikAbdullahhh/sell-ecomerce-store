@@ -29,6 +29,7 @@ router.post(
       accountPassword,
       transactionId,
       paymentProof,
+      discountCode,
     } = req.body;
 
     if (!shipping?.name?.trim()) return res.status(400).json({ message: "Name is required" });
@@ -98,24 +99,52 @@ router.post(
       });
     }
 
-    const shippingFee = subtotal === 0 || subtotal >= freeThreshold ? 0 : flatFee;
+    // Optional discount code applied at checkout.
+    let discountAmount = 0;
+    let discountedSubtotal = subtotal;
+    const normalizedCode = String(discountCode || "").trim().toUpperCase();
+    if (normalizedCode) {
+      const coupon = (settings.discountCodes || []).find(
+        (c) => String(c.code || "").trim().toUpperCase() === normalizedCode && c.enabled !== false,
+      );
+
+      if (!coupon) return res.status(400).json({ message: "Invalid discount code" });
+
+      const maxUses = Number(coupon.maxUses) || 0;
+      const usedUses = Number(coupon.usedUses) || 0;
+      const remainingUses = maxUses - usedUses;
+      if (remainingUses <= 0) return res.status(400).json({ message: "Discount code exhausted" });
+
+      const value = Number(coupon.value) || 0;
+      if (value > 0 && subtotal > 0) {
+        discountAmount =
+          coupon.type === "percent"
+            ? Math.round((subtotal * value) / 100)
+            : Math.round(value);
+        discountAmount = Math.max(0, Math.min(subtotal, discountAmount));
+        discountedSubtotal = subtotal - discountAmount;
+      }
+    }
+
+    const shippingFee =
+      discountedSubtotal === 0 || discountedSubtotal >= freeThreshold ? 0 : flatFee;
 
     // Admin-defined extra charges (tax, delivery surcharge, handling, …).
-    // Percentage charges are computed against the goods subtotal.
+    // Percentage charges are computed against the discounted goods subtotal.
     const charges = [];
     let chargesTotal = 0;
     for (const charge of settings.extraCharges || []) {
       if (!charge || charge.enabled === false || !charge.label) continue;
       const amount =
         charge.type === "percent"
-          ? Math.round((subtotal * (Number(charge.value) || 0)) / 100)
+          ? Math.round((discountedSubtotal * (Number(charge.value) || 0)) / 100)
           : Number(charge.value) || 0;
       if (amount <= 0) continue;
       charges.push({ label: charge.label, amount });
       chargesTotal += amount;
     }
 
-    const total = subtotal + giftTotal + shippingFee + chargesTotal;
+    const total = discountedSubtotal + giftTotal + shippingFee + chargesTotal;
 
     let user = req.user || null;
     let accountToken = null;
@@ -179,6 +208,8 @@ router.post(
       shippingFee,
       charges,
       chargesTotal,
+      discount: discountAmount,
+      couponCode: normalizedCode || "",
       total,
       currency: "PKR",
       notes: notes || "",
@@ -195,6 +226,17 @@ router.post(
       if (p && p.stock <= 0) {
         p.inStock = false;
         await p.save();
+      }
+    }
+
+    // Consume discount code usage after successful order placement.
+    if (normalizedCode && discountAmount > 0) {
+      const idx = (settings.discountCodes || []).findIndex(
+        (c) => String(c.code || "").trim().toUpperCase() === normalizedCode && c.enabled !== false,
+      );
+      if (idx >= 0) {
+        settings.discountCodes[idx].usedUses = Number(settings.discountCodes[idx].usedUses) + 1;
+        await settings.save();
       }
     }
 

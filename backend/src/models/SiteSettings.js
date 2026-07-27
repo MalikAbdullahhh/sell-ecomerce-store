@@ -72,6 +72,22 @@ const siteSettingsSchema = new mongoose.Schema(
       ],
       default: [{ label: "Tax", type: "percent", value: 0, enabled: false }],
     },
+    // Admin-managed discount codes usable at checkout.
+    // Stores remaining uses in-place (usedUses is incremented when orders are placed).
+    discountCodes: {
+      type: [
+        {
+          code: { type: String, required: true },
+          type: { type: String, enum: ["percent", "flat"], default: "percent" },
+          value: { type: Number, default: 0 },
+          maxUses: { type: Number, default: 0 }, // total redemptions allowed
+          usedUses: { type: Number, default: 0 }, // increments on successful order placement
+          enabled: { type: Boolean, default: true },
+          _id: false,
+        },
+      ],
+      default: [],
+    },
     help: {
       callLabel: { type: String, default: "Call us" },
       whatsappLabel: { type: String, default: "WhatsApp" },

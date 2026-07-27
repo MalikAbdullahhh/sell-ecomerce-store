@@ -35,18 +35,14 @@ export function ProductCard({ product, className }: { product: Product; classNam
       <Link
         to="/product/$slug"
         params={{ slug: product.slug }}
-        className="product-card-glass crosshair relative block aspect-square overflow-hidden border border-border bg-secondary"
+        className="product-card-glass premium-surface premium-glow crosshair relative block aspect-square overflow-hidden border border-border"
       >
         <motion.img
           src={product.images[0]}
           alt={product.name}
           loading="lazy"
           animate={
-            reduce
-              ? undefined
-              : hover
-                ? { scale: 1.06, opacity: 0 }
-                : { scale: 1, opacity: 1 }
+            reduce ? undefined : hover ? { scale: 1.06, opacity: 0 } : { scale: 1, opacity: 1 }
           }
           transition={soft}
           className="absolute inset-0 h-full w-full object-cover"
@@ -116,7 +112,7 @@ export function ProductCard({ product, className }: { product: Product; classNam
             </h3>
           </Link>
           <p className="mt-1 flex items-center gap-2 font-mono text-[13px]">
-            {money(product.price)}
+            <span className="premium-text">{money(product.price)}</span>
             {product.compareAt && (
               <span className="text-muted-foreground line-through">{money(product.compareAt)}</span>
             )}

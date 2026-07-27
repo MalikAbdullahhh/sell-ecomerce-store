@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Minus,
   Plus,
@@ -16,6 +16,10 @@ import {
   Trash2,
   ChevronLeft,
   ChevronRight,
+  Truck,
+  Zap,
+  Check,
+  Sparkles,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -38,6 +42,7 @@ import { catalogApi, mediaUrl, reviewApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
+const spring = { type: "spring" as const, stiffness: 420, damping: 28, mass: 0.7 };
 export const Route = createFileRoute("/product/$slug")({
   loader: async ({ params }) => {
     let product: Product | undefined;
@@ -74,6 +79,7 @@ function ProductPage() {
   const { product } = Route.useLoaderData() as { product: Product };
   const { addToCart, setCartOpen, products: liveProducts, settings } = useStore();
   const { user } = useAuth();
+  const reduce = useReducedMotion();
   const giftFee = settings?.shipping?.giftFee ?? GIFT_FEE;
   const contact = settings?.contact;
   const [color, setColor] = useState(product.colors[0].label);
@@ -84,6 +90,7 @@ function ProductPage() {
   const [gift, setGift] = useState(false);
   const [giftMessage, setGiftMessage] = useState("");
   const [showSticky, setShowSticky] = useState(false);
+  const [addedPulse, setAddedPulse] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewSaving, setReviewSaving] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
@@ -154,6 +161,8 @@ function ProductPage() {
   const add = () => {
     addToCart({ slug: product.slug, color, size, qty, gift, giftMessage });
     setCartOpen(true);
+    setAddedPulse(true);
+    window.setTimeout(() => setAddedPulse(false), 1400);
     toast(`${product.name} × ${qty} added to cart`);
   };
 
@@ -170,7 +179,15 @@ function ProductPage() {
   const nextImage = useCallback(() => goImage(imgIndex + 1, 1), [goImage, imgIndex]);
 
   return (
-    <div>
+    <div className="relative overflow-hidden">
+      <div
+        className="premium-blob -left-18 top-28 h-56 w-56 bg-primary/30 md:h-72 md:w-72"
+        aria-hidden
+      />
+      <div
+        className="premium-blob right-0 top-[42%] h-52 w-52 bg-[oklch(0.48_0.18_32/.28)] [animation-delay:1.7s]"
+        aria-hidden
+      />
       <div className="mx-auto max-w-[1440px] px-4 pb-28 pt-4 md:px-10 md:pb-16 md:pt-6">
         <nav className="hidden font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground md:block">
           <Link to="/">Home</Link> / <Link to="/shop">Shop</Link> /{" "}
@@ -190,21 +207,25 @@ function ProductPage() {
             <div className="flex gap-3">
               <div className="hidden w-16 shrink-0 flex-col gap-2 md:flex">
                 {product.images.map((src, i) => (
-                  <button
+                  <motion.button
                     key={src}
                     type="button"
+                    whileHover={reduce ? undefined : { scale: 1.04 }}
+                    whileTap={reduce ? undefined : { scale: 0.96 }}
                     onClick={() => goImage(i, i > imgIndex ? 1 : -1)}
                     className={cn(
-                      "aspect-square overflow-hidden border transition-opacity duration-300",
-                      i === imgIndex ? "border-foreground opacity-100" : "border-border opacity-55 hover:opacity-90",
+                      "aspect-square overflow-hidden border transition-all duration-300",
+                      i === imgIndex
+                        ? "border-primary opacity-100 ring-1 ring-primary/50"
+                        : "border-border opacity-55 hover:opacity-90",
                     )}
                   >
                     <img src={src} alt="" className="h-full w-full object-cover" />
-                  </button>
+                  </motion.button>
                 ))}
               </div>
               <div
-                className="crosshair relative aspect-square w-full touch-pan-y overflow-hidden border border-border bg-secondary select-none"
+                className="crosshair relative aspect-square w-full touch-pan-y overflow-hidden border border-border bg-secondary select-none premium-glow"
                 onKeyDown={(e) => {
                   if (e.key === "ArrowLeft") {
                     e.preventDefault();
@@ -251,7 +272,17 @@ function ProductPage() {
                     draggable={false}
                   />
                 </AnimatePresence>
-                <Brackets size={26} className="pointer-events-none text-foreground" />
+                <Brackets size={26} className="pointer-events-none text-primary/70" />
+
+                {discount > 0 && (
+                  <motion.div
+                    initial={reduce ? false : { opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute left-3 top-3 z-10"
+                  >
+                    <Tag>−{discount}%</Tag>
+                  </motion.div>
+                )}
 
                 {imageCount > 1 && (
                   <>
@@ -259,7 +290,7 @@ function ProductPage() {
                       type="button"
                       aria-label="Previous image"
                       onClick={prevImage}
-                      className="absolute left-2 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center border border-foreground/20 bg-background/80 text-foreground backdrop-blur-sm transition-all duration-300 hover:bg-foreground hover:text-background md:left-3"
+                      className="absolute left-2 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center border border-foreground/20 bg-background/80 text-foreground backdrop-blur-sm transition-all duration-300 hover:border-primary hover:bg-primary hover:text-primary-foreground md:left-3"
                     >
                       <ChevronLeft width={20} height={20} strokeWidth={1.5} />
                     </button>
@@ -267,12 +298,13 @@ function ProductPage() {
                       type="button"
                       aria-label="Next image"
                       onClick={nextImage}
-                      className="absolute right-2 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center border border-foreground/20 bg-background/80 text-foreground backdrop-blur-sm transition-all duration-300 hover:bg-foreground hover:text-background md:right-3"
+                      className="absolute right-2 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center border border-foreground/20 bg-background/80 text-foreground backdrop-blur-sm transition-all duration-300 hover:border-primary hover:bg-primary hover:text-primary-foreground md:right-3"
                     >
                       <ChevronRight width={20} height={20} strokeWidth={1.5} />
                     </button>
                     <div className="pointer-events-none absolute bottom-3 right-3 z-10 bg-background/75 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground backdrop-blur-sm">
-                      {String(imgIndex + 1).padStart(2, "0")} / {String(imageCount).padStart(2, "0")}
+                      {String(imgIndex + 1).padStart(2, "0")} /{" "}
+                      {String(imageCount).padStart(2, "0")}
                     </div>
                   </>
                 )}
@@ -287,7 +319,7 @@ function ProductPage() {
                   onClick={() => goImage(i, i > imgIndex ? 1 : -1)}
                   className={cn(
                     "h-1.5 transition-all duration-300",
-                    i === imgIndex ? "w-7 bg-foreground" : "w-4 bg-border",
+                    i === imgIndex ? "w-7 bg-primary" : "w-4 bg-border",
                   )}
                 />
               ))}
@@ -299,45 +331,99 @@ function ProductPage() {
             <Eyebrow>
               {product.brand} / {product.category}
             </Eyebrow>
-            <h1 className="mt-2 text-[1.75rem] leading-tight md:text-5xl">{product.name}</h1>
-            <a href="#reviews" className="mt-3 flex items-center gap-2 text-muted-foreground">
+            <motion.h1
+              initial={reduce ? false : { opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className="mt-2 text-[1.75rem] leading-tight md:text-5xl"
+            >
+              {product.name}
+            </motion.h1>
+            <a
+              href="#reviews"
+              className="mt-3 inline-flex items-center gap-2 rounded-full border border-border/80 bg-secondary/50 px-3 py-1.5 text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            >
               <Stars rating={product.rating} size={14} />
-              <span className="font-mono text-xs underline">{product.reviewCount} reviews</span>
+              <span className="font-mono text-xs">
+                {product.rating.toFixed(1)} · {product.reviewCount} reviews
+              </span>
             </a>
 
             <div className="mt-4 flex flex-wrap items-center gap-3 md:mt-5">
-              <span className="font-mono text-xl md:text-2xl">{money(product.price)}</span>
+              <motion.span
+                key={`${product.price}-${qty}`}
+                initial={reduce ? false : { opacity: 0.4, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="premium-text font-mono text-xl md:text-2xl"
+              >
+                {money(product.price * qty)}
+              </motion.span>
               {product.compareAt && (
                 <>
                   <span className="font-mono text-sm text-muted-foreground line-through">
-                    {money(product.compareAt)}
+                    {money(product.compareAt * qty)}
                   </span>
                   <Tag>Save {discount}%</Tag>
                 </>
+              )}
+              {qty > 1 && (
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                  {money(product.price)} each
+                </span>
               )}
             </div>
 
             <p className="mt-5 max-w-md text-muted-foreground">{product.short}</p>
 
+            {/* Soft highlight chips — icons only, no childish emoji */}
+            <div className="mt-5 flex flex-wrap gap-2">
+              {[
+                { icon: Truck, label: "Fast dispatch", tone: "text-primary" },
+                { icon: Zap, label: "COD available", tone: "text-amber-500 dark:text-amber-400" },
+                {
+                  icon: ShieldCheck,
+                  label: "1-yr cover",
+                  tone: "text-emerald-600 dark:text-emerald-400",
+                },
+              ].map(({ icon: Icon, label, tone }) => (
+                <motion.span
+                  key={label}
+                  whileHover={reduce ? undefined : { y: -2 }}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-secondary/40 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-foreground/80"
+                >
+                  <Icon width={12} height={12} className={tone} strokeWidth={1.8} />
+                  {label}
+                </motion.span>
+              ))}
+            </div>
+
             {product.stock > 0 && product.stock <= 6 && (
-              <p className="mt-4 inline-block bg-foreground px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-background">
+              <motion.p
+                animate={reduce ? undefined : { opacity: [1, 0.72, 1] }}
+                transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                className="premium-badge mt-4 inline-block px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em]"
+              >
                 Only {product.stock} left
-              </p>
+              </motion.p>
             )}
 
             {/* Variants */}
             <div className="mt-8">
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] opacity-60">Finish</p>
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] opacity-60">
+                Finish · <span className="text-primary">{color}</span>
+              </p>
               <div className="mt-3 flex gap-2">
                 {product.colors.map((c) => (
-                  <button
+                  <motion.button
                     key={c.id}
+                    type="button"
+                    whileTap={reduce ? undefined : { scale: 0.94 }}
                     onClick={() => setColor(c.label)}
                     className={cn(
-                      "flex h-11 items-center gap-2 border px-3 font-mono text-[11px]",
+                      "flex h-11 items-center gap-2 border px-3 font-mono text-[11px] transition-all",
                       color === c.label
-                        ? "border-foreground ring-1 ring-foreground"
-                        : "border-border",
+                        ? "border-primary ring-1 ring-primary"
+                        : "border-border hover:border-primary/50",
                     )}
                   >
                     <span
@@ -349,7 +435,7 @@ function ProductPage() {
                       aria-hidden="true"
                     />
                     {c.label}
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -361,18 +447,20 @@ function ProductPage() {
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {product.sizes.map((s) => (
-                    <button
+                    <motion.button
                       key={s.id}
+                      type="button"
+                      whileTap={reduce ? undefined : { scale: 0.94 }}
                       onClick={() => setSize(s.label)}
                       className={cn(
                         "h-11 border px-4 font-mono text-[11px] transition-colors",
                         size === s.label
-                          ? "border-foreground bg-foreground text-background"
-                          : "border-border hover:border-foreground",
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border hover:border-primary/60",
                       )}
                     >
                       {s.label}
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
               </div>
@@ -380,43 +468,82 @@ function ProductPage() {
 
             {/* Qty + actions */}
             <div className="mt-8 flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
-              <div className="flex h-14 w-full items-center justify-between border border-border md:h-12 md:w-auto md:justify-start">
-                <button
+              <div className="premium-pill flex h-14 w-full items-center justify-between md:h-12 md:w-auto md:justify-start">
+                <motion.button
+                  type="button"
                   aria-label="Decrease"
+                  whileTap={reduce ? undefined : { scale: 0.88 }}
                   onClick={() => setQty(Math.max(1, qty - 1))}
                   className="no-glass grid h-14 w-14 place-items-center md:h-12 md:w-12"
                 >
                   <Minus width={16} height={16} />
-                </button>
-                <span className="min-w-10 text-center font-mono text-base md:w-8 md:text-sm">
-                  {qty}
-                </span>
-                <button
+                </motion.button>
+                <AnimatePresence mode="popLayout">
+                  <motion.span
+                    key={qty}
+                    initial={reduce ? false : { y: 8, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={reduce ? undefined : { y: -8, opacity: 0 }}
+                    transition={spring}
+                    className="premium-text min-w-10 text-center font-mono text-base md:w-8 md:text-sm"
+                  >
+                    {qty}
+                  </motion.span>
+                </AnimatePresence>
+                <motion.button
+                  type="button"
                   aria-label="Increase"
+                  whileTap={reduce ? undefined : { scale: 0.88 }}
                   onClick={() => setQty(qty + 1)}
                   className="no-glass grid h-14 w-14 place-items-center md:h-12 md:w-12"
                 >
                   <Plus width={16} height={16} />
-                </button>
+                </motion.button>
               </div>
-              <button
+              <motion.button
+                type="button"
                 onClick={add}
                 disabled={!product.inStock}
-                className="glass-sweep glass-sweep-strong h-14 w-full bg-foreground px-8 font-mono text-[13px] uppercase tracking-[0.18em] text-background disabled:opacity-40 md:h-12 md:flex-1 md:text-xs md:tracking-[0.22em]"
+                whileHover={reduce || !product.inStock ? undefined : { scale: 1.015 }}
+                whileTap={reduce || !product.inStock ? undefined : { scale: 0.98 }}
+                className="glass-sweep glass-sweep-strong premium-badge relative h-14 w-full overflow-hidden px-8 font-mono text-[13px] uppercase tracking-[0.18em] text-background disabled:opacity-40 md:h-12 md:flex-1 md:text-xs md:tracking-[0.22em]"
               >
-                {product.inStock ? "Add to cart" : "Sold out"}
-              </button>
+                <AnimatePresence mode="wait">
+                  {addedPulse ? (
+                    <motion.span
+                      key="ok"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      className="inline-flex items-center gap-2"
+                    >
+                      <Check width={15} height={15} /> Added
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="cta"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      className="inline-flex items-center gap-2"
+                    >
+                      <Sparkles width={14} height={14} />
+                      {product.inStock ? "Add to cart" : "Sold out"}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.button>
               <Link
                 to="/checkout"
                 onClick={add}
-                className="glass-sweep glass-sweep-ink grid h-14 w-full place-items-center border border-foreground px-8 font-mono text-[13px] uppercase tracking-[0.18em] md:h-12 md:flex-1 md:text-xs md:tracking-[0.22em]"
+                className="glass-sweep glass-sweep-ink grid h-14 w-full place-items-center border border-primary/70 px-8 font-mono text-[13px] uppercase tracking-[0.18em] transition-colors hover:bg-primary hover:text-primary-foreground md:h-12 md:flex-1 md:text-xs md:tracking-[0.22em]"
               >
                 Buy now
               </Link>
             </div>
 
             {/* Gift wrap */}
-            <div className="mt-6 border border-border p-4">
+            <div className="mt-6 rounded-xl border border-border/80 bg-secondary/30 p-4">
               <div className="flex items-center justify-between gap-4">
                 <span className="font-mono text-xs">Add gift wrapping (+{money(giftFee)})</span>
                 <Switch checked={gift} onCheckedChange={setGift} />
@@ -436,20 +563,51 @@ function ProductPage() {
               Free delivery by Thu 30 Jul · Cash on Delivery available
             </p>
 
-            <div className="mt-6 grid grid-cols-3 divide-x divide-border overflow-hidden rounded-2xl border border-border md:rounded-xl">
+            <div className="mt-6 grid grid-cols-3 overflow-hidden rounded-2xl border border-border/70 md:rounded-xl">
               {[
-                { icon: Lock, t: "Secure checkout" },
-                { icon: RotateCcw, t: "30-day returns" },
-                { icon: ShieldCheck, t: "1-year warranty" },
-              ].map(({ icon: Icon, t }) => (
-                <div key={t} className="flex flex-col items-center gap-1.5 px-1.5 py-3 text-center md:gap-2 md:px-2 md:py-4">
-                  <Icon width={16} height={16} strokeWidth={1.4} />
+                { icon: Lock, t: "Secure checkout", tone: "text-primary" },
+                { icon: RotateCcw, t: "30-day returns", tone: "text-sky-500 dark:text-sky-400" },
+                {
+                  icon: ShieldCheck,
+                  t: "1-year warranty",
+                  tone: "text-emerald-600 dark:text-emerald-400",
+                },
+              ].map(({ icon: Icon, t, tone }) => (
+                <motion.div
+                  key={t}
+                  whileHover={
+                    reduce
+                      ? undefined
+                      : { backgroundColor: "color-mix(in oklab, var(--primary) 8%, transparent)" }
+                  }
+                  className="flex flex-col items-center gap-1.5 border-r border-border/70 px-1.5 py-3 text-center last:border-r-0 md:gap-2 md:px-2 md:py-4"
+                >
+                  <Icon width={16} height={16} strokeWidth={1.4} className={tone} />
                   <span className="font-mono text-[8px] uppercase tracking-[0.12em] md:text-[9px] md:tracking-[0.14em]">
                     {t}
                   </span>
-                </div>
+                </motion.div>
               ))}
             </div>
+
+            {product.specs.length > 0 && (
+              <div className="mt-6">
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                  Key specs
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {product.specs.slice(0, 4).map((s) => (
+                    <span
+                      key={s.label}
+                      className="rounded-lg border border-border/60 bg-background/60 px-2.5 py-1.5 font-mono text-[11px]"
+                    >
+                      <span className="text-muted-foreground">{s.label}</span>{" "}
+                      <span className="text-foreground">{s.value}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -541,7 +699,9 @@ function ProductPage() {
                 Shipping & returns
               </AccordionTrigger>
               <AccordionContent className="space-y-3 pb-6 text-[15px] leading-relaxed text-muted-foreground">
-                <p>Standard delivery is 2–4 business days domestically, 5–9 days internationally.</p>
+                <p>
+                  Standard delivery is 2–4 business days domestically, 5–9 days internationally.
+                </p>
                 <p>Free over $75. Cash on Delivery available on domestic orders up to $600.</p>
                 <p>
                   30-day returns, unused and in original packaging. We cover return shipping on
@@ -552,13 +712,13 @@ function ProductPage() {
           </Accordion>
 
           {/* Desktop */}
-          <Tabs defaultValue="description" className="hidden md:block">
+          <Tabs defaultValue="reviews" className="hidden md:block">
             <TabsList className="no-scrollbar h-auto w-full justify-start overflow-x-auto rounded-none border-b border-border bg-transparent p-0">
               {["description", "specifications", "reviews", "shipping"].map((t) => (
                 <TabsTrigger
                   key={t}
                   value={t}
-                  className="rounded-none border-b-2 border-transparent px-4 py-3 font-mono text-[11px] uppercase tracking-[0.18em] data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                  className="rounded-none border-b-2 border-transparent px-4 py-3 font-mono text-[11px] uppercase tracking-[0.18em] data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none"
                 >
                   {t}
                 </TabsTrigger>
@@ -902,11 +1062,11 @@ function ProductPage() {
             exit={{ y: 80 }}
             className="fixed bottom-16 left-0 right-0 z-40 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-t border-border bg-background/95 p-3 backdrop-blur md:hidden"
           >
-            <span className="font-mono text-base">{money(product.price)}</span>
+            <span className="premium-text font-mono text-base">{money(product.price * qty)}</span>
             <button
               onClick={add}
               disabled={!product.inStock}
-              className="glass-sweep glass-sweep-strong h-14 bg-foreground font-mono text-[13px] uppercase tracking-[0.18em] text-background disabled:opacity-40"
+              className="glass-sweep glass-sweep-strong premium-badge h-14 font-mono text-[13px] uppercase tracking-[0.18em] text-background disabled:opacity-40"
             >
               Add to cart
             </button>
@@ -936,7 +1096,7 @@ function ReviewsPanel({
 }) {
   return (
     <div className="grid gap-6 md:grid-cols-[280px_minmax(0,1fr)] md:gap-10">
-      <div className="rounded-2xl border border-border bg-secondary/40 p-4 md:rounded-none md:border-0 md:bg-transparent md:p-0">
+      <div className="premium-surface premium-glow rounded-2xl border border-border p-4 md:rounded-none md:border-0 md:bg-transparent md:p-0">
         <div className="flex items-end gap-3 md:block">
           <p className="font-display text-4xl md:text-6xl">{product.rating}</p>
           <div className="pb-1 md:mt-0 md:pb-0">
@@ -952,7 +1112,7 @@ function ReviewsPanel({
               <span className="w-3">{b.star}</span>
               <span className="h-1.5 flex-1 rounded-full bg-border">
                 <span
-                  className="block h-full rounded-full bg-foreground"
+                  className="premium-badge block h-full rounded-full"
                   style={{ width: `${b.pct}%` }}
                 />
               </span>
@@ -963,7 +1123,7 @@ function ReviewsPanel({
         <button
           type="button"
           onClick={onWrite}
-          className="glass-sweep glass-sweep-ink mt-5 h-14 w-full border border-foreground font-mono text-[13px] uppercase tracking-[0.18em] md:mt-6 md:h-12 md:text-xs md:tracking-[0.2em]"
+          className="glass-sweep glass-sweep-ink premium-pill mt-5 h-14 w-full font-mono text-[13px] uppercase tracking-[0.18em] md:mt-6 md:h-12 md:text-xs md:tracking-[0.2em]"
         >
           Write a review
         </button>
@@ -1049,7 +1209,7 @@ function ReviewItem({
                   key={m.url}
                   type="button"
                   onClick={() => onOpenMedia(m.url)}
-                  className="group relative h-20 w-20 overflow-hidden border border-border"
+                  className="group premium-pill relative h-20 w-20 overflow-hidden"
                 >
                   {m.type === "video" ? (
                     <>
@@ -1081,7 +1241,7 @@ function ReviewItem({
                   onClick={onEdit}
                   aria-label="Edit review"
                   title="Edit"
-                  className="grid h-9 w-9 place-items-center text-sky-600 transition-colors hover:bg-sky-600/10 dark:text-sky-400"
+                  className="grid h-9 w-9 place-items-center text-primary transition-colors hover:bg-primary/10"
                 >
                   <Pencil width={15} height={15} />
                 </button>
@@ -1090,7 +1250,7 @@ function ReviewItem({
                   onClick={onDelete}
                   aria-label="Delete review"
                   title="Delete"
-                  className="grid h-9 w-9 place-items-center text-red-600 transition-colors hover:bg-red-600/10 dark:text-red-400"
+                  className="grid h-9 w-9 place-items-center text-destructive transition-colors hover:bg-destructive/10"
                 >
                   <Trash2 width={15} height={15} />
                 </button>

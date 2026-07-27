@@ -50,7 +50,10 @@ export function Brackets({ className, size = 22 }: { className?: string; size?: 
 
 export function Stars({ rating, size = 12 }: { rating: number; size?: number }) {
   return (
-    <span className="inline-flex items-center gap-[2px]" aria-label={`${rating} out of 5`}>
+    <span
+      className="inline-flex items-center gap-[2px] text-primary"
+      aria-label={`${rating} out of 5`}
+    >
       {[0, 1, 2, 3, 4].map((i) => (
         <Star
           key={i}
@@ -76,7 +79,7 @@ export function Tag({ children, className }: { children: ReactNode; className?: 
   return (
     <span
       className={cn(
-        "inline-flex items-center bg-foreground px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-background",
+        "premium-badge inline-flex items-center px-2 py-1 font-mono text-[10px] uppercase tracking-[0.18em]",
         className,
       )}
     >

@@ -122,7 +122,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
-const themeScript = `(function(){try{var t=localStorage.getItem("aperture-theme");if(t==="dark"){document.documentElement.classList.add("dark");}}catch(e){}})();`;
+const themeScript = `(function(){try{var t=localStorage.getItem("aperture-theme");if(t!=="light"){document.documentElement.classList.add("dark");}}catch(e){document.documentElement.classList.add("dark");}})();`;
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
