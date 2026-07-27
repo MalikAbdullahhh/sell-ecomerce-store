@@ -29,6 +29,9 @@ const productSchema = new mongoose.Schema(
     brand: { type: String, default: "APERTURE" },
     category: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true },
     categorySlug: { type: String, index: true },
+    /** Additional categories (includes primary). Synced with `category` / `categorySlug`. */
+    categories: [{ type: mongoose.Schema.Types.ObjectId, ref: "Category" }],
+    categorySlugs: [{ type: String }],
     price: { type: Number, required: true, min: 0 },
     compareAt: { type: Number },
     saleDiscountPercent: { type: Number, default: 0, min: 0, max: 100 },

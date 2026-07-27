@@ -330,11 +330,32 @@ export const money = (n: number) =>
   `Rs ${Number(n || 0).toLocaleString("en-PK", { maximumFractionDigits: 0 })}`;
 
 export function apiProductToProduct(p: ProductDoc): Product {
+  const rawCategories = [
+    ...(Array.isArray(p.categorySlugs) ? p.categorySlugs : []),
+    ...(Array.isArray(p.categories) ? p.categories : []),
+    p.categorySlug,
+    typeof p.category === "string" ? p.category : "",
+  ];
+  const categorySlugs = Array.from(
+    new Set(
+      rawCategories
+        .map((c) => {
+          if (typeof c === "string") return c.trim();
+          if (c && typeof c === "object" && "slug" in c) {
+            return String((c as { slug?: string }).slug || "").trim();
+          }
+          return "";
+        })
+        .filter(Boolean),
+    ),
+  );
+  const primary = categorySlugs[0] || "";
   return {
     slug: p.slug,
     name: p.name,
     brand: p.brand,
-    category: p.categorySlug || p.category,
+    category: primary,
+    categories: categorySlugs,
     price: p.price,
     compareAt: p.compareAt,
     rating: p.rating,

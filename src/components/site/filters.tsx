@@ -2,6 +2,7 @@ import { X } from "lucide-react";
 import { useMemo } from "react";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import type { Product } from "@/data/catalog";
 import { useStore } from "@/lib/store";
 
 export type FilterState = {
@@ -25,6 +26,21 @@ export const emptyFilters: FilterState = {
   color: null,
   inStock: false,
 };
+
+/** Match a product against a category slug, including multi-category products. */
+export function productInCategory(product: Product, slug: string) {
+  const needle = String(slug || "").trim();
+  if (!needle) return true;
+  const list = (product.categories?.length ? product.categories : [product.category])
+    .map((c) => String(c || "").trim())
+    .filter(Boolean);
+  return list.includes(needle);
+}
+
+export function productCategorySlugs(product: Product): string[] {
+  const list = product.categories?.length ? product.categories : [product.category];
+  return Array.from(new Set(list.map((c) => String(c || "").trim()).filter(Boolean)));
+}
 
 export function FilterPanel({
   value,
@@ -56,9 +72,11 @@ export function FilterPanel({
   );
   const cats = useMemo(() => {
     if (categories.length) {
-      return categories.map((c) => ({ slug: c.slug, name: c.name }));
+      return categories
+        .filter((c) => c.isActive !== false)
+        .map((c) => ({ slug: c.slug, name: c.name }));
     }
-    return Array.from(new Set(products.map((p) => p.category))).map((slug) => ({
+    return Array.from(new Set(products.flatMap((p) => productCategorySlugs(p)))).map((slug) => ({
       slug,
       name: slug,
     }));
@@ -68,6 +86,12 @@ export function FilterPanel({
     const top = Math.max(PRICE_MAX, ...products.map((p) => p.price), 0);
     return Math.ceil(top / 5000) * 5000 || PRICE_MAX;
   }, [products]);
+
+  const sliderMin = Math.max(0, Math.min(value.price[0], maxPrice));
+  const sliderMax = Math.max(
+    sliderMin,
+    Math.min(value.price[1] >= PRICE_CEILING ? maxPrice : value.price[1], maxPrice),
+  );
 
   return (
     <div className="space-y-8">
@@ -84,6 +108,9 @@ export function FilterPanel({
               {c.name}
             </button>
           ))}
+          {cats.length === 0 && (
+            <p className="font-mono text-[11px] text-muted-foreground">No categories yet</p>
+          )}
         </div>
       </div>
 
@@ -91,8 +118,8 @@ export function FilterPanel({
         <div className="flex items-end justify-between gap-3">
           <p className={head}>Price</p>
           <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
-            Rs {value.price[0].toLocaleString("en-PK")} — Rs{" "}
-            {Math.min(value.price[1], maxPrice).toLocaleString("en-PK")}
+            Rs {sliderMin.toLocaleString("en-PK")} — Rs {sliderMax.toLocaleString("en-PK")}
+            {value.price[1] >= PRICE_CEILING ? "+" : ""}
           </p>
         </div>
         <Slider
@@ -100,11 +127,14 @@ export function FilterPanel({
           min={0}
           max={maxPrice}
           step={1000}
-          value={[
-            Math.min(value.price[0], maxPrice),
-            Math.min(value.price[1], maxPrice),
-          ]}
-          onValueChange={(v) => set({ price: [v[0], v[1]] as [number, number] })}
+          value={[sliderMin, sliderMax]}
+          onValueChange={(v) => {
+            const lo = Math.max(0, v[0] ?? 0);
+            const hi = Math.max(lo, v[1] ?? maxPrice);
+            // Treat full-range as "no price filter" so new higher-priced items still show.
+            const unbounded = lo === 0 && hi >= maxPrice;
+            set({ price: [lo, unbounded ? PRICE_CEILING : hi] });
+          }}
         />
         <div className="mt-2 flex justify-between font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
           <span>Min</span>
@@ -189,8 +219,7 @@ export function FilterChips({
   const chips: { label: string; clear: Partial<FilterState> }[] = [];
   if (value.category) {
     chips.push({
-      label:
-        categories.find((c) => c.slug === value.category)?.name ?? value.category,
+      label: categories.find((c) => c.slug === value.category)?.name ?? value.category,
       clear: { category: null },
     });
   }
@@ -198,7 +227,7 @@ export function FilterChips({
   if (value.rating) chips.push({ label: `${value.rating}+ stars`, clear: { rating: 0 } });
   if (value.color) chips.push({ label: value.color, clear: { color: null } });
   if (value.inStock) chips.push({ label: "In stock", clear: { inStock: false } });
-  if (value.price[0] !== 0 || value.price[1] < maxPrice) {
+  if (value.price[0] !== 0 || value.price[1] < PRICE_CEILING) {
     chips.push({
       label: `Rs ${value.price[0].toLocaleString("en-PK")}–${Math.min(value.price[1], maxPrice).toLocaleString("en-PK")}`,
       clear: { price: [0, PRICE_CEILING] },

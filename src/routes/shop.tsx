@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Eyebrow } from "@/components/site/focus";
@@ -6,6 +6,7 @@ import {
   emptyFilters,
   FilterChips,
   FilterPanel,
+  productInCategory,
   type FilterState,
 } from "@/components/site/filters";
 import { ProductCard } from "@/components/site/product-card";
@@ -46,6 +47,7 @@ const SORTS = {
 } as const;
 
 function Shop() {
+  const navigate = useNavigate({ from: "/shop" });
   const { products, categories: apiCategories } = useStore();
   const { section } = usePageContent("shop");
   const { category } = Route.useSearch();
@@ -57,8 +59,11 @@ function Shop() {
   const [loading, setLoading] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  // Keep filters in sync when landing from category links / browser back-forward.
   useEffect(() => {
-    setFilters((f) => ({ ...f, category: category ?? null }));
+    setFilters((f) =>
+      f.category === (category ?? null) ? f : { ...f, category: category ?? null },
+    );
   }, [category]);
 
   useEffect(() => {
@@ -67,10 +72,25 @@ function Shop() {
     return () => clearTimeout(t);
   }, [filters, sort, products]);
 
+  const applyFilters = (next: FilterState) => {
+    setFilters(next);
+    const nextCat = next.category || undefined;
+    const curCat = category || undefined;
+    if (nextCat !== curCat) {
+      void navigate({
+        search: nextCat ? { category: nextCat } : {},
+        replace: true,
+      });
+    }
+  };
+
   const results = useMemo(() => {
     const list = products.filter((p) => {
-      if (filters.category && p.category !== filters.category) return false;
-      if (p.price < filters.price[0] || p.price > filters.price[1]) return false;
+      if (filters.category && !productInCategory(p, filters.category)) return false;
+      const min = Number(filters.price[0]) || 0;
+      const max = Number(filters.price[1]);
+      if (Number.isFinite(min) && p.price < min) return false;
+      if (Number.isFinite(max) && p.price > max) return false;
       if (filters.brand && p.brand !== filters.brand) return false;
       if (filters.rating && p.rating < filters.rating) return false;
       if (filters.color && !p.colors.some((c) => c.label === filters.color)) return false;
@@ -102,14 +122,12 @@ function Shop() {
         <Eyebrow>
           {results.length} {header.countSuffix}
         </Eyebrow>
-        <h1 className="mt-2 text-4xl md:text-5xl">
-          {catName === "All" ? header.title : catName}
-        </h1>
+        <h1 className="mt-2 text-4xl md:text-5xl">{catName === "All" ? header.title : catName}</h1>
       </header>
 
       <div className="mt-10 grid gap-10 md:grid-cols-[240px_minmax(0,1fr)]">
         <aside className="hidden md:block">
-          <FilterPanel value={filters} onChange={setFilters} />
+          <FilterPanel value={filters} onChange={applyFilters} />
         </aside>
 
         <div>
@@ -131,7 +149,7 @@ function Shop() {
           </div>
 
           <div className="mt-4">
-            <FilterChips value={filters} onChange={setFilters} />
+            <FilterChips value={filters} onChange={applyFilters} />
           </div>
 
           {loading ? (
@@ -148,7 +166,7 @@ function Shop() {
             <div className="mt-16 border border-border p-10 text-center">
               <p className="text-lg">{header.emptyText}</p>
               <button
-                onClick={() => setFilters(emptyFilters)}
+                onClick={() => applyFilters(emptyFilters)}
                 className="glass-sweep mt-5 h-12 bg-foreground px-6 font-mono text-xs uppercase tracking-[0.22em] text-background"
               >
                 Clear filters
@@ -172,7 +190,7 @@ function Shop() {
           </DrawerTrigger>
           <DrawerContent className="max-h-[85vh]">
             <div className="no-scrollbar overflow-y-auto px-4 pb-28 pt-4">
-              <FilterPanel value={filters} onChange={setFilters} />
+              <FilterPanel value={filters} onChange={applyFilters} />
             </div>
             <div className="absolute bottom-0 left-0 right-0 border-t border-border bg-background p-3">
               <button

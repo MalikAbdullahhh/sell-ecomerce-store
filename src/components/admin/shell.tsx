@@ -8,10 +8,12 @@ import {
   Mail,
   Menu,
   MessageSquare,
+  Moon,
   Package,
   Quote,
   Settings,
   ShoppingBag,
+  Sun,
   Users,
   Globe,
   X,
@@ -20,6 +22,7 @@ import { useEffect, useState } from "react";
 import { adminApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useBrand } from "@/lib/store";
+import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 const NAV: {
@@ -45,6 +48,7 @@ const NAV: {
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { admin, adminLogout } = useAuth();
   const { name: brandName } = useBrand();
+  const { theme, toggleTheme } = useTheme();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [open, setOpen] = useState(false);
 
@@ -172,15 +176,29 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
             Control room
           </p>
-          {unread > 0 && (
-            <Link
-              to="/admin/orders"
-              className="ml-auto inline-flex items-center gap-2 border border-foreground px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em]"
+          <div className="ml-auto flex items-center gap-2">
+            {unread > 0 && (
+              <Link
+                to="/admin/orders"
+                className="inline-flex items-center gap-2 border border-foreground px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em]"
+              >
+                <span className="h-2 w-2 animate-pulse rounded-full bg-foreground" />
+                {unread} new order{unread === 1 ? "" : "s"}
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+              className="grid h-9 w-9 place-items-center border border-border hover:bg-mist dark:hover:bg-muted"
             >
-              <span className="h-2 w-2 animate-pulse rounded-full bg-foreground" />
-              {unread} new order{unread === 1 ? "" : "s"}
-            </Link>
-          )}
+              {theme === "dark" ? (
+                <Sun width={16} height={16} strokeWidth={1.5} />
+              ) : (
+                <Moon width={16} height={16} strokeWidth={1.5} />
+              )}
+            </button>
+          </div>
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">{children}</div>
       </div>

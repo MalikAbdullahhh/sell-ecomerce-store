@@ -31,6 +31,8 @@ export type Product = {
   name: string;
   brand: string;
   category: string;
+  /** All category slugs (includes primary `category`). */
+  categories?: string[];
   price: number;
   compareAt?: number;
   rating: number;

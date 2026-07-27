@@ -36,10 +36,21 @@ function AdminUsers() {
   const qc = useQueryClient();
   const [form, setForm] = useState<UserForm>(emptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "users"],
     queryFn: () => adminApi.users(),
+  });
+
+  const users = (data?.users || []).filter((u) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return [u.name, u.email, u.phone].some((v) =>
+      String(v || "")
+        .toLowerCase()
+        .includes(q),
+    );
   });
 
   const saveMut = useMutation({
@@ -114,71 +125,79 @@ function AdminUsers() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="overflow-x-auto border border-border">
-          {isLoading ? (
-            <p className="p-4 font-mono text-xs text-muted-foreground">Loading…</p>
-          ) : (
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="border-b border-border bg-mist/40 font-mono text-[10px] uppercase tracking-[0.16em]">
-                <tr>
-                  <th className="px-3 py-3 font-normal">Name</th>
-                  <th className="px-3 py-3 font-normal">Email</th>
-                  <th className="px-3 py-3 font-normal">Phone</th>
-                  <th className="px-3 py-3 font-normal">Joined</th>
-                  <th className="px-3 py-3 font-normal">Active</th>
-                  <th className="px-3 py-3 font-normal" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {(data?.users || []).map((u) => {
-                  const active = u.isActive !== false;
-                  return (
-                    <tr key={u._id} className="hover:bg-mist/30">
-                      <td className="px-3 py-3">{u.name}</td>
-                      <td className="px-3 py-3 font-mono text-xs">{u.email}</td>
-                      <td className="px-3 py-3 font-mono text-xs">{u.phone || "—"}</td>
-                      <td className="px-3 py-3 font-mono text-[10px] text-muted-foreground">
-                        {u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-PK") : "—"}
-                      </td>
-                      <td className="px-3 py-3 font-mono text-[10px] uppercase tracking-[0.14em]">
-                        {active ? "Yes" : "No"}
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            className={adminBtnGhost}
-                            onClick={() => startEdit(u)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className={adminBtnGhost}
-                            onClick={() => {
-                              if (confirm(`Delete ${u.email}?`)) deleteMut.mutate(u._id);
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </div>
+        <div className="space-y-3">
+          <input
+            className={adminField + " max-w-sm"}
+            placeholder="Search name, email, phone…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div className="overflow-x-auto border border-border">
+            {isLoading ? (
+              <p className="p-4 font-mono text-xs text-muted-foreground">Loading…</p>
+            ) : (
+              <table className="w-full min-w-[720px] text-left text-sm">
+                <thead className="border-b border-border bg-mist/40 font-mono text-[10px] uppercase tracking-[0.16em]">
+                  <tr>
+                    <th className="px-3 py-3 font-normal">Name</th>
+                    <th className="px-3 py-3 font-normal">Email</th>
+                    <th className="px-3 py-3 font-normal">Phone</th>
+                    <th className="px-3 py-3 font-normal">Joined</th>
+                    <th className="px-3 py-3 font-normal">Active</th>
+                    <th className="px-3 py-3 font-normal" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {users.map((u) => {
+                    const active = u.isActive !== false;
+                    return (
+                      <tr key={u._id} className="hover:bg-mist/30">
+                        <td className="px-3 py-3">{u.name}</td>
+                        <td className="px-3 py-3 font-mono text-xs">{u.email}</td>
+                        <td className="px-3 py-3 font-mono text-xs">{u.phone || "—"}</td>
+                        <td className="px-3 py-3 font-mono text-[10px] text-muted-foreground">
+                          {u.createdAt ? new Date(u.createdAt).toLocaleDateString("en-PK") : "—"}
+                        </td>
+                        <td className="px-3 py-3 font-mono text-[10px] uppercase tracking-[0.14em]">
+                          {active ? "Yes" : "No"}
+                        </td>
+                        <td className="px-3 py-3 text-right">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              className={adminBtnGhost}
+                              onClick={() => startEdit(u)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className={adminBtnGhost}
+                              onClick={() => {
+                                if (confirm(`Delete ${u.email}?`)) deleteMut.mutate(u._id);
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {users.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-3 py-8 text-center font-mono text-xs text-muted-foreground"
+                      >
+                        No users
                       </td>
                     </tr>
-                  );
-                })}
-                {(data?.users || []).length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-3 py-8 text-center font-mono text-xs text-muted-foreground"
-                    >
-                      No users
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          )}
+                  )}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
 
         <form

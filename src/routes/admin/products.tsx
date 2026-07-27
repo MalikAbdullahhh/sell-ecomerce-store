@@ -26,7 +26,7 @@ type FormState = {
   name: string;
   slug: string;
   brand: string;
-  category: string;
+  categories: string[];
   price: string;
   compareAt: string;
   saleDiscountPercent: string;
@@ -51,7 +51,7 @@ const emptyForm = (): FormState => ({
   name: "",
   slug: "",
   brand: "Aperture",
-  category: "",
+  categories: [],
   price: "",
   compareAt: "",
   saleDiscountPercent: "",
@@ -72,15 +72,23 @@ const emptyForm = (): FormState => ({
   flags: [],
 });
 
-function categoryValue(p: ProductDoc) {
-  // Admin list returns the slug via mapProduct; keep that as the select value.
-  if (typeof p.categorySlug === "string" && p.categorySlug) return p.categorySlug;
-  if (typeof p.category === "string") return p.category;
+function categoryValues(p: ProductDoc): string[] {
+  const fromArrays = [
+    ...(Array.isArray(p.categorySlugs) ? p.categorySlugs : []),
+    ...(Array.isArray(p.categories) ? p.categories : []),
+  ]
+    .map((s) => String(s || "").trim())
+    .filter(Boolean);
+  if (fromArrays.length) return Array.from(new Set(fromArrays));
+
+  if (typeof p.categorySlug === "string" && p.categorySlug) return [p.categorySlug];
+  if (typeof p.category === "string" && p.category) return [p.category];
   if (p.category && typeof p.category === "object") {
     const cat = p.category as { slug?: string; name?: string };
-    return cat.slug || cat.name || "";
+    const v = cat.slug || cat.name || "";
+    return v ? [v] : [];
   }
-  return "";
+  return [];
 }
 
 function fromProduct(p: ProductDoc): FormState {
@@ -89,7 +97,7 @@ function fromProduct(p: ProductDoc): FormState {
     name: p.name || "",
     slug: p.slug || "",
     brand: p.brand || "Aperture",
-    category: categoryValue(p),
+    categories: categoryValues(p),
     price: String(p.price ?? ""),
     compareAt: p.compareAt != null ? String(p.compareAt) : "",
     saleDiscountPercent: p.saleDiscountPercent != null ? String(p.saleDiscountPercent) : "",
@@ -143,11 +151,13 @@ function AdminProducts() {
 
   const saveMut = useMutation({
     mutationFn: async () => {
+      if (!form.categories.length) throw new Error("Select at least one category");
       const body = {
         name: form.name.trim(),
         slug: form.slug.trim() || slugify(form.name),
         brand: form.brand.trim(),
-        category: form.category.trim(),
+        categories: form.categories,
+        category: form.categories[0] || "",
         price: Number(form.price) || 0,
         compareAt: form.compareAt ? Number(form.compareAt) : undefined,
         saleDiscountPercent: form.saleDiscountPercent
@@ -200,15 +210,29 @@ function AdminProducts() {
   function openEdit(p: ProductDoc) {
     const next = fromProduct(p);
     const cats = catData?.categories || [];
-    if (next.category && cats.length) {
-      const match =
-        cats.find((c) => c.slug === next.category) ||
-        cats.find((c) => c.name === next.category) ||
-        cats.find((c) => c._id === next.category);
-      if (match) next.category = match.slug;
+    if (next.categories.length && cats.length) {
+      next.categories = next.categories
+        .map((key) => {
+          const match =
+            cats.find((c) => c.slug === key) ||
+            cats.find((c) => c.name === key) ||
+            cats.find((c) => c._id === key);
+          return match?.slug || "";
+        })
+        .filter(Boolean);
+      next.categories = Array.from(new Set(next.categories));
     }
     setForm(next);
     setEditing(p);
+  }
+
+  function toggleCategory(slug: string) {
+    setForm((f) => ({
+      ...f,
+      categories: f.categories.includes(slug)
+        ? f.categories.filter((x) => x !== slug)
+        : [...f.categories, slug],
+    }));
   }
 
   function toggleFlag(flag: "new" | "hot" | "sale") {
@@ -275,12 +299,16 @@ function AdminProducts() {
                     </div>
                   </td>
                   <td className="px-3 py-3 text-muted-foreground">
-                    {(catData?.categories || []).find(
-                      (c) => c.slug === p.category || c.slug === p.categorySlug || c.name === p.category,
-                    )?.name ||
-                      p.categorySlug ||
-                      p.category ||
-                      "—"}
+                    {(() => {
+                      const slugs = categoryValues(p);
+                      const names = slugs
+                        .map(
+                          (slug) =>
+                            (catData?.categories || []).find((c) => c.slug === slug)?.name || slug,
+                        )
+                        .filter(Boolean);
+                      return names.join(", ") || "—";
+                    })()}
                   </td>
                   <td className="px-3 py-3 font-mono text-xs">{pkr(p.price)}</td>
                   <td className="px-3 py-3 font-mono text-xs">{p.stock}</td>
@@ -362,20 +390,35 @@ function AdminProducts() {
                   />
                 </Field>
               </div>
-              <Field label="Category">
-                <select
-                  className={adminField}
-                  value={form.category}
-                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                  required
-                >
-                  <option value="">Select…</option>
-                  {(catData?.categories || []).map((c) => (
-                    <option key={c._id} value={c.slug}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+              <Field label="Categories">
+                <div className="grid gap-2 border border-border p-3 sm:grid-cols-2">
+                  {(catData?.categories || []).map((c) => {
+                    const checked = form.categories.includes(c.slug);
+                    return (
+                      <label
+                        key={c._id}
+                        className="flex cursor-pointer items-center gap-2 font-mono text-[11px] uppercase tracking-[0.12em]"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleCategory(c.slug)}
+                        />
+                        {c.name}
+                      </label>
+                    );
+                  })}
+                  {(catData?.categories || []).length === 0 && (
+                    <p className="font-mono text-[10px] text-muted-foreground">
+                      No categories yet — create some first.
+                    </p>
+                  )}
+                </div>
+                {!form.categories.length && (
+                  <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+                    Select at least one category
+                  </p>
+                )}
               </Field>
               <div className="grid gap-3 sm:grid-cols-3">
                 <Field label="Price (PKR)">

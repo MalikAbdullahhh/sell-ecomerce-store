@@ -225,7 +225,19 @@ router.put(
   "/admin/:id",
   requireAdmin,
   asyncHandler(async (req, res) => {
-    const review = await Review.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const payload = { ...req.body };
+    if (payload.productId) {
+      payload.product = payload.productId;
+      delete payload.productId;
+    }
+    // Prevent wiping protected flags accidentally with empty strings
+    delete payload._id;
+    delete payload.id;
+    delete payload.__v;
+    delete payload.createdAt;
+    delete payload.updatedAt;
+
+    const review = await Review.findByIdAndUpdate(req.params.id, payload, { new: true });
     if (!review) return res.status(404).json({ message: "Review not found" });
     await recalcProductRating(review.product);
     res.json({ review });

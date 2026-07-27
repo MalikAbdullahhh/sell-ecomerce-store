@@ -34,7 +34,9 @@ function SearchPage() {
           (p) =>
             p.name.toLowerCase().includes(term) ||
             p.brand.toLowerCase().includes(term) ||
-            p.category.toLowerCase().includes(term) ||
+            (p.categories?.length ? p.categories : [p.category]).some((c) =>
+              c.toLowerCase().includes(term),
+            ) ||
             p.short.toLowerCase().includes(term) ||
             p.description.toLowerCase().includes(term),
         )

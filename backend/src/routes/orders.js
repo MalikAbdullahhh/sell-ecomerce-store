@@ -358,25 +358,325 @@ router.post(
   }),
 );
 
+const STATUSES = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"];
+const PAY_STATUSES = ["pending", "awaiting_transfer", "paid", "failed", "refunded"];
+
+async function buildAdminLineItems(items, { adjustStock = false, restoreFrom = [] } = {}) {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw Object.assign(new Error("At least one line item is required"), { status: 400 });
+  }
+
+  // Restore stock from previous lines when replacing items on edit.
+  if (adjustStock && restoreFrom.length) {
+    for (const prev of restoreFrom) {
+      if (!prev?.product || !prev.qty) continue;
+      const p = await Product.findById(prev.product);
+      if (!p) continue;
+      p.stock = Math.max(0, Number(p.stock || 0) + Number(prev.qty || 0));
+      p.soldCount = Math.max(0, Number(p.soldCount || 0) - Number(prev.qty || 0));
+      p.inStock = p.stock > 0;
+      await p.save();
+    }
+  }
+
+  const lineDocs = [];
+  let subtotal = 0;
+  let giftTotal = 0;
+
+  for (const line of items) {
+    let product = null;
+    if (line.productId) product = await Product.findById(line.productId);
+    else if (line.slug) product = await Product.findOne({ slug: line.slug });
+    else if (line.product) product = await Product.findById(line.product);
+
+    const qty = Math.max(1, Number(line.qty) || 1);
+    const gift = Boolean(line.gift);
+    const lineGift = gift ? Number(line.giftFee) || 0 : 0;
+    const price =
+      line.price !== undefined && line.price !== null && line.price !== ""
+        ? Number(line.price)
+        : product
+          ? Number(product.price)
+          : NaN;
+
+    if (!Number.isFinite(price) || price < 0) {
+      throw Object.assign(new Error(`Invalid price for item: ${line.name || line.slug || "unknown"}`), {
+        status: 400,
+      });
+    }
+
+    if (adjustStock && product) {
+      if (product.stock < qty) {
+        throw Object.assign(new Error(`${product.name} does not have enough stock`), { status: 400 });
+      }
+      product.stock -= qty;
+      product.soldCount = Number(product.soldCount || 0) + qty;
+      product.inStock = product.stock > 0;
+      await product.save();
+    }
+
+    giftTotal += lineGift;
+    subtotal += price * qty;
+    lineDocs.push({
+      product: product?._id || line.product || undefined,
+      slug: product?.slug || line.slug || "",
+      name: product?.name || line.name || "Custom item",
+      image: product?.images?.[0] || line.image || "",
+      color: line.color || "",
+      size: line.size || "",
+      qty,
+      price,
+      gift,
+      giftFee: lineGift,
+      giftMessage: gift ? String(line.giftMessage || "").trim().slice(0, 500) : "",
+    });
+  }
+
+  return { lineDocs, subtotal, giftTotal };
+}
+
+function computeOrderTotals({
+  subtotal,
+  giftTotal,
+  shippingFee,
+  discount,
+  charges,
+}) {
+  const chargesList = Array.isArray(charges)
+    ? charges
+        .filter((c) => c && String(c.label || "").trim())
+        .map((c) => ({ label: String(c.label).trim(), amount: Math.max(0, Number(c.amount) || 0) }))
+    : [];
+  const chargesTotal = chargesList.reduce((s, c) => s + c.amount, 0);
+  const discountAmount = Math.max(0, Math.min(subtotal, Number(discount) || 0));
+  const ship = Math.max(0, Number(shippingFee) || 0);
+  const gifts = Math.max(0, Number(giftTotal) || 0);
+  const total = subtotal - discountAmount + gifts + ship + chargesTotal;
+  return {
+    charges: chargesList,
+    chargesTotal,
+    discount: discountAmount,
+    shippingFee: ship,
+    giftTotal: gifts,
+    total,
+  };
+}
+
+router.post(
+  "/admin",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const {
+      shipping,
+      paymentMethod = "cod",
+      paymentStatus,
+      status = "confirmed",
+      items,
+      notes,
+      shippingFee,
+      discount,
+      couponCode,
+      charges,
+      transactionId,
+      paymentProof,
+      estimatedDelivery,
+      adjustStock = true,
+    } = req.body;
+
+    if (!shipping?.name?.trim()) return res.status(400).json({ message: "Customer name is required" });
+    if (!shipping?.phone?.trim()) return res.status(400).json({ message: "Phone is required" });
+    if (!shipping?.address?.trim()) return res.status(400).json({ message: "Address is required" });
+    if (!shipping?.city?.trim()) return res.status(400).json({ message: "City is required" });
+    if (!["cod", "online"].includes(paymentMethod)) {
+      return res.status(400).json({ message: "paymentMethod must be cod or online" });
+    }
+
+    let built;
+    try {
+      built = await buildAdminLineItems(items, { adjustStock: Boolean(adjustStock) });
+    } catch (err) {
+      return res.status(err.status || 400).json({ message: err.message });
+    }
+
+    const totals = computeOrderTotals({
+      subtotal: built.subtotal,
+      giftTotal: built.giftTotal,
+      shippingFee: shippingFee ?? 0,
+      discount: discount ?? 0,
+      charges: charges || [],
+    });
+
+    const orderStatus = STATUSES.includes(status) ? status : "confirmed";
+    const payStatus =
+      paymentStatus || (paymentMethod === "online" ? "awaiting_transfer" : "pending");
+
+    const order = await Order.create({
+      orderNumber: makeOrderNumber(),
+      guest: true,
+      items: built.lineDocs,
+      shipping: {
+        name: shipping.name.trim(),
+        email: (shipping.email || "").trim().toLowerCase(),
+        phone: shipping.phone.trim(),
+        address: shipping.address.trim(),
+        city: shipping.city.trim(),
+        postalCode: (shipping.postalCode || "").trim(),
+      },
+      paymentMethod,
+      paymentStatus: payStatus,
+      transactionId: String(transactionId || "").trim().slice(0, 120),
+      paymentProof: String(paymentProof || "").trim().slice(0, 500),
+      status: orderStatus,
+      subtotal: built.subtotal,
+      ...totals,
+      couponCode: String(couponCode || "").trim().toUpperCase(),
+      currency: "PKR",
+      notes: notes || "",
+      estimatedDelivery: estimatedDelivery || estimatedDeliveryLabel(4),
+      statusHistory: [{ status: orderStatus, note: "Created by admin" }],
+      isRead: true,
+      readAt: new Date(),
+    });
+
+    res.status(201).json({ order });
+  }),
+);
+
 router.patch(
   "/admin/:id",
   requireAdmin,
   asyncHandler(async (req, res) => {
     const order = await Order.findById(req.params.id);
     if (!order) return res.status(404).json({ message: "Order not found" });
-    const { status, paymentStatus, notes, isRead } = req.body;
-    if (status && status !== order.status) {
-      order.status = status;
-      order.statusHistory.push({ status, note: req.body.statusNote || "" });
+
+    const {
+      status,
+      paymentStatus,
+      paymentMethod,
+      notes,
+      isRead,
+      shipping,
+      items,
+      shippingFee,
+      discount,
+      couponCode,
+      charges,
+      transactionId,
+      paymentProof,
+      estimatedDelivery,
+      statusNote,
+      adjustStock = false,
+    } = req.body;
+
+    if (shipping && typeof shipping === "object") {
+      order.shipping = {
+        name: (shipping.name ?? order.shipping.name ?? "").trim(),
+        email: (shipping.email ?? order.shipping.email ?? "").trim().toLowerCase(),
+        phone: (shipping.phone ?? order.shipping.phone ?? "").trim(),
+        address: (shipping.address ?? order.shipping.address ?? "").trim(),
+        city: (shipping.city ?? order.shipping.city ?? "").trim(),
+        postalCode: (shipping.postalCode ?? order.shipping.postalCode ?? "").trim(),
+      };
+      if (!order.shipping.name) return res.status(400).json({ message: "Customer name is required" });
+      if (!order.shipping.phone) return res.status(400).json({ message: "Phone is required" });
+      if (!order.shipping.address) return res.status(400).json({ message: "Address is required" });
+      if (!order.shipping.city) return res.status(400).json({ message: "City is required" });
     }
-    if (paymentStatus) order.paymentStatus = paymentStatus;
+
+    if (Array.isArray(items)) {
+      let built;
+      try {
+        built = await buildAdminLineItems(items, {
+          adjustStock: Boolean(adjustStock),
+          restoreFrom: adjustStock ? order.items : [],
+        });
+      } catch (err) {
+        return res.status(err.status || 400).json({ message: err.message });
+      }
+      order.items = built.lineDocs;
+      order.subtotal = built.subtotal;
+      const totals = computeOrderTotals({
+        subtotal: built.subtotal,
+        giftTotal: built.giftTotal,
+        shippingFee: shippingFee !== undefined ? shippingFee : order.shippingFee,
+        discount: discount !== undefined ? discount : order.discount,
+        charges: charges !== undefined ? charges : order.charges,
+      });
+      Object.assign(order, totals);
+    } else if (
+      shippingFee !== undefined ||
+      discount !== undefined ||
+      charges !== undefined
+    ) {
+      const totals = computeOrderTotals({
+        subtotal: order.subtotal,
+        giftTotal: order.giftTotal,
+        shippingFee: shippingFee !== undefined ? shippingFee : order.shippingFee,
+        discount: discount !== undefined ? discount : order.discount,
+        charges: charges !== undefined ? charges : order.charges,
+      });
+      Object.assign(order, totals);
+    }
+
+    if (couponCode !== undefined) order.couponCode = String(couponCode || "").trim().toUpperCase();
+    if (transactionId !== undefined) order.transactionId = String(transactionId || "").trim().slice(0, 120);
+    if (paymentProof !== undefined) order.paymentProof = String(paymentProof || "").trim().slice(0, 500);
+    if (estimatedDelivery !== undefined) order.estimatedDelivery = String(estimatedDelivery || "");
+    if (paymentMethod && ["cod", "online"].includes(paymentMethod)) {
+      order.paymentMethod = paymentMethod;
+    }
+    if (paymentStatus && PAY_STATUSES.includes(paymentStatus)) {
+      order.paymentStatus = paymentStatus;
+    }
+    if (status && STATUSES.includes(status) && status !== order.status) {
+      // Restore stock when cancelling an active order.
+      if (status === "cancelled" && order.status !== "cancelled" && adjustStock !== false) {
+        for (const line of order.items) {
+          if (!line.product || !line.qty) continue;
+          const p = await Product.findById(line.product);
+          if (!p) continue;
+          p.stock = Math.max(0, Number(p.stock || 0) + Number(line.qty || 0));
+          p.soldCount = Math.max(0, Number(p.soldCount || 0) - Number(line.qty || 0));
+          p.inStock = p.stock > 0;
+          await p.save();
+        }
+      }
+      order.status = status;
+      order.statusHistory.push({ status, note: statusNote || "Updated by admin" });
+    }
     if (notes !== undefined) order.notes = notes;
     if (isRead !== undefined) {
       order.isRead = Boolean(isRead);
       if (order.isRead) order.readAt = new Date();
     }
+
     await order.save();
     res.json({ order });
+  }),
+);
+
+router.delete(
+  "/admin/:id",
+  requireAdmin,
+  asyncHandler(async (req, res) => {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    const restoreStock = req.query.restoreStock !== "false" && order.status !== "cancelled";
+    if (restoreStock) {
+      for (const line of order.items) {
+        if (!line.product || !line.qty) continue;
+        const p = await Product.findById(line.product);
+        if (!p) continue;
+        p.stock = Math.max(0, Number(p.stock || 0) + Number(line.qty || 0));
+        p.soldCount = Math.max(0, Number(p.soldCount || 0) - Number(line.qty || 0));
+        p.inStock = p.stock > 0;
+        await p.save();
+      }
+    }
+
+    await order.deleteOne();
+    res.json({ message: "Order deleted" });
   }),
 );
 

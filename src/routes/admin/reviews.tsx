@@ -28,6 +28,7 @@ type Form = {
   images: string[];
   videos: string[];
   productId: string;
+  isApproved: boolean;
 };
 
 const empty = (): Form => ({
@@ -39,6 +40,7 @@ const empty = (): Form => ({
   images: [],
   videos: [],
   productId: "",
+  isApproved: true,
 });
 
 function productIdFromReview(
@@ -85,6 +87,7 @@ function AdminReviews() {
         images: form.images,
         videos: form.videos,
         productId: form.productId,
+        isApproved: form.isApproved,
       };
       const id = editing && editing !== "new" ? editing._id || editing.id : undefined;
       return adminApi.saveReview(body, id);
@@ -127,6 +130,7 @@ function AdminReviews() {
       images: r.images || [],
       videos: r.videos || [],
       productId: productIdFromReview(r, products?.products || []),
+      isApproved: r.isApproved !== false,
     });
     setEditing(r);
   }
@@ -176,13 +180,33 @@ function AdminReviews() {
                     <div>
                       <p className="font-medium">{r.author}</p>
                       <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                        {r.rating}/5 · {productLabel(r)}
+                        {r.rating}/5 · {productLabel(r)} ·{" "}
+                        {r.isApproved === false ? "Hidden" : "Approved"}
                       </p>
                       {r.title && <p className="mt-1 text-sm">{r.title}</p>}
                       <p className="mt-1 text-sm text-muted-foreground">{r.body}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className={adminBtnGhost}
+                      onClick={() => {
+                        const id = r._id || r.id;
+                        if (!id) return;
+                        void adminApi
+                          .saveReview({ isApproved: r.isApproved === false }, id)
+                          .then(() => {
+                            toast.success(
+                              r.isApproved === false ? "Review approved" : "Review hidden",
+                            );
+                            qc.invalidateQueries({ queryKey: ["admin", "reviews"] });
+                          })
+                          .catch((e: Error) => toast.error(e.message));
+                      }}
+                    >
+                      {r.isApproved === false ? "Approve" : "Hide"}
+                    </button>
                     <button type="button" className={adminBtnGhost} onClick={() => openEdit(r)}>
                       Edit
                     </button>
@@ -300,6 +324,14 @@ function AdminReviews() {
                   accept="video/*"
                 />
               </Field>
+              <label className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em]">
+                <input
+                  type="checkbox"
+                  checked={form.isApproved}
+                  onChange={(e) => setForm((f) => ({ ...f, isApproved: e.target.checked }))}
+                />
+                Approved (visible on storefront)
+              </label>
               <div className="flex flex-wrap gap-2 border-t border-border pt-4">
                 <button type="submit" className={adminBtn} disabled={saveMut.isPending}>
                   {saveMut.isPending ? "Saving…" : "Save"}

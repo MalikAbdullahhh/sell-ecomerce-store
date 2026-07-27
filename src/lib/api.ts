@@ -197,8 +197,14 @@ export const adminApi = {
     }),
   markAllOrdersRead: () =>
     api<{ unreadCount: number }>("/orders/admin/mark-all-read", { method: "POST", admin: true }),
+  createOrder: (body: Record<string, unknown>) =>
+    api<{ order: OrderDoc }>("/orders/admin", { method: "POST", body, admin: true }),
   updateOrder: (id: string, body: Record<string, unknown>) =>
-    api(`/orders/admin/${id}`, { method: "PATCH", body, admin: true }),
+    api<{ order: OrderDoc }>(`/orders/admin/${id}`, { method: "PATCH", body, admin: true }),
+  deleteOrder: (id: string, opts?: { restoreStock?: boolean }) => {
+    const q = opts?.restoreStock === false ? "?restoreStock=false" : "";
+    return api<{ message: string }>(`/orders/admin/${id}${q}`, { method: "DELETE", admin: true });
+  },
   getOrder: (id: string) => api<{ order: OrderDoc }>(`/orders/admin/${id}`, { admin: true }),
   testimonials: () =>
     api<{ testimonials: TestimonialDoc[] }>("/cms/testimonials/admin", { admin: true }),
@@ -327,6 +333,7 @@ export type ReviewDoc = {
   images?: string[];
   videos?: string[];
   product?: { name?: string; slug?: string; images?: string[] } | string;
+  isApproved?: boolean;
   createdAt?: string;
 };
 
@@ -338,6 +345,9 @@ export type ProductDoc = {
   brand: string;
   category: string;
   categorySlug?: string;
+  /** All category slugs for this product (includes primary). */
+  categories?: string[];
+  categorySlugs?: string[];
   price: number;
   compareAt?: number;
   saleDiscountPercent?: number;
@@ -509,6 +519,7 @@ export type FaqDoc = {
 };
 
 export type OrderItem = {
+  product?: string;
   slug: string;
   name: string;
   image?: string;
@@ -547,6 +558,7 @@ export type OrderDoc = {
   couponCode?: string;
   total: number;
   currency: string;
+  notes?: string;
   estimatedDelivery?: string;
   createdAt: string;
   guest?: boolean;

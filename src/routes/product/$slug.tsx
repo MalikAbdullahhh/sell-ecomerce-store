@@ -329,7 +329,11 @@ function ProductPage() {
           {/* Info */}
           <div>
             <Eyebrow>
-              {product.brand} / {product.category}
+              {product.brand}
+              {(product.categories?.length ? product.categories : [product.category])
+                .filter(Boolean)
+                .map((c) => ` / ${c}`)
+                .join("")}
             </Eyebrow>
             <motion.h1
               initial={reduce ? false : { opacity: 0, y: 12 }}
