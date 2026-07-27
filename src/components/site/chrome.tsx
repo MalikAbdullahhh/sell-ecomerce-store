@@ -35,7 +35,8 @@ const NAV = [
 ] as const;
 
 function TopBar({ onSearch }: { onSearch: () => void }) {
-  const { count, setCartOpen, categories } = useStore();
+  const { count, setCartOpen, categories, wishlist } = useStore();
+  const wishlistCount = wishlist.length;
   const { name: brandName } = useBrand();
   const { theme, toggleTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
@@ -130,9 +131,19 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
               <Link
                 to="/wishlist"
                 aria-label="Wishlist"
-                className="hidden h-11 w-11 place-items-center md:grid"
+                className="relative hidden h-11 w-11 place-items-center md:grid"
               >
                 <Heart width={18} height={18} strokeWidth={1.5} />
+                {wishlistCount > 0 && (
+                  <motion.span
+                    key={wishlistCount}
+                    initial={{ scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center bg-foreground px-1 font-mono text-[9px] text-background"
+                  >
+                    {wishlistCount}
+                  </motion.span>
+                )}
               </Link>
               <Link
                 to="/account"
@@ -223,7 +234,8 @@ const jellySpring = {
 };
 
 function BottomTabs({ onSearch, searchOpen }: { onSearch: () => void; searchOpen: boolean }) {
-  const { count, setCartOpen, cartOpen } = useStore();
+  const { count, setCartOpen, cartOpen, wishlist } = useStore();
+  const wishlistCount = wishlist.length;
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const reduce = useReducedMotion();
 
@@ -304,12 +316,26 @@ function BottomTabs({ onSearch, searchOpen }: { onSearch: () => void; searchOpen
       <Link
         to="/wishlist"
         aria-current={active === "wishlist" ? "page" : undefined}
+        aria-label={wishlistCount > 0 ? `Wishlist, ${wishlistCount} items` : "Wishlist"}
         className={cn(
           item,
+          "relative",
           active === "wishlist" ? "text-background" : "text-foreground opacity-55",
         )}
       >
         <Heart width={19} height={19} strokeWidth={1.5} />
+        {wishlistCount > 0 && (
+          <span
+            className={cn(
+              "absolute right-2 top-1 z-20 grid h-4 min-w-4 place-items-center px-1 font-mono text-[9px] transition-colors duration-500",
+              active === "wishlist"
+                ? "bg-background text-foreground"
+                : "bg-foreground text-background",
+            )}
+          >
+            {wishlistCount}
+          </span>
+        )}
         <span className={label}>Saved</span>
       </Link>
 

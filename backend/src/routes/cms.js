@@ -90,15 +90,87 @@ router.get(
   }),
 );
 
+/** Known leftover seed copy/images that used to ship as schema defaults. */
+const SEED_IMAGE_MARKERS = [
+  "photo-1505740420928-5e560c06d30e",
+  "photo-1523275335684-37898b6baf30",
+  "photo-1498049794561-7780e7231661",
+  "photo-1593640408182-31c70c8268f5",
+  "photo-1581092160562-40aa08e78837",
+  "photo-1573497019940-1c28c88b4f3e",
+  "photo-1560250097-0b93528c311a",
+  "photo-1519085360753-af0119f7cbe7",
+  "photo-1507003211169-0a1dd7228f2d",
+];
+const SEED_TEXT_MARKERS = [
+  "Noise cancelled.",
+  "nobody would publish their numbers",
+  "Aperture began in a rented unit",
+  "Precision is a number you can check",
+  "Fourteen people, one building",
+  "support@aperture.tech",
+  "Scheepsbouwkade 14",
+  "Gen 2 stock clearing",
+  "Orders over {freeShipping}",
+  "3 years if registered",
+  "We cover faults",
+  "Wireless audio",
+  "Smart wearables",
+  "Gadgets & gear",
+];
+
+function isSeedString(value) {
+  if (typeof value !== "string" || !value) return false;
+  if (SEED_IMAGE_MARKERS.some((m) => value.includes(m))) return true;
+  if (SEED_TEXT_MARKERS.some((m) => value.includes(m))) return true;
+  return false;
+}
+
+function scrubSeedValue(value) {
+  if (Array.isArray(value)) {
+    const next = value
+      .map((item) => scrubSeedValue(item))
+      .filter((item) => {
+        if (item == null) return false;
+        if (typeof item === "object") {
+          return Object.values(item).some((v) => v !== "" && v != null && v !== false);
+        }
+        return item !== "" && item != null;
+      });
+    return next;
+  }
+  if (value && typeof value === "object") {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) {
+      out[k] = scrubSeedValue(v);
+    }
+    return out;
+  }
+  if (isSeedString(value)) return "";
+  return value;
+}
+
+function scrubPageSections(sections) {
+  if (!sections || typeof sections !== "object") return {};
+  return scrubSeedValue(sections);
+}
+
 router.get(
   "/pages/:page",
   asyncHandler(async (req, res) => {
     const page = await PageContent.findOne({ page: req.params.page });
-    // An unedited page is a valid state: the storefront falls back to defaults.
+    // Unedited pages return empty sections — storefront shows nothing until admin fills CMS.
     if (!page) {
       return res.json({ page: { page: req.params.page, title: "", blocks: [], sections: {} } });
     }
-    res.json({ page });
+    const doc = page.toObject();
+    const scrubbed = scrubPageSections(doc.sections);
+    if (JSON.stringify(scrubbed) !== JSON.stringify(doc.sections || {})) {
+      page.sections = scrubbed;
+      await page.save();
+      doc.sections = scrubbed;
+    }
+    res.json({ page: doc });
   }),
 );
 

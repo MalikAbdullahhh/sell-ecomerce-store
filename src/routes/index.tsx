@@ -152,7 +152,7 @@ function Index() {
     catalogLoading,
     categories: liveCategories,
   } = useStore();
-  const { section } = usePageContent("home");
+  const { section, loaded: pageLoaded } = usePageContent("home");
 
   const hero = section<HeroContent>("hero");
   const flash = section<Band & { showCountdown: boolean; countdownHours: number }>("flashSale");
@@ -195,14 +195,17 @@ function Index() {
     return () => window.clearTimeout(t);
   }, [catalogLoading, settings]);
 
-  if (catalogLoading) return <PageSkeleton />;
+  if (catalogLoading || !pageLoaded) return <PageSkeleton />;
+
+  const heroSlides = (hero.slides || []).filter((s) => s.image || s.title);
+  const promiseItems = (promises.items || []).filter((i) => i.title?.trim());
 
   return (
     <>
-      <HeroCarousel slides={hero.slides || []} autoplaySeconds={hero.autoplaySeconds} />
+      <HeroCarousel slides={heroSlides} autoplaySeconds={hero.autoplaySeconds} />
 
       {/* Flash sale */}
-      {flash.visible !== false && (
+      {flash.visible !== false && (flash.title?.trim() || flash.eyebrow?.trim()) && (
         <section className="band mt-8 bg-[linear-gradient(125deg,oklch(0.26_0.07_30),oklch(0.2_0.025_32)_48%,oklch(0.28_0.1_28))] text-paper md:mt-12">
           <div className="mx-auto grid max-w-[1440px] grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-4 py-6 md:px-10">
             <div className="min-w-0">
@@ -297,27 +300,29 @@ function Index() {
       )}
 
       {/* Brand story */}
-      {story.visible !== false && (
+      {story.visible !== false && (story.image || story.title?.trim() || story.body?.trim()) && (
         <Section invert>
           <div className="grid gap-8 md:grid-cols-2 md:items-center">
-            <FocusIn className="crosshair relative aspect-[4/3] overflow-hidden border border-white/20">
-              <img
-                src={mediaUrl(story.image)}
-                alt={story.title}
-                loading="lazy"
-                className="h-full w-full object-cover"
-              />
-              <Brackets size={26} className="text-paper" />
-            </FocusIn>
+            {story.image ? (
+              <FocusIn className="crosshair relative aspect-[4/3] overflow-hidden border border-white/20">
+                <img
+                  src={mediaUrl(story.image)}
+                  alt={story.title || "Brand story"}
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                />
+                <Brackets size={26} className="text-paper" />
+              </FocusIn>
+            ) : null}
             <FocusIn delay={0.1}>
-              <Eyebrow className="text-paper/70">{story.eyebrow}</Eyebrow>
-              <h2 className="mt-3 text-3xl md:text-4xl">{story.title}</h2>
-              <p className="mt-4 max-w-md text-paper/75">{story.body}</p>
+              {story.eyebrow ? <Eyebrow className="text-paper/70">{story.eyebrow}</Eyebrow> : null}
+              {story.title ? <h2 className="mt-3 text-3xl md:text-4xl">{story.title}</h2> : null}
+              {story.body ? <p className="mt-4 max-w-md text-paper/75">{story.body}</p> : null}
               <Link
                 to="/about"
                 className="mt-6 inline-block border-b border-paper pb-1 font-mono text-[11px] uppercase tracking-[0.2em] text-paper"
               >
-                {story.linkLabel}
+                {story.linkLabel || "Read the full story"}
               </Link>
             </FocusIn>
           </div>
@@ -325,10 +330,10 @@ function Index() {
       )}
 
       {/* Value strip */}
-      {promises.visible !== false && (
+      {promises.visible !== false && promiseItems.length > 0 && (
         <section className="border-y border-border bg-background">
           <div className="mx-auto grid max-w-[1440px] grid-cols-2 divide-x divide-y divide-border md:grid-cols-4 md:divide-y-0">
-            {(promises.items || []).map((item, i) => (
+            {promiseItems.map((item, i) => (
               <div key={`${item.title}-${i}`} className="flex items-center gap-3 px-4 py-6 md:px-8">
                 <CmsIcon name={item.icon} className="shrink-0" />
                 <div className="min-w-0">

@@ -23,7 +23,7 @@ function loadPage(page: string): Promise<PageSections> {
       return sections;
     })
     .catch(() => {
-      // Offline or unedited: the schema defaults still render the page.
+      // Offline / missing page: empty sections — never invent marketing copy.
       cache.set(page, {});
       return {} as PageSections;
     })
