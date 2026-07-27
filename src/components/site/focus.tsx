@@ -48,10 +48,18 @@ export function Brackets({ className, size = 22 }: { className?: string; size?: 
   );
 }
 
-export function Stars({ rating, size = 12 }: { rating: number; size?: number }) {
+export function Stars({
+  rating,
+  size = 12,
+  className,
+}: {
+  rating: number;
+  size?: number;
+  className?: string;
+}) {
   return (
     <span
-      className="inline-flex items-center gap-[2px] text-primary"
+      className={cn("inline-flex items-center gap-[2px] text-primary", className)}
       aria-label={`${rating} out of 5`}
     >
       {[0, 1, 2, 3, 4].map((i) => (

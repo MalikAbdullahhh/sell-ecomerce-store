@@ -1,4 +1,5 @@
 import { Heart, MessageCircle, Facebook, Instagram } from "lucide-react";
+import { Stars } from "@/components/site/focus";
 import { mediaUrl, type TestimonialDoc } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +47,8 @@ function highlightMentions(text: string) {
 function Card({ t }: { t: TestimonialDoc }) {
   const metaTop = t.layout === "meta-top";
   const handle = t.handle || (t.email ? `@${t.email.split("@")[0]}` : "");
+  const rating = Math.min(5, Math.max(0, Number(t.rating) || 5));
+
   const meta = (
     <div className="flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
       <div className="flex items-center gap-3">
@@ -65,7 +68,7 @@ function Card({ t }: { t: TestimonialDoc }) {
         <img
           src={mediaUrl(t.image) || "https://api.dicebear.com/7.x/initials/svg?seed=" + t.name}
           alt=""
-          className="h-10 w-10 rounded-full object-cover"
+          className="h-10 w-10 rounded-full object-cover ring-2 ring-white/40 dark:ring-white/10"
         />
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{t.name}</p>
@@ -80,11 +83,17 @@ function Card({ t }: { t: TestimonialDoc }) {
 
   return (
     <article className="testimonial-card flex w-[300px] shrink-0 flex-col p-5 sm:w-[340px]">
-      {metaTop ? meta : person}
-      <p className="mt-4 text-sm leading-relaxed text-foreground/90">
-        {highlightMentions(t.quote)}
-      </p>
-      <div className="mt-5">{metaTop ? person : meta}</div>
+      <div className="testimonial-card-glow" aria-hidden />
+      <div className="relative z-[1] flex flex-col">
+        {metaTop ? meta : person}
+        <div className="mt-3">
+          <Stars rating={rating} size={14} className="text-amber-400" />
+        </div>
+        <p className="mt-3 text-sm leading-relaxed text-foreground/90">
+          {highlightMentions(t.quote)}
+        </p>
+        <div className="mt-5">{metaTop ? person : meta}</div>
+      </div>
     </article>
   );
 }
@@ -107,10 +116,10 @@ function MarqueeRow({ items, reverse }: { items: TestimonialDoc[]; reverse?: boo
   const loop = [...filled, ...filled];
   const duration = filled.length * SECONDS_PER_CARD;
   return (
-    <div className="testimonial-marquee-fade relative overflow-hidden">
+    <div className="testimonial-marquee-fade relative overflow-hidden py-2">
       <div
         className={cn(
-          "flex w-max gap-5 py-3",
+          "flex w-max gap-5 py-4",
           reverse ? "animate-marquee-reverse" : "animate-marquee",
         )}
         style={{ animationDuration: `${duration}s` }}
@@ -139,14 +148,15 @@ export function TestimonialsMarquee({
   const b = row2.length ? row2 : items.slice(Math.ceil(items.length / 2));
 
   return (
-    <section className="relative overflow-hidden bg-transparent py-14 md:py-20">
-      <div className="mx-auto max-w-[1440px] px-4 md:px-10">
+    <section className="testimonial-section relative overflow-hidden bg-transparent py-14 md:py-20">
+      <div className="pointer-events-none absolute inset-x-0 top-1/2 h-[55%] -translate-y-1/2 bg-[radial-gradient(ellipse_at_center,color-mix(in_oklab,var(--primary)_7%,transparent),transparent_70%)]" />
+      <div className="relative mx-auto max-w-[1440px] px-4 md:px-10">
         <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
           {eyebrow || "Verified purchasers"}
         </p>
         <h2 className="mt-2 text-3xl md:text-4xl">{title || "What owners report"}</h2>
       </div>
-      <div className="mt-10 space-y-5">
+      <div className="relative mt-10 space-y-2">
         <MarqueeRow items={a.length ? a : items} />
         <MarqueeRow items={b.length ? b : items} reverse />
       </div>

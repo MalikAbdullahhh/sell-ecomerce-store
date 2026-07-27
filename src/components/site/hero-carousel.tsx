@@ -17,7 +17,7 @@ function AnimatedTitle({ text, reduce }: { text: string; reduce: boolean | null 
   let wordIndex = 0;
 
   return (
-    <h1 className="text-[13vw] font-semibold leading-[0.95] tracking-[-0.03em] text-white drop-shadow-[0_2px_30px_rgba(0,0,0,0.45)] sm:text-6xl md:text-7xl lg:text-8xl">
+    <h1 className="text-[13vw] font-semibold leading-[0.95] tracking-[-0.03em] text-white sm:text-6xl md:text-7xl lg:text-8xl">
       {lines.map((line, li) => (
         <span key={li} className="block overflow-hidden pb-[0.08em]">
           {line.split(" ").map((word) => {
@@ -102,13 +102,8 @@ export function HeroCarousel({
               <div className="h-full w-full bg-neutral-900" />
             )}
           </motion.div>
-
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/40" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-transparent" />
         </motion.div>
       </AnimatePresence>
-
-      <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_180px_60px_rgba(0,0,0,0.55)]" />
 
       <div className="relative z-10 mx-auto flex h-full max-w-[1440px] flex-col justify-end px-5 pb-16 md:px-10 md:pb-20">
         <div className="max-w-3xl">
@@ -119,9 +114,9 @@ export function HeroCarousel({
                   initial={reduce ? { opacity: 0 } : { opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.55, delay: 0.12, ease: EASE }}
-                  className="mb-4 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.32em] text-white/70"
+                  className="mb-4 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.32em] text-white"
                 >
-                  <span className="h-px w-8 bg-white/50" />
+                  <span className="h-px w-8 bg-white/80" />
                   {active.eyebrow}
                 </motion.p>
               )}
@@ -133,7 +128,7 @@ export function HeroCarousel({
                   initial={reduce ? { opacity: 0 } : { opacity: 0, y: 18 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.65, delay: 0.5, ease: EASE }}
-                  className="mt-6 max-w-xl text-base text-white/80 md:text-lg"
+                  className="mt-6 max-w-xl text-base text-white md:text-lg"
                 >
                   {active.subtitle}
                 </motion.p>
