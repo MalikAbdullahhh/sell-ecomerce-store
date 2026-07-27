@@ -12,7 +12,7 @@ import {
 import { ProductCard } from "@/components/site/product-card";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { categories as fallbackCategories } from "@/data/catalog";
+import { PageSkeleton } from "@/components/site/skeletons";
 import { usePageContent } from "@/lib/page-content";
 import { useStore } from "@/lib/store";
 
@@ -48,7 +48,7 @@ const SORTS = {
 
 function Shop() {
   const navigate = useNavigate({ from: "/shop" });
-  const { products, categories: apiCategories } = useStore();
+  const { products, categories: apiCategories, catalogLoading } = useStore();
   const { section } = usePageContent("shop");
   const { category } = Route.useSearch();
   const [filters, setFilters] = useState<FilterState>({
@@ -104,12 +104,12 @@ function Shop() {
   }, [filters, sort, products]);
 
   const catName = filters.category
-    ? (apiCategories.find((c) => c.slug === filters.category)?.name ??
-      fallbackCategories.find((c) => c.slug === filters.category)?.name ??
-      filters.category)
+    ? (apiCategories.find((c) => c.slug === filters.category)?.name ?? filters.category)
     : "All";
 
   const header = section<{ title: string; countSuffix: string; emptyText: string }>("header");
+
+  if (catalogLoading) return <PageSkeleton />;
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-8 md:px-10 md:py-12">

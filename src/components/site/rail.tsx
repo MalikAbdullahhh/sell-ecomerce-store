@@ -1,20 +1,68 @@
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useCallback, useLayoutEffect, useRef, type ReactNode } from "react";
 
-export function Rail({ children }: { children: ReactNode }) {
+/**
+ * Horizontal product rail that always opens on the first item.
+ * Fights browser / router scroll restoration which otherwise leaves it mid-list.
+ */
+export function Rail({
+  children,
+  resetKey,
+}: {
+  children: ReactNode;
+  /** Change this when the item set changes (e.g. product slugs joined). */
+  resetKey?: string | number;
+}) {
   const ref = useRef<HTMLDivElement>(null);
 
-  // Always land on the first item — browser/Lenis scroll restoration can leave the rail mid-way.
-  useLayoutEffect(() => {
+  const reset = useCallback(() => {
     const el = ref.current;
     if (!el) return;
     el.scrollLeft = 0;
-  }, [children]);
+    try {
+      el.scrollTo({ left: 0, top: 0, behavior: "instant" });
+    } catch {
+      el.scrollTo(0, 0);
+    }
+  }, []);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    reset();
+
+    // Restoration often runs after layout — keep forcing start for a short window.
+    let locked = true;
+    const timers = [0, 16, 50, 120, 250, 400].map((ms) => window.setTimeout(reset, ms));
+    const raf = requestAnimationFrame(() => {
+      reset();
+      requestAnimationFrame(reset);
+    });
+
+    const onScroll = () => {
+      if (locked && el.scrollLeft > 0) reset();
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+
+    const unlock = window.setTimeout(() => {
+      locked = false;
+      el.removeEventListener("scroll", onScroll);
+    }, 500);
+
+    return () => {
+      locked = false;
+      cancelAnimationFrame(raf);
+      timers.forEach(clearTimeout);
+      clearTimeout(unlock);
+      el.removeEventListener("scroll", onScroll);
+    };
+  }, [children, resetKey, reset]);
 
   return (
     <div
       ref={ref}
       data-scroll-restoration="manual"
-      className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0"
+      className="no-scrollbar -mx-4 flex snap-x snap-proximity gap-4 overflow-x-auto overflow-y-hidden px-4 pb-2 [overflow-anchor:none] md:mx-0 md:px-0"
     >
       {children}
     </div>
@@ -22,7 +70,11 @@ export function Rail({ children }: { children: ReactNode }) {
 }
 
 export function RailItem({ children }: { children: ReactNode }) {
-  return <div className="w-[68vw] shrink-0 snap-start sm:w-[44vw] md:w-[280px]">{children}</div>;
+  return (
+    <div className="w-[68vw] shrink-0 snap-start scroll-ml-4 md:w-[280px] md:scroll-ml-0 sm:w-[44vw]">
+      {children}
+    </div>
+  );
 }
 
 export function Section({

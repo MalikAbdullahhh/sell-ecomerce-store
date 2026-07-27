@@ -24,8 +24,23 @@ export const Route = createFileRoute("/search")({
 
 function SearchPage() {
   const { q } = Route.useSearch();
-  const { products } = useStore();
+  const { products, catalogLoading } = useStore();
   const [sort, setSort] = useState("relevance");
+
+  if (catalogLoading) {
+    return (
+      <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-10">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="space-y-3">
+              <div className="aspect-square animate-pulse bg-muted" />
+              <div className="h-4 w-2/3 animate-pulse bg-muted" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase();

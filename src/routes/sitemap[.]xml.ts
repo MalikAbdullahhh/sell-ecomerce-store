@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-import { products, posts } from "@/data/catalog";
-import { legalDocs } from "@/data/legal";
+import { API_URL } from "@/lib/api";
 
 // TODO: replace with your project URL once a project name or custom domain is set.
 const BASE_URL = "";
@@ -13,10 +12,26 @@ interface SitemapEntry {
   priority?: string;
 }
 
+async function fetchJson<T>(path: string): Promise<T | null> {
+  try {
+    const res = await fetch(`${API_URL}${path}`);
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
 export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: async () => {
+        const [productsRes, journalsRes, legalRes] = await Promise.all([
+          fetchJson<{ products: { slug: string }[] }>("/products?limit=500"),
+          fetchJson<{ posts: { slug: string }[] }>("/journals"),
+          fetchJson<{ docs: { slug: string }[] }>("/cms/legal"),
+        ]);
+
         const entries: SitemapEntry[] = [
           { path: "/", changefreq: "weekly", priority: "1.0" },
           { path: "/shop", changefreq: "daily", priority: "0.9" },
@@ -31,17 +46,17 @@ export const Route = createFileRoute("/sitemap.xml")({
           { path: "/contact", changefreq: "monthly", priority: "0.6" },
           { path: "/account", changefreq: "yearly", priority: "0.3" },
           { path: "/account/orders", changefreq: "yearly", priority: "0.3" },
-          ...products.map((p) => ({
+          ...(productsRes?.products || []).map((p) => ({
             path: `/product/${p.slug}`,
             changefreq: "weekly" as const,
             priority: "0.8",
           })),
-          ...posts.map((p) => ({
+          ...(journalsRes?.posts || []).map((p) => ({
             path: `/journal/${p.slug}`,
             changefreq: "monthly" as const,
             priority: "0.6",
           })),
-          ...legalDocs.map((d) => ({
+          ...(legalRes?.docs || []).map((d) => ({
             path: `/legal/${d.slug}`,
             changefreq: "yearly" as const,
             priority: "0.3",

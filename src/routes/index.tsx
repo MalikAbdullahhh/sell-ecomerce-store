@@ -7,12 +7,6 @@ import { CmsIcon } from "@/components/site/cms-icon";
 import { HeroCarousel, type HeroSlide } from "@/components/site/hero-carousel";
 import { ProductCard } from "@/components/site/product-card";
 import { Rail, RailItem, Section, SectionHead } from "@/components/site/rail";
-import {
-  categories,
-  instagramShots,
-  products,
-  testimonials as fallbackTestimonials,
-} from "@/data/catalog";
 import { money, useStore } from "@/lib/store";
 import { cmsApi, mediaUrl, newsletterApi, type TestimonialDoc } from "@/lib/api";
 import { usePageContent } from "@/lib/page-content";
@@ -172,15 +166,13 @@ function Index() {
   }>("valueStrip");
   const ugc = section<Band>("ugc");
   const ratingBand = section<Band & { reviewsLabel: string }>("rating");
-  const catalogue = liveProducts.length ? liveProducts : products;
-  const cats = liveCategories.length
-    ? liveCategories.map((c) => ({
-        slug: c.slug,
-        name: c.name,
-        blurb: c.blurb || "",
-        image: c.image || "",
-      }))
-    : categories;
+  const catalogue = liveProducts;
+  const cats = liveCategories.map((c) => ({
+    slug: c.slug,
+    name: c.name,
+    blurb: c.blurb || "",
+    image: c.image ? mediaUrl(c.image) : "",
+  }));
   const trending = catalogue.filter((p) => p.flags.includes("hot") || p.rating >= 4.6).slice(0, 8);
   const arrivals = catalogue.slice(0, 8);
   const [testimonials, setTestimonials] = useState<TestimonialDoc[]>([]);
@@ -191,24 +183,7 @@ function Index() {
     cmsApi
       .testimonials()
       .then((d) => setTestimonials(d.testimonials))
-      .catch(() => {
-        setTestimonials(
-          fallbackTestimonials.map((t, i) => ({
-            _id: `local-${i}`,
-            name: t.name,
-            role: t.role,
-            rating: t.rating,
-            quote: t.quote,
-            likes: 120 + i * 40,
-            comments: 12 + i,
-            platform: i % 2 === 0 ? "instagram" : "facebook",
-            layout: i % 2 === 0 ? "meta-bottom" : "meta-top",
-            row: (i % 2 === 0 ? 1 : 2) as 1 | 2,
-            dateAdded: new Date().toISOString(),
-            handle: `@${t.name.toLowerCase().replace(/\s+/g, "")}`,
-          })),
-        );
-      });
+      .catch(() => setTestimonials([]));
   }, []);
 
   useEffect(() => {
@@ -220,7 +195,7 @@ function Index() {
     return () => window.clearTimeout(t);
   }, [catalogLoading, settings]);
 
-  if (catalogLoading && !liveProducts.length) return <PageSkeleton />;
+  if (catalogLoading) return <PageSkeleton />;
 
   return (
     <>
@@ -256,7 +231,7 @@ function Index() {
               </Link>
             }
           />
-          <Rail>
+          <Rail resetKey={trending.map((p) => p.slug).join("|") || "trending-empty"}>
             {trending.map((p) => (
               <RailItem key={p.slug}>
                 <ProductCard product={p} />
@@ -381,27 +356,25 @@ function Index() {
         <Section invert>
           <SectionHead eyebrow={ugc.eyebrow} title={ugc.title} />
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-            {(settings?.instagramShots?.length ? settings.instagramShots : instagramShots).map(
-              (src, i) => (
-                <FocusIn
-                  key={src}
-                  delay={i * 0.03}
-                  className="crosshair group relative aspect-square overflow-hidden"
-                >
-                  <img
-                    src={src}
-                    alt="Customer photo"
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                  <Instagram
-                    width={15}
-                    height={15}
-                    className="absolute right-2 top-2 text-paper opacity-0 transition-opacity group-hover:opacity-100"
-                  />
-                </FocusIn>
-              ),
-            )}
+            {(settings?.instagramShots || []).map((src, i) => (
+              <FocusIn
+                key={src}
+                delay={i * 0.03}
+                className="crosshair group relative aspect-square overflow-hidden"
+              >
+                <img
+                  src={mediaUrl(src)}
+                  alt="Customer photo"
+                  loading="lazy"
+                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+                <Instagram
+                  width={15}
+                  height={15}
+                  className="absolute right-2 top-2 text-paper opacity-0 transition-opacity group-hover:opacity-100"
+                />
+              </FocusIn>
+            ))}
           </div>
         </Section>
       )}

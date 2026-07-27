@@ -107,10 +107,10 @@ function MarqueeRow({ items, reverse }: { items: TestimonialDoc[]; reverse?: boo
   const loop = [...filled, ...filled];
   const duration = filled.length * SECONDS_PER_CARD;
   return (
-    <div className="relative overflow-hidden">
+    <div className="testimonial-marquee-fade relative overflow-hidden">
       <div
         className={cn(
-          "flex w-max gap-4 py-2",
+          "flex w-max gap-5 py-3",
           reverse ? "animate-marquee-reverse" : "animate-marquee",
         )}
         style={{ animationDuration: `${duration}s` }}
@@ -139,14 +139,14 @@ export function TestimonialsMarquee({
   const b = row2.length ? row2 : items.slice(Math.ceil(items.length / 2));
 
   return (
-    <section className="relative overflow-hidden border-y border-border/40 bg-background/60 py-14 backdrop-blur-[2px] md:py-20">
+    <section className="relative overflow-hidden bg-transparent py-14 md:py-20">
       <div className="mx-auto max-w-[1440px] px-4 md:px-10">
         <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
           {eyebrow || "Verified purchasers"}
         </p>
         <h2 className="mt-2 text-3xl md:text-4xl">{title || "What owners report"}</h2>
       </div>
-      <div className="mt-10 space-y-4">
+      <div className="mt-10 space-y-5">
         <MarqueeRow items={a.length ? a : items} />
         <MarqueeRow items={b.length ? b : items} reverse />
       </div>

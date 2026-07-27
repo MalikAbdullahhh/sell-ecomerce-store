@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import type { Product } from "@/data/catalog";
 import { money, useStore } from "@/lib/store";
+import { primeProductNav } from "@/lib/product-nav-cache";
 import { cn } from "@/lib/utils";
 import { Brackets, Stars, Tag } from "./focus";
 
@@ -36,6 +37,8 @@ export function ProductCard({ product, className }: { product: Product; classNam
         to="/product/$slug"
         params={{ slug: product.slug }}
         preload="intent"
+        onClick={() => primeProductNav(product)}
+        onPointerDown={() => primeProductNav(product)}
         className="product-card-glass premium-surface premium-glow crosshair relative block aspect-square overflow-hidden border border-border"
       >
         <motion.img
@@ -111,6 +114,8 @@ export function ProductCard({ product, className }: { product: Product; classNam
             to="/product/$slug"
             params={{ slug: product.slug }}
             preload="intent"
+            onClick={() => primeProductNav(product)}
+            onPointerDown={() => primeProductNav(product)}
             className="block"
           >
             <h3 className="truncate text-[15px] font-medium tracking-tight transition-opacity duration-300 group-hover:opacity-80">

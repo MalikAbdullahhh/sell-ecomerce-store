@@ -1,18 +1,21 @@
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
-// lol hahah
+
 export const getRouter = () => {
   const queryClient = new QueryClient();
 
   const router = createRouter({
     routeTree,
     context: { queryClient },
-    scrollRestoration: true,
+    // Element/window scroll restoration mid-navigation scrolls the OLD page
+    // (home) to the top before the product route paints — that is the flash.
+    scrollRestoration: false,
     defaultPreload: "intent",
     defaultPreloadStaleTime: 30_000,
-    // Keep previous page until the next route is ready — avoids blank/home flash mid-nav.
-    defaultPendingMs: 200,
+    // Show destination pending UI immediately — never keep home on screen while loading.
+    defaultPendingMs: 0,
+    defaultPendingMinMs: 0,
   });
 
   return router;

@@ -13,9 +13,9 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { categories } from "@/data/catalog";
 import { usePageContent } from "@/lib/page-content";
 import { DEFAULT_TAGLINE } from "@/lib/brand";
+import { mediaUrl } from "@/lib/api";
 import { useBrand, useStore } from "@/lib/store";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,7 @@ import { AmbientFallout } from "./ambient-fallout";
 import { CartDrawer } from "./cart-drawer";
 import { SearchOverlay } from "./search-overlay";
 import { AnnouncementMarquee } from "./announcement-marquee";
+import { SiteBootLoader } from "./site-boot-loader";
 import { SmoothScroll } from "./smooth-scroll";
 
 const NAV = [
@@ -34,7 +35,7 @@ const NAV = [
 ] as const;
 
 function TopBar({ onSearch }: { onSearch: () => void }) {
-  const { count, setCartOpen } = useStore();
+  const { count, setCartOpen, categories } = useStore();
   const { name: brandName } = useBrand();
   const { theme, toggleTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
@@ -179,17 +180,26 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
                       className="crosshair group"
                     >
                       <div className="aspect-[4/3] overflow-hidden border border-border">
-                        <img
-                          src={c.image}
-                          alt={c.name}
-                          loading="lazy"
-                          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        />
+                        {c.image ? (
+                          <img
+                            src={mediaUrl(c.image)}
+                            alt={c.name}
+                            loading="lazy"
+                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="h-full w-full bg-muted" />
+                        )}
                       </div>
                       <p className="mt-2 text-sm font-medium">{c.name}</p>
                       <p className="font-mono text-[10px] text-muted-foreground">{c.blurb}</p>
                     </Link>
                   ))}
+                  {categories.length === 0 && (
+                    <p className="col-span-6 font-mono text-[11px] text-muted-foreground">
+                      No categories yet
+                    </p>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -409,20 +419,8 @@ function Footer() {
 }
 
 function PageTransition({ children }: { children: ReactNode }) {
-  const reduce = useReducedMotion();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  // No mode="wait" / exit — waiting for the previous page to fade out
-  // briefly flashes home (or shop) before the product page appears.
-  return (
-    <motion.div
-      key={pathname}
-      initial={reduce ? false : { opacity: 0.01 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: reduce ? 0 : 0.18, ease: [0.22, 1, 0.36, 1] }}
-    >
-      {children}
-    </motion.div>
-  );
+  // Intentionally no keyed opacity remount — that briefly blanks/flashes the previous page.
+  return <>{children}</>;
 }
 
 export function SiteChrome({ children }: { children: React.ReactNode }) {
@@ -436,6 +434,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
 
   return (
     <SmoothScroll>
+      <SiteBootLoader />
       <div className="relative flex min-h-screen flex-col">
         <AmbientFallout />
         <div className="relative z-[2] flex min-h-screen flex-col">

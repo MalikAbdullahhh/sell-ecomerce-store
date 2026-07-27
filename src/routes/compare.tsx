@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { X } from "lucide-react";
 import { Eyebrow, Stars } from "@/components/site/focus";
-import { products } from "@/data/catalog";
+import { PageSkeleton } from "@/components/site/skeletons";
 import { money, useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/compare")({
@@ -21,9 +21,11 @@ export const Route = createFileRoute("/compare")({
 });
 
 function Compare() {
-  const { compare, toggleCompare } = useStore();
+  const { compare, toggleCompare, products, catalogLoading } = useStore();
   const selected = products.filter((p) => compare.includes(p.slug));
   const rows = Array.from(new Set(selected.flatMap((p) => p.specs.map((s) => s.label))));
+
+  if (catalogLoading) return <PageSkeleton />;
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-10 md:py-16">
@@ -46,6 +48,9 @@ function Compare() {
               {p.name}
             </button>
           ))}
+          {products.length === 0 && (
+            <p className="font-mono text-[11px] text-muted-foreground">No products loaded yet</p>
+          )}
         </div>
       </div>
 

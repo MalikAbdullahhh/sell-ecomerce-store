@@ -8,7 +8,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { faqs as fallbackFaqs } from "@/data/catalog";
+import { PageSkeleton } from "@/components/site/skeletons";
 import { cmsApi } from "@/lib/api";
 import { usePageContent } from "@/lib/page-content";
 
@@ -35,7 +35,8 @@ type FaqGroup = { group: string; items: { q: string; a: string }[] };
 
 function Faq() {
   const [q, setQ] = useState("");
-  const [source, setSource] = useState<FaqGroup[]>(fallbackFaqs);
+  const [source, setSource] = useState<FaqGroup[]>([]);
+  const [loading, setLoading] = useState(true);
   const { section } = usePageContent("faq");
   const header = section<{
     eyebrow: string;
@@ -47,12 +48,9 @@ function Faq() {
   useEffect(() => {
     cmsApi
       .faqs()
-      .then((d) => {
-        if (d.faqs?.length) setSource(d.faqs);
-      })
-      .catch(() => {
-        /* keep catalogue fallback */
-      });
+      .then((d) => setSource(d.faqs || []))
+      .catch(() => setSource([]))
+      .finally(() => setLoading(false));
   }, []);
 
   const groups = useMemo(() => {
@@ -68,6 +66,8 @@ function Faq() {
       .filter((g) => g.items.length);
   }, [q, source]);
 
+  if (loading) return <PageSkeleton rows={3} />;
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 md:py-20">
       <Eyebrow>{header.eyebrow}</Eyebrow>
@@ -79,28 +79,30 @@ function Faq() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={header.searchPlaceholder}
-          className="h-12 w-full bg-transparent font-mono text-sm outline-none"
+          className="h-12 flex-1 bg-transparent font-mono text-sm outline-none"
         />
       </div>
 
       {groups.length === 0 ? (
-        <p className="mt-10 font-mono text-sm text-muted-foreground">{header.emptyText}</p>
+        <p className="mt-10 text-center text-muted-foreground">{header.emptyText}</p>
       ) : (
-        groups.map((g) => (
-          <section key={g.group} className="mt-10">
-            <p className="font-mono text-[10px] uppercase tracking-[0.22em] opacity-60">
-              {g.group}
-            </p>
-            <Accordion type="single" collapsible className="mt-3">
-              {g.items.map((item) => (
-                <AccordionItem key={item.q} value={item.q}>
-                  <AccordionTrigger className="text-left text-[15px]">{item.q}</AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground">{item.a}</AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </section>
-        ))
+        <div className="mt-10 space-y-8">
+          {groups.map((g) => (
+            <div key={g.group}>
+              <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                {g.group}
+              </p>
+              <Accordion type="single" collapsible className="mt-3">
+                {g.items.map((item, i) => (
+                  <AccordionItem key={`${g.group}-${i}`} value={`${g.group}-${i}`}>
+                    <AccordionTrigger className="text-left text-base">{item.q}</AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground">{item.a}</AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -36,24 +36,31 @@ import {
 } from "@/components/ui/accordion";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { getProduct, products, type Product, type Review } from "@/data/catalog";
+import { PageSkeleton } from "@/components/site/skeletons";
+import type { Product, Review } from "@/data/catalog";
 import { GIFT_FEE, apiProductToProduct, money, useStore } from "@/lib/store";
 import { catalogApi, mediaUrl, reviewApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { consumePrimedProduct } from "@/lib/product-nav-cache";
 import { cn } from "@/lib/utils";
 
 const spring = { type: "spring" as const, stiffness: 420, damping: 28, mass: 0.7 };
 export const Route = createFileRoute("/product/$slug")({
   loader: async ({ params }) => {
-    let product: Product | undefined;
+    // Instant paint from the card the user just clicked (avoids waiting on the network).
+    const primed = consumePrimedProduct(params.slug);
+    if (primed) return { product: primed, fromCache: true as const };
+
     try {
-      product = apiProductToProduct((await catalogApi.product(params.slug)).product);
+      const product = apiProductToProduct((await catalogApi.product(params.slug)).product);
+      return { product, fromCache: false as const };
     } catch {
-      product = getProduct(params.slug);
+      throw notFound();
     }
-    if (!product) throw notFound();
-    return { product };
   },
+  // Paint destination immediately — never keep the previous page (home) on screen.
+  pendingMs: 0,
+  pendingComponent: () => <PageSkeleton rows={6} />,
   head: ({ loaderData }) => {
     if (!loaderData) {
       return {
@@ -76,13 +83,14 @@ export const Route = createFileRoute("/product/$slug")({
 });
 
 function ProductPage() {
-  const { product } = Route.useLoaderData() as { product: Product };
+  const data = Route.useLoaderData() as { product: Product; fromCache?: boolean };
+  const [product, setProduct] = useState(data.product);
   const { addToCart, setCartOpen, products: liveProducts, settings } = useStore();
   const { user } = useAuth();
   const reduce = useReducedMotion();
   const giftFee = settings?.shipping?.giftFee ?? GIFT_FEE;
   const contact = settings?.contact;
-  const [color, setColor] = useState(product.colors[0].label);
+  const [color, setColor] = useState(product.colors[0]?.label || "Default");
   const [size, setSize] = useState(product.sizes?.[0]?.label);
   const [qty, setQty] = useState(1);
   const [imgIndex, setImgIndex] = useState(0);
@@ -105,6 +113,29 @@ function ProductPage() {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const galleryRef = useRef<HTMLDivElement>(null);
 
+  // Keep local product in sync when navigating between PDPs.
+  useEffect(() => {
+    setProduct(data.product);
+  }, [data.product]);
+
+  // If we painted from the list cache, refresh full detail (reviews, etc.) quietly.
+  useEffect(() => {
+    if (!data.fromCache) return;
+    let active = true;
+    catalogApi
+      .product(data.product.slug)
+      .then((res) => {
+        if (!active) return;
+        setProduct(apiProductToProduct(res.product));
+      })
+      .catch(() => {
+        /* keep primed product */
+      });
+    return () => {
+      active = false;
+    };
+  }, [data.fromCache, data.product.slug]);
+
   // Flatten every review image/video into one gallery so the lightbox can
   // page through the whole product's media with next/back controls.
   const reviewMedia = useMemo<MediaItem[]>(() => {
@@ -119,7 +150,7 @@ function ProductPage() {
   const mediaIndexOf = (url: string) => reviewMedia.findIndex((m) => m.url === url);
 
   useEffect(() => {
-    setColor(product.colors[0].label);
+    setColor(product.colors[0]?.label || "Default");
     setSize(product.sizes?.[0]?.label);
     setQty(1);
     setImgIndex(0);
@@ -150,9 +181,7 @@ function ProductPage() {
   const discount = product.compareAt
     ? Math.round(((product.compareAt - product.price) / product.compareAt) * 100)
     : 0;
-  const related = (liveProducts.length ? liveProducts : products)
-    .filter((p) => p.slug !== product.slug)
-    .slice(0, 6);
+  const related = liveProducts.filter((p) => p.slug !== product.slug).slice(0, 6);
   const breakdown = [5, 4, 3, 2, 1].map((star) => ({
     star,
     pct: star === 5 ? 68 : star === 4 ? 22 : star === 3 ? 6 : star === 2 ? 3 : 1,
@@ -823,7 +852,7 @@ function ProductPage() {
 
       <Section invert>
         <SectionHead eyebrow="Same discipline" title="You might also like" />
-        <Rail>
+        <Rail resetKey={related.map((p) => p.slug).join("|") || "related-empty"}>
           {related.map((p) => (
             <RailItem key={p.slug}>
               <ProductCard product={p} />

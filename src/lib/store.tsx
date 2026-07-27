@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { products as fallbackProducts, type Product } from "@/data/catalog";
+import { type Product } from "@/data/catalog";
 import {
   catalogApi,
   cmsApi,
@@ -87,7 +87,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [compare, setCompare] = useState<string[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
-  const [products, setProducts] = useState<Product[]>(fallbackProducts);
+  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<CategoryDoc[]>([]);
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [settingsReady, setSettingsReady] = useState(false);
@@ -114,9 +114,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (!active) return;
         if (productResult.status === "fulfilled") {
           setProducts(productResult.value.products.map(apiProductToProduct));
+        } else {
+          setProducts([]);
         }
         if (categoryResult.status === "fulfilled") {
           setCategories(categoryResult.value.categories);
+        } else {
+          setCategories([]);
         }
         if (siteResult.status === "fulfilled") {
           applySettings(siteResult.value.settings);
