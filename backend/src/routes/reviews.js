@@ -7,6 +7,18 @@ import { upload, persistFileUrl } from "../middleware/upload.js";
 
 const router = Router();
 
+/** Parse admin date (YYYY-MM-DD or ISO) without timezone day-shift. */
+function parseReviewDate(raw) {
+  if (raw == null || raw === "") return null;
+  const s = String(raw).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split("-").map(Number);
+    return new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  }
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 async function recalcProductRating(productId) {
   const product = await Product.findById(productId);
   if (!product) return { rating: 0, reviewCount: 0 };
@@ -187,7 +199,7 @@ router.get(
   asyncHandler(async (_req, res) => {
     const reviews = await Review.find()
       .sort({ createdAt: -1 })
-      .populate("product", "name slug images");
+      .populate("product", "name slug images categorySlug categorySlugs categories");
     res.json({ reviews });
   }),
 );
@@ -196,13 +208,27 @@ router.post(
   "/admin",
   requireAdmin,
   asyncHandler(async (req, res) => {
-    const { productId, author, authorImage, rating, title, body, images, videos, isApproved } =
-      req.body;
+    const {
+      productId,
+      author,
+      authorImage,
+      rating,
+      title,
+      body,
+      images,
+      videos,
+      isApproved,
+      date,
+      createdAt,
+    } = req.body;
     if (!productId || !rating || !body) {
       return res.status(400).json({ message: "productId, rating and body are required" });
     }
     const product = await Product.findById(productId);
     if (!product) return res.status(404).json({ message: "Product not found" });
+
+    const reviewDate = date || createdAt;
+    const created = parseReviewDate(reviewDate);
 
     const review = await Review.create({
       product: productId,
@@ -215,6 +241,7 @@ router.post(
       videos: videos || [],
       isApproved: isApproved !== false,
       createdByAdmin: true,
+      ...(created ? { createdAt: created } : {}),
     });
     const stats = await recalcProductRating(productId);
     res.status(201).json({ review, ...stats });
@@ -234,11 +261,28 @@ router.put(
     delete payload._id;
     delete payload.id;
     delete payload.__v;
-    delete payload.createdAt;
     delete payload.updatedAt;
 
-    const review = await Review.findByIdAndUpdate(req.params.id, payload, { new: true });
+    // Admin can override the review date shown on the storefront.
+    if (payload.date !== undefined || payload.createdAt !== undefined) {
+      const raw = payload.date ?? payload.createdAt;
+      delete payload.date;
+      const parsed = parseReviewDate(raw);
+      if (parsed) payload.createdAt = parsed;
+      else delete payload.createdAt;
+    } else {
+      delete payload.createdAt;
+    }
+
+    const review = await Review.findById(req.params.id);
     if (!review) return res.status(404).json({ message: "Review not found" });
+
+    Object.assign(review, payload);
+    if (payload.createdAt) {
+      review.createdAt = payload.createdAt;
+      review.markModified("createdAt");
+    }
+    await review.save();
     await recalcProductRating(review.product);
     res.json({ review });
   }),

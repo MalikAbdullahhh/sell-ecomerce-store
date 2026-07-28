@@ -368,7 +368,15 @@ export type ReviewDoc = {
   body: string;
   images?: string[];
   videos?: string[];
-  product?: { name?: string; slug?: string; images?: string[] } | string;
+  product?: {
+    _id?: string;
+    name?: string;
+    slug?: string;
+    images?: string[];
+    categorySlug?: string;
+    categorySlugs?: string[];
+    categories?: string[];
+  } | string;
   isApproved?: boolean;
   createdAt?: string;
 };

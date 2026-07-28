@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { X } from "lucide-react";
 import {
@@ -12,7 +12,7 @@ import {
   Field,
 } from "@/components/admin/field";
 import { SingleUploader, Uploader } from "@/components/admin/uploader";
-import { adminApi, mediaUrl, type ReviewDoc } from "@/lib/api";
+import { adminApi, mediaUrl, type ProductDoc, type ReviewDoc } from "@/lib/api";
 
 export const Route = createFileRoute("/admin/reviews")({
   component: AdminReviews,
@@ -29,6 +29,7 @@ type Form = {
   videos: string[];
   productId: string;
   isApproved: boolean;
+  date: string;
 };
 
 const empty = (): Form => ({
@@ -41,6 +42,7 @@ const empty = (): Form => ({
   videos: [],
   productId: "",
   isApproved: true,
+  date: new Date().toISOString().slice(0, 10),
 });
 
 function productIdFromReview(
@@ -53,6 +55,10 @@ function productIdFromReview(
   }
   if (typeof r.product === "object" && r.product) {
     const reviewProduct = r.product;
+    if (reviewProduct._id) {
+      const byId = products.find((p) => p._id === reviewProduct._id);
+      if (byId) return byId._id;
+    }
     const bySlug = products.find(
       (p) => p.slug === reviewProduct.slug || p.name === reviewProduct.name,
     );
@@ -61,10 +67,35 @@ function productIdFromReview(
   return "";
 }
 
+function productCategorySlugs(p?: ProductDoc | null) {
+  if (!p) return [] as string[];
+  const fromArrays = [
+    ...(Array.isArray(p.categorySlugs) ? p.categorySlugs : []),
+    ...(Array.isArray(p.categories) ? p.categories : []),
+  ]
+    .map((s) => String(s || "").trim())
+    .filter(Boolean);
+  if (fromArrays.length) return Array.from(new Set(fromArrays));
+  if (typeof p.categorySlug === "string" && p.categorySlug) return [p.categorySlug];
+  if (typeof p.category === "string" && p.category) return [p.category];
+  return [];
+}
+
+function reviewProductId(r: ReviewDoc) {
+  if (typeof r.product === "string") return r.product;
+  if (typeof r.product === "object" && r.product?._id) return r.product._id;
+  return "";
+}
+
 function AdminReviews() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<ReviewDoc | null | "new">(null);
   const [form, setForm] = useState<Form>(empty());
+  const [q, setQ] = useState("");
+  const [productFilter, setProductFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "approved" | "hidden">("all");
+  const [ratingFilter, setRatingFilter] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "reviews"],
@@ -75,6 +106,82 @@ function AdminReviews() {
     queryKey: ["admin", "products"],
     queryFn: () => adminApi.products(),
   });
+
+  const { data: catData } = useQuery({
+    queryKey: ["admin", "categories"],
+    queryFn: () => adminApi.categories(),
+  });
+
+  const productById = useMemo(() => {
+    const map = new Map<string, ProductDoc>();
+    for (const p of products?.products || []) map.set(p._id, p);
+    return map;
+  }, [products]);
+
+  const filteredReviews = useMemo(() => {
+    const list = data?.reviews || [];
+    const needle = q.trim().toLowerCase();
+    const ratingNum = ratingFilter ? Number(ratingFilter) : null;
+
+    return list.filter((r) => {
+      const pid = reviewProductId(r) || productIdFromReview(r, products?.products || []);
+      const product = pid ? productById.get(pid) : undefined;
+      const productName =
+        (typeof r.product === "object" && r.product?.name) || product?.name || "";
+      const productSlug =
+        (typeof r.product === "object" && r.product?.slug) || product?.slug || "";
+
+      if (productFilter) {
+        const populatedId =
+          typeof r.product === "object" && r.product?._id ? r.product._id : "";
+        if (pid !== productFilter && populatedId !== productFilter) return false;
+      }
+
+      if (categoryFilter) {
+        const fromProduct = product ? productCategorySlugs(product) : [];
+        const fromPopulated =
+          typeof r.product === "object" && r.product
+            ? [
+                ...((r.product as { categorySlugs?: string[] }).categorySlugs || []),
+                ...((r.product as { categories?: string[] }).categories || []),
+                (r.product as { categorySlug?: string }).categorySlug || "",
+              ].filter(Boolean)
+            : [];
+        const slugs = Array.from(new Set([...fromProduct, ...fromPopulated]));
+        if (!slugs.includes(categoryFilter)) return false;
+      }
+
+      if (statusFilter === "approved" && r.isApproved === false) return false;
+      if (statusFilter === "hidden" && r.isApproved !== false) return false;
+
+      if (ratingNum != null && !Number.isNaN(ratingNum) && Number(r.rating) !== ratingNum) {
+        return false;
+      }
+
+      if (!needle) return true;
+      const hay = [
+        r.author,
+        r.title,
+        r.body,
+        productName,
+        productSlug,
+        String(r.rating),
+        (r.date || r.createdAt || "").slice(0, 10),
+      ]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(needle);
+    });
+  }, [
+    data?.reviews,
+    q,
+    productFilter,
+    categoryFilter,
+    statusFilter,
+    ratingFilter,
+    productById,
+    products?.products,
+  ]);
 
   const saveMut = useMutation({
     mutationFn: () => {
@@ -88,6 +195,7 @@ function AdminReviews() {
         videos: form.videos,
         productId: form.productId,
         isApproved: form.isApproved,
+        date: form.date || undefined,
       };
       const id = editing && editing !== "new" ? editing._id || editing.id : undefined;
       return adminApi.saveReview(body, id);
@@ -114,7 +222,7 @@ function AdminReviews() {
   function productLabel(r: ReviewDoc) {
     if (typeof r.product === "object" && r.product?.name) return r.product.name;
     if (typeof r.product === "string") {
-      const p = (products?.products || []).find((x) => x._id === r.product);
+      const p = productById.get(r.product);
       return p?.name || r.product;
     }
     return "—";
@@ -131,9 +239,17 @@ function AdminReviews() {
       videos: r.videos || [],
       productId: productIdFromReview(r, products?.products || []),
       isApproved: r.isApproved !== false,
+      date: (r.date || r.createdAt || "").slice(0, 10) || new Date().toISOString().slice(0, 10),
     });
     setEditing(r);
   }
+
+  const hasActiveFilters =
+    Boolean(q.trim()) ||
+    Boolean(productFilter) ||
+    Boolean(categoryFilter) ||
+    statusFilter !== "all" ||
+    Boolean(ratingFilter);
 
   return (
     <div className="space-y-6">
@@ -156,11 +272,96 @@ function AdminReviews() {
         </button>
       </div>
 
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <input
+          className={adminField + " sm:col-span-2 lg:col-span-2"}
+          placeholder="Search author, product, body…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <select
+          className={adminField}
+          value={productFilter}
+          onChange={(e) => setProductFilter(e.target.value)}
+          aria-label="Filter by product"
+        >
+          <option value="">All products</option>
+          {(products?.products || []).map((p) => (
+            <option key={p._id} value={p._id}>
+              {p.name}
+            </option>
+          ))}
+        </select>
+        <select
+          className={adminField}
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          aria-label="Filter by category"
+        >
+          <option value="">All categories</option>
+          {(catData?.categories || []).map((c) => (
+            <option key={c._id} value={c.slug}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        <div className="grid grid-cols-2 gap-2">
+          <select
+            className={adminField}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as "all" | "approved" | "hidden")}
+            aria-label="Filter by status"
+          >
+            <option value="all">All status</option>
+            <option value="approved">Approved</option>
+            <option value="hidden">Hidden</option>
+          </select>
+          <select
+            className={adminField}
+            value={ratingFilter}
+            onChange={(e) => setRatingFilter(e.target.value)}
+            aria-label="Filter by rating"
+          >
+            <option value="">All ★</option>
+            {[5, 4, 3, 2, 1].map((n) => (
+              <option key={n} value={String(n)}>
+                {n}★
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          Showing {filteredReviews.length}
+          {(data?.reviews || []).length !== filteredReviews.length
+            ? ` of ${(data?.reviews || []).length}`
+            : ""}{" "}
+          reviews
+        </p>
+        {hasActiveFilters ? (
+          <button
+            type="button"
+            className={adminBtnGhost}
+            onClick={() => {
+              setQ("");
+              setProductFilter("");
+              setCategoryFilter("");
+              setStatusFilter("all");
+              setRatingFilter("");
+            }}
+          >
+            Clear filters
+          </button>
+        ) : null}
+      </div>
+
       {isLoading ? (
         <p className="font-mono text-xs text-muted-foreground">Loading…</p>
       ) : (
         <div className="space-y-3">
-          {(data?.reviews || []).map((r) => {
+          {filteredReviews.map((r) => {
             const id = r._id || r.id || "";
             return (
               <div key={id} className="border border-border p-4">
@@ -181,6 +382,7 @@ function AdminReviews() {
                       <p className="font-medium">{r.author}</p>
                       <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
                         {r.rating}/5 · {productLabel(r)} ·{" "}
+                        {(r.date || r.createdAt || "").slice(0, 10) || "—"} ·{" "}
                         {r.isApproved === false ? "Hidden" : "Approved"}
                       </p>
                       {r.title && <p className="mt-1 text-sm">{r.title}</p>}
@@ -192,10 +394,10 @@ function AdminReviews() {
                       type="button"
                       className={adminBtnGhost}
                       onClick={() => {
-                        const id = r._id || r.id;
-                        if (!id) return;
+                        const reviewId = r._id || r.id;
+                        if (!reviewId) return;
                         void adminApi
-                          .saveReview({ isApproved: r.isApproved === false }, id)
+                          .saveReview({ isApproved: r.isApproved === false }, reviewId)
                           .then(() => {
                             toast.success(
                               r.isApproved === false ? "Review approved" : "Review hidden",
@@ -224,8 +426,10 @@ function AdminReviews() {
               </div>
             );
           })}
-          {(data?.reviews || []).length === 0 && (
-            <p className="font-mono text-xs text-muted-foreground">No reviews</p>
+          {filteredReviews.length === 0 && (
+            <p className="font-mono text-xs text-muted-foreground">
+              {hasActiveFilters ? "No reviews match these filters" : "No reviews"}
+            </p>
           )}
         </div>
       )}
@@ -278,22 +482,31 @@ function AdminReviews() {
                     onChange={(e) => setForm((f) => ({ ...f, rating: e.target.value }))}
                   />
                 </Field>
-                <Field label="Product">
-                  <select
+                <Field label="Date added">
+                  <input
+                    type="date"
                     required
                     className={adminField}
-                    value={form.productId}
-                    onChange={(e) => setForm((f) => ({ ...f, productId: e.target.value }))}
-                  >
-                    <option value="">Select…</option>
-                    {(products?.products || []).map((p) => (
-                      <option key={p._id} value={p._id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    value={form.date}
+                    onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+                  />
                 </Field>
               </div>
+              <Field label="Product">
+                <select
+                  required
+                  className={adminField}
+                  value={form.productId}
+                  onChange={(e) => setForm((f) => ({ ...f, productId: e.target.value }))}
+                >
+                  <option value="">Select…</option>
+                  {(products?.products || []).map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
               <Field label="Title">
                 <input
                   className={adminField}
