@@ -488,7 +488,7 @@ function Checkout() {
                           <img
                             src={mediaUrl(settings.payment.online.qrImage)}
                             alt="Payment QR code"
-                            className="mx-auto h-48 w-48 object-contain"
+                            className="mx-auto h-72 w-72 object-contain sm:h-80 sm:w-80 md:h-96 md:w-96"
                           />
                         )}
                         <dl className="mt-4 space-y-2 font-mono text-xs">
