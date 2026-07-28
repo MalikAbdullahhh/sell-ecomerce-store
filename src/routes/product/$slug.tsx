@@ -26,6 +26,8 @@ import { Brackets, Eyebrow, Stars, Tag } from "@/components/site/focus";
 import { ProductCard } from "@/components/site/product-card";
 import { Rail, RailItem, Section, SectionHead } from "@/components/site/rail";
 import { MediaLightbox, type MediaItem } from "@/components/site/media-lightbox";
+import { PreviewProductVideo } from "@/components/site/preview-product-video";
+import { VideoThumb } from "@/components/site/video-thumb";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WhatsAppIcon } from "@/components/site/whatsapp-icon";
 import { buildWhatsAppOrderUrl } from "@/lib/whatsapp-order";
@@ -306,14 +308,13 @@ function ProductPage() {
                     )}
                   >
                     {item.type === "video" ? (
-                      <>
-                        <video src={item.url} className="h-full w-full object-cover" muted />
+                      <VideoThumb src={item.url} className="h-full w-full">
                         <span className="absolute inset-0 grid place-items-center bg-black/25">
                           <Play width={12} height={12} className="text-white" fill="currentColor" />
                         </span>
-                      </>
+                      </VideoThumb>
                     ) : (
-                      <img src={item.url} alt="" className="h-full w-full object-cover" />
+                      <img src={item.url} alt="" className="h-full w-full object-contain" />
                     )}
                   </motion.button>
                 ))}
@@ -355,7 +356,7 @@ function ProductPage() {
                       className="absolute inset-0"
                     >
                       <video
-                        src={activeMedia.url}
+                        src={`${activeMedia.url}#t=0.1`}
                         className="h-full w-full object-cover"
                         muted
                         playsInline
@@ -394,7 +395,7 @@ function ProductPage() {
                         transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
                       }}
                       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                      className="absolute inset-0 h-full w-full cursor-grab object-cover active:cursor-grabbing"
+                      className="absolute inset-0 h-full w-full cursor-grab object-contain active:cursor-grabbing"
                       draggable={false}
                     />
                   )}
@@ -825,7 +826,21 @@ function ProductPage() {
                 <ProductHtml html={product.description} />
               </AccordionContent>
             </AccordionItem>
+          </Accordion>
 
+          {product.previewVideo ? (
+            <PreviewProductVideo
+              src={product.previewVideo}
+              title="See it in action"
+              className="mt-8 border-t border-border pt-8 md:hidden"
+            />
+          ) : null}
+
+          <Accordion
+            type="multiple"
+            defaultValue={[]}
+            className="w-full border-t border-border md:hidden"
+          >
             <AccordionItem value="specifications" className="border-border">
               <AccordionTrigger className="py-4 font-mono text-[12px] uppercase tracking-[0.16em] hover:no-underline">
                 Specifications

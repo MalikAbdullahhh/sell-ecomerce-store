@@ -2,6 +2,7 @@ import { Crop, ImagePlus, Loader2, Upload, X } from "lucide-react";
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { toast } from "sonner";
 import { adminApi, mediaUrl } from "@/lib/api";
+import { VideoThumb } from "@/components/site/video-thumb";
 import { ImageEditorModal } from "./image-editor";
 import { adminBtnGhost } from "./field";
 import { cn } from "@/lib/utils";
@@ -414,7 +415,7 @@ export function Uploader({
                 className="group relative h-20 w-20 overflow-hidden border border-border"
               >
                 {video ? (
-                  <video src={src} className="h-full w-full object-cover" muted />
+                  <VideoThumb src={src} className="h-full w-full" />
                 ) : (
                   <img src={src} alt="" className="h-full w-full object-cover" />
                 )}
@@ -495,8 +496,8 @@ export function Uploader({
       </div>
       {allowEdit ? (
         <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-          Images open in the editor to crop, rotate and adjust before upload. Hover a thumbnail to
-          re-edit.
+          Images open in the editor (1:1 by default) so the crop matches the product page frame.
+          Hover a thumbnail to re-edit.
         </p>
       ) : null}
 

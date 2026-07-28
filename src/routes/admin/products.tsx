@@ -20,8 +20,10 @@ import {
   type GalleryItem,
 } from "@/components/admin/media-gallery-field";
 import { RichEditor } from "@/components/admin/rich-editor";
+import { VideoThumb } from "@/components/site/video-thumb";
 import { adminApi, mediaUrl, type ProductDoc, type VariantDoc } from "@/lib/api";
 import { useStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/admin/products")({
   component: AdminProducts,
@@ -39,6 +41,7 @@ type FormState = {
   short: string;
   description: string;
   gallery: GalleryItem[];
+  previewVideo: string;
   specs: { label: string; value: string }[];
   colors: VariantDoc[];
   sizes: VariantDoc[];
@@ -63,6 +66,7 @@ const emptyForm = (): FormState => ({
   short: "",
   description: "",
   gallery: [],
+  previewVideo: "",
   specs: [{ label: "", value: "" }],
   colors: [],
   sizes: [],
@@ -114,6 +118,7 @@ function fromProduct(p: ProductDoc): FormState {
             type: g.type === "video" ? "video" : "image",
           }))
         : galleryFromParts(p.images || [], p.videos || []),
+    previewVideo: p.previewVideo || "",
     specs: p.specs?.length ? p.specs : [{ label: "", value: "" }],
     colors: p.colors || [],
     sizes: p.sizes || [],
@@ -176,6 +181,7 @@ function AdminProducts() {
         description: form.description,
         gallery: form.gallery,
         ...splitGallery(form.gallery),
+        previewVideo: form.previewVideo.trim(),
         specs: form.specs.filter((s) => s.label.trim() || s.value.trim()),
         colors: form.colors.filter((c) => c.label.trim()),
         sizes: form.sizes.filter((s) => s.label.trim()),
@@ -503,6 +509,54 @@ function AdminProducts() {
                       toast.error(e instanceof Error ? e.message : "Failed to save media");
                     }
                   }}
+                />
+              </Field>
+
+              <Field label="Preview product video (mobile)">
+                <p className="mb-2 text-xs leading-relaxed text-muted-foreground">
+                  Shown on mobile below Reviews & Description. Autoplays muted — shoppers tap volume
+                  for sound.
+                </p>
+                {form.gallery.some((g) => g.type === "video") ? (
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    {form.gallery
+                      .filter((g) => g.type === "video")
+                      .map((g) => {
+                        const selected = form.previewVideo === g.url;
+                        return (
+                          <button
+                            key={g.url}
+                            type="button"
+                            onClick={() =>
+                              setForm((f) => ({
+                                ...f,
+                                previewVideo: selected ? "" : g.url,
+                              }))
+                            }
+                            className={cn(
+                              "relative h-16 w-16 overflow-hidden border transition-colors",
+                              selected
+                                ? "border-foreground ring-1 ring-foreground"
+                                : "border-border opacity-80 hover:opacity-100",
+                            )}
+                            aria-pressed={selected}
+                            aria-label={selected ? "Clear preview video" : "Use as preview video"}
+                          >
+                            <VideoThumb src={mediaUrl(g.url)} className="h-full w-full" />
+                          </button>
+                        );
+                      })}
+                  </div>
+                ) : null}
+                <Uploader
+                  value={form.previewVideo ? [form.previewVideo] : []}
+                  onChange={(urls) =>
+                    setForm((f) => ({ ...f, previewVideo: urls[0] || "" }))
+                  }
+                  multiple={false}
+                  accept="video/*"
+                  enableEdit={false}
+                  label="Upload preview video"
                 />
               </Field>
 

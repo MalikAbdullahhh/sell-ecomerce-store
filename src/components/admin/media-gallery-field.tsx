@@ -2,6 +2,7 @@ import { Crop, Film, GripVertical, ImagePlus, Loader2, Trash2, Upload } from "lu
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { toast } from "sonner";
 import { adminApi, mediaUrl } from "@/lib/api";
+import { VideoThumb } from "@/components/site/video-thumb";
 import { ImageEditorModal } from "./image-editor";
 import { adminBtnGhost } from "./field";
 import { cn } from "@/lib/utils";
@@ -521,12 +522,11 @@ export function MediaGalleryField({
                     </span>
                     <div className="relative h-14 w-14 shrink-0 overflow-hidden border border-border bg-secondary">
                       {item.type === "video" ? (
-                        <>
-                          <video src={src} className="h-full w-full object-cover" muted />
+                        <VideoThumb src={src} className="h-full w-full">
                           <span className="absolute inset-0 grid place-items-center bg-black/35 text-white">
                             <Film width={14} height={14} />
                           </span>
-                        </>
+                        </VideoThumb>
                       ) : (
                         <img src={src} alt="" className="h-full w-full object-cover" />
                       )}

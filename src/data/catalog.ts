@@ -43,6 +43,8 @@ export type Product = {
   videos?: string[];
   /** Ordered gallery (images + videos). Prefer this on PDP when present. */
   gallery?: { url: string; type: "image" | "video" }[];
+  /** Mobile-only preview clip below description. */
+  previewVideo?: string;
   short: string;
   description: string;
   specs: { label: string; value: string }[];

@@ -40,6 +40,8 @@ const productSchema = new mongoose.Schema(
     description: { type: String, default: "" },
     images: [{ type: String }],
     videos: [{ type: String }],
+    /** Dedicated preview clip shown on mobile PDP below description. */
+    previewVideo: { type: String, default: "" },
     /** Ordered product media (images + videos). Preferred for PDP gallery order. */
     gallery: [
       {

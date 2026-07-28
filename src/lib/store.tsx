@@ -390,10 +390,11 @@ export function apiProductToProduct(p: ProductDoc): Product {
             ...(p.images || []).map((url) => ({ url, type: "image" as const })),
             ...(p.videos || []).map((url) => ({ url, type: "video" as const })),
           ]
-    ).map((g) => ({
+    }).map((g) => ({
       url: mediaUrl(g.url),
       type: g.type === "video" ? ("video" as const) : ("image" as const),
     })),
+    previewVideo: p.previewVideo ? mediaUrl(p.previewVideo) : "",
     short: p.short || "",
     description: p.description || "",
     specs: p.specs || [],

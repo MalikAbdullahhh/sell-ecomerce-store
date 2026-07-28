@@ -10,8 +10,8 @@ export type AspectOption = {
 };
 
 const ASPECTS: AspectOption[] = [
-  { label: "Free", value: undefined },
   { label: "1:1", value: 1 },
+  { label: "Free", value: undefined },
   { label: "4:3", value: 4 / 3 },
   { label: "3:4", value: 3 / 4 },
   { label: "16:9", value: 16 / 9 },
@@ -29,6 +29,11 @@ type Props = {
   /** Optional: skip editing and keep original. */
   onSkip?: () => void;
   fileName?: string;
+  /**
+   * Default crop aspect when the editor opens.
+   * Product gallery uses 1 (square) to match the PDP frame.
+   */
+  defaultAspect?: number | undefined;
 };
 
 function createImage(url: string): Promise<HTMLImageElement> {
@@ -120,11 +125,12 @@ export function ImageEditorModal({
   onApply,
   onSkip,
   fileName = "image.jpg",
+  defaultAspect = 1,
 }: Props) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
-  const [aspect, setAspect] = useState<number | undefined>(undefined);
+  const [aspect, setAspect] = useState<number | undefined>(defaultAspect);
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
@@ -135,11 +141,11 @@ export function ImageEditorModal({
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     setRotation(0);
-    setAspect(undefined);
+    setAspect(defaultAspect);
     setBrightness(100);
     setContrast(100);
     setCroppedAreaPixels(null);
-  }, [open, src]);
+  }, [open, src, defaultAspect]);
 
   useEffect(() => {
     if (!open) return;
@@ -225,6 +231,9 @@ export function ImageEditorModal({
         </div>
 
         <div className="space-y-4 overflow-y-auto border-t border-border p-4">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            1:1 matches the product page image frame — what you crop is what shoppers see
+          </p>
           <div className="flex flex-wrap gap-1.5">
             {ASPECTS.map((a) => (
               <button

@@ -51,6 +51,7 @@ function mapProduct(p) {
     gallery,
     images: gallery.filter((g) => g.type === "image").map((g) => g.url),
     videos: gallery.filter((g) => g.type === "video").map((g) => g.url),
+    previewVideo: obj.previewVideo || "",
   };
 }
 
@@ -327,6 +328,7 @@ router.post(
       images: media.images,
       videos: media.videos,
       gallery: media.gallery,
+      previewVideo: String(req.body.previewVideo || "").trim(),
       specs: req.body.specs || [],
       colors: req.body.colors || [],
       sizes: req.body.sizes || [],
@@ -370,6 +372,10 @@ router.put(
       updates.gallery = media.gallery;
       updates.images = media.images;
       updates.videos = media.videos;
+    }
+
+    if (updates.previewVideo !== undefined) {
+      updates.previewVideo = String(updates.previewVideo || "").trim();
     }
 
     if (updates.stock !== undefined) {

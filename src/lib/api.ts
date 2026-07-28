@@ -356,6 +356,7 @@ export type ProductDoc = {
   images: string[];
   videos?: string[];
   gallery?: { url: string; type: "image" | "video" }[];
+  previewVideo?: string;
   short: string;
   description: string;
   specs: { label: string; value: string }[];
