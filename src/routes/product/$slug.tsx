@@ -610,7 +610,7 @@ function ProductPage() {
                 { icon: Zap, label: "COD available", tone: "text-amber-500 dark:text-amber-400" },
                 {
                   icon: ShieldCheck,
-                  label: "1-yr cover",
+                  label: "7 days return",
                   tone: "text-emerald-600 dark:text-emerald-400",
                 },
               ].map(({ icon: Icon, label, tone }) => (
