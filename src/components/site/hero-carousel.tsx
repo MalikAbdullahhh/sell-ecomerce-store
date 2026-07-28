@@ -1,6 +1,12 @@
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, EffectCreative } from "swiper/modules";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { mediaUrl } from "@/lib/api";
+
+// Swiper core + modules styles
+import "swiper/css";
+import "swiper/css/effect-creative";
 
 export type HeroSlide = {
   image: string;
@@ -51,24 +57,12 @@ export function HeroCarousel({
   const reduce = useReducedMotion();
   const valid = slides.filter((s) => s.image || s.title);
   const count = valid.length;
-
-  const [index, setIndex] = useState(0);
-  const intervalMs = Math.max(3000, (Number(autoplaySeconds) || 5) * 1000);
-
-  const goNext = useCallback(() => {
-    setIndex((i) => (count ? (i + 1) % count : 0));
-  }, [count]);
-
-  // Always auto-advance — no pause, no controls.
-  useEffect(() => {
-    if (count <= 1) return;
-    const id = window.setInterval(goNext, intervalMs);
-    return () => window.clearInterval(id);
-  }, [count, intervalMs, goNext]);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   if (count === 0) return null;
 
-  const active = valid[index];
+  const delayMs = Math.max(3000, (Number(autoplaySeconds) || 5) * 1000);
+  const active = valid[activeIndex];
 
   return (
     <section
@@ -76,42 +70,59 @@ export function HeroCarousel({
       aria-roledescription="carousel"
       aria-live="polite"
     >
-      <AnimatePresence initial={false} mode="popLayout">
-        <motion.div
-          key={index}
-          className="absolute inset-0"
-          initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 1.04 }}
-          animate={reduce ? { opacity: 1 } : { opacity: 1, scale: 1 }}
-          exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 1.02 }}
-          transition={{ duration: reduce ? 0.35 : 1, ease: EASE }}
-        >
-          <motion.div
-            className="absolute inset-0"
-            initial={reduce ? {} : { scale: 1.1 }}
-            animate={reduce ? {} : { scale: 1.22 }}
-            transition={{ duration: intervalMs / 1000 + 0.8, ease: "linear" }}
-          >
-            {active.image ? (
+      {/* ── Swiper: cinematic right-to-left slide ── */}
+      <Swiper
+        modules={[Autoplay, EffectCreative]}
+        effect="creative"
+        creativeEffect={{
+          prev: {
+            // Exiting slide: moves left and fades out
+            translate: ["-110%", 0, -1],
+            opacity: 0,
+          },
+          next: {
+            // Incoming slide: starts from the right
+            translate: ["100%", 0, 0],
+            opacity: 1,
+          },
+        }}
+        speed={reduce ? 350 : 900}
+        loop={count > 1}
+        autoplay={
+          count > 1
+            ? { delay: delayMs, disableOnInteraction: false }
+            : false
+        }
+        allowTouchMove={false}
+        onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
+        className="absolute inset-0 h-full w-full"
+      >
+        {valid.map((slide, i) => (
+          <SwiperSlide key={i} className="relative h-full w-full">
+            {slide.image ? (
               <img
-                src={mediaUrl(active.image)}
+                src={mediaUrl(slide.image)}
                 alt=""
                 className="h-full w-full object-cover"
                 draggable={false}
-                fetchPriority={index === 0 ? "high" : "auto"}
-                decoding={index === 0 ? "sync" : "async"}
-                loading={index === 0 ? "eager" : "lazy"}
+                fetchPriority={i === 0 ? "high" : "auto"}
+                decoding={i === 0 ? "sync" : "async"}
+                loading={i === 0 ? "eager" : "lazy"}
               />
             ) : (
               <div className="h-full w-full bg-neutral-900" />
             )}
-          </motion.div>
-        </motion.div>
-      </AnimatePresence>
+            {/* Dark gradient overlay for text legibility */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+          </SwiperSlide>
+        ))}
+      </Swiper>
 
-      <div className="relative z-10 mx-auto flex h-full max-w-[1440px] flex-col justify-end px-5 pb-16 md:px-10 md:pb-20">
+      {/* ── Text overlay ── */}
+      <div className="pointer-events-none relative z-10 mx-auto flex h-full max-w-[1440px] flex-col justify-end px-5 pb-16 md:px-10 md:pb-20">
         <div className="max-w-3xl">
           <AnimatePresence mode="wait">
-            <motion.div key={`copy-${index}`}>
+            <motion.div key={`copy-${activeIndex}`}>
               {active.eyebrow && (
                 <motion.p
                   initial={reduce ? { opacity: 0 } : { opacity: 0, y: 14 }}
