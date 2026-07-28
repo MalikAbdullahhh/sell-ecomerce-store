@@ -19,6 +19,7 @@ import cmsRoutes from "./routes/cms.js";
 import adminRoutes from "./routes/admin.js";
 import newsletterRoutes from "./routes/newsletter.js";
 import discountsRoutes from "./routes/discounts.js";
+import contactRoutes from "./routes/contact.js";
 
 const app = express();
 
@@ -105,6 +106,7 @@ app.use("/api/journals", journalRoutes);
 app.use("/api/cms", cmsRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/newsletter", newsletterRoutes);
+app.use("/api/contact", contactRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);

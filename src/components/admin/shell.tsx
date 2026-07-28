@@ -17,6 +17,7 @@ import {
   TrendingUp,
   Users,
   Globe,
+  Inbox,
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -31,7 +32,7 @@ const NAV: {
   label: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
-  badgeKey?: "orders";
+  badgeKey?: "orders" | "inquiries";
 }[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/products", label: "Products", icon: Package },
@@ -40,6 +41,7 @@ const NAV: {
   { to: "/admin/orders", label: "Orders", icon: ShoppingBag, badgeKey: "orders" },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/reviews", label: "Reviews", icon: MessageSquare },
+  { to: "/admin/inquiries", label: "Inquiries", icon: Inbox, badgeKey: "inquiries" },
   { to: "/admin/testimonials", label: "Testimonials", icon: Quote },
   { to: "/admin/journals", label: "Journals", icon: BookOpen },
   { to: "/admin/newsletter", label: "Newsletter", icon: Mail },
@@ -60,11 +62,19 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     refetchInterval: 15000,
   });
 
+  const unreadInquiriesQuery = useQuery({
+    queryKey: ["admin-unread-inquiries"],
+    queryFn: () => adminApi.unreadContactInquiries(),
+    refetchInterval: 15000,
+  });
+
   useEffect(() => {
     unreadQuery.refetch();
+    unreadInquiriesQuery.refetch();
   }, [pathname]);
 
   const unread = unreadQuery.data?.count ?? 0;
+  const unreadInquiries = unreadInquiriesQuery.data?.count ?? 0;
 
   return (
     <div className="fixed inset-0 z-[100] flex bg-background text-foreground">
@@ -110,7 +120,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               ? pathname === item.to || pathname === `${item.to}/`
               : pathname.startsWith(item.to);
             const Icon = item.icon;
-            const showBadge = item.badgeKey === "orders" && unread > 0;
+            const badgeCount =
+              item.badgeKey === "orders"
+                ? unread
+                : item.badgeKey === "inquiries"
+                  ? unreadInquiries
+                  : 0;
+            const showBadge = badgeCount > 0;
             return (
               <Link
                 key={item.to}
@@ -135,7 +151,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                       active ? "bg-background text-foreground" : "bg-foreground text-background",
                     )}
                   >
-                    {unread > 99 ? "99+" : unread}
+                    {badgeCount > 99 ? "99+" : badgeCount}
                   </span>
                 )}
               </Link>

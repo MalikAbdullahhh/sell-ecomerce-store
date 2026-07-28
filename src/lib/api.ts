@@ -177,6 +177,16 @@ export const newsletterApi = {
     api<{ message: string }>("/newsletter/subscribe", { method: "POST", body }),
 };
 
+export const contactApi = {
+  submit: (body: {
+    name: string;
+    email?: string;
+    phone?: string;
+    orderNumber?: string;
+    message: string;
+  }) => api<{ message: string; inquiry: ContactInquiryDoc }>("/contact", { method: "POST", body }),
+};
+
 export const reviewApi = {
   create: (formData: FormData) => api("/reviews", { method: "POST", formData }),
   updateMine: (id: string, formData: FormData) =>
@@ -262,6 +272,20 @@ export const adminApi = {
       body,
       admin: true,
     }),
+  contactInquiries: (params?: { status?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set("status", params.status);
+    const qs = q.toString();
+    return api<{ inquiries: ContactInquiryDoc[]; unreadCount: number }>(
+      `/contact${qs ? `?${qs}` : ""}`,
+      { admin: true },
+    );
+  },
+  unreadContactInquiries: () => api<{ count: number }>("/contact/unread-count", { admin: true }),
+  updateContactInquiry: (id: string, body: Partial<ContactInquiryDoc>) =>
+    api<{ inquiry: ContactInquiryDoc }>(`/contact/${id}`, { method: "PATCH", body, admin: true }),
+  deleteContactInquiry: (id: string) =>
+    api(`/contact/${id}`, { method: "DELETE", admin: true }),
   reviews: () => api<{ reviews: ReviewDoc[] }>("/reviews/admin/all", { admin: true }),
   saveReview: (body: Record<string, unknown>, id?: string) =>
     id
@@ -544,6 +568,19 @@ export type NewsletterCampaign = {
   status: string;
   sentAt?: string;
   createdAt?: string;
+};
+
+export type ContactInquiryDoc = {
+  _id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  orderNumber?: string;
+  message: string;
+  status: "new" | "read" | "replied" | "archived";
+  adminNote?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type LegalDocApi = {

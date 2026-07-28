@@ -313,6 +313,12 @@ export const PAGE_SCHEMA: CmsPage[] = [
           { key: "namePlaceholder", label: "Name field placeholder", type: "text", default: "Name" },
           { key: "emailPlaceholder", label: "Email field placeholder", type: "text", default: "Email" },
           {
+            key: "phonePlaceholder",
+            label: "Phone field placeholder",
+            type: "text",
+            default: "Phone",
+          },
+          {
             key: "orderPlaceholder",
             label: "Order field placeholder",
             type: "text",
