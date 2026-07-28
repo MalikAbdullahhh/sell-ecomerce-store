@@ -1382,12 +1382,12 @@ function ReviewsPanel({
   return (
     <div
       className={cn(
-        "flex overflow-hidden border border-border bg-card/30",
-        // Cap to viewport; review list scrolls inside so the page stays usable.
-        "max-h-[min(90vh,880px)] flex-col",
+        "flex overflow-hidden border border-border bg-card/30 flex-col",
+        // Cap to absolute height on mobile so 7-8 reviews can fit (ignoring viewport vh caps)
+        "max-h-[950px]",
         "md:max-h-[min(100dvh-8rem,820px)] md:flex-row",
         // Lock height when there is enough content so the feed scrolls reliably.
-        manyReviews && "h-[min(90vh,880px)] md:h-[min(100dvh-8rem,820px)]",
+        manyReviews && "h-[950px] md:h-[min(100dvh-8rem,820px)]",
       )}
     >
       {/* Summary — fixed beside the scrollable feed on desktop */}
