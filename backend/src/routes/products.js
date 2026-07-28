@@ -34,6 +34,13 @@ function mapProduct(p) {
   const obj = p.toObject ? p.toObject() : p;
   const categorySlugs = collectCategorySlugs(obj);
   const primary = categorySlugs[0] || obj.categorySlug || "";
+  let gallery = Array.isArray(obj.gallery) ? obj.gallery.filter((g) => g?.url) : [];
+  if (!gallery.length) {
+    gallery = [
+      ...(obj.images || []).filter(Boolean).map((url) => ({ url, type: "image" })),
+      ...(obj.videos || []).filter(Boolean).map((url) => ({ url, type: "video" })),
+    ];
+  }
   return {
     ...obj,
     id: obj._id,
@@ -41,8 +48,67 @@ function mapProduct(p) {
     categorySlug: primary,
     categories: categorySlugs,
     categorySlugs,
+    gallery,
+    images: gallery.filter((g) => g.type === "image").map((g) => g.url),
+    videos: gallery.filter((g) => g.type === "video").map((g) => g.url),
   };
 }
+
+/** Lean card/list payload — skips heavy PDP fields for faster storefront boot. */
+function mapProductList(p) {
+  const obj = p.toObject ? p.toObject() : p;
+  const categorySlugs = collectCategorySlugs(obj);
+  const primary = categorySlugs[0] || obj.categorySlug || "";
+  const imageUrls = Array.isArray(obj.images) ? obj.images.filter(Boolean) : [];
+  const galleryUrls = Array.isArray(obj.gallery)
+    ? obj.gallery.filter((g) => g?.url).map((g) => g.url)
+    : [];
+  const images = (imageUrls.length ? imageUrls : galleryUrls).slice(0, 2);
+  return {
+    id: obj._id,
+    _id: obj._id,
+    slug: obj.slug,
+    name: obj.name,
+    brand: obj.brand,
+    category: primary,
+    categorySlug: primary,
+    categories: categorySlugs,
+    categorySlugs,
+    price: obj.price,
+    compareAt: obj.compareAt,
+    saleDiscountPercent: obj.saleDiscountPercent,
+    rating: obj.rating ?? 0,
+    reviewCount: obj.reviewCount ?? 0,
+    images,
+    videos: [],
+    gallery: images.map((url) => ({ url, type: "image" })),
+    short: obj.short || "",
+    description: "",
+    specs: [],
+    colors: (obj.colors || []).map((c) => ({
+      _id: c._id,
+      label: c.label,
+      type: c.type,
+      value: c.value,
+      image: c.image || "",
+    })),
+    sizes: (obj.sizes || []).map((s) => ({
+      _id: s._id,
+      label: s.label,
+      type: s.type,
+      image: s.image || "",
+    })),
+    stock: obj.stock ?? 0,
+    soldCount: obj.soldCount ?? 0,
+    inStock: obj.inStock !== false && (obj.stock ?? 0) > 0,
+    flags: obj.flags || [],
+    isActive: obj.isActive !== false,
+    reviews: [],
+  };
+}
+
+const LIST_SELECT =
+  "name slug brand price compareAt saleDiscountPercent rating reviewCount images gallery short flags stock soldCount inStock categorySlug categorySlugs colors sizes isActive createdAt";
 
 const categoryPopulate = [
   { path: "category", select: "name slug" },
@@ -63,6 +129,7 @@ router.get(
       sort = "newest",
       page = 1,
       limit = 48,
+      lean,
     } = req.query;
 
     const filter = { isActive: true };
@@ -86,17 +153,20 @@ router.get(
     if (sort === "name") sortSpec = { name: 1 };
 
     const skip = (Number(page) - 1) * Number(limit);
+    const useLean = lean !== "0" && lean !== "false";
     const [items, total] = await Promise.all([
       Product.find(filter)
+        .select(useLean ? LIST_SELECT : undefined)
         .sort(sortSpec)
         .skip(skip)
         .limit(Number(limit))
-        .populate(categoryPopulate),
+        .populate(categoryPopulate)
+        .lean(useLean),
       Product.countDocuments(filter),
     ]);
 
     res.json({
-      products: items.map(mapProduct),
+      products: items.map((p) => (useLean ? mapProductList(p) : mapProduct(p))),
       total,
       page: Number(page),
       pages: Math.ceil(total / Number(limit)),
@@ -164,7 +234,43 @@ async function resolveOneCategory(key) {
   );
 }
 
-/** Accepts categories[], categoryIds[], category, or categoryId. Returns unique Category docs (order preserved). */
+function normalizeGallery(body) {
+  const raw = Array.isArray(body.gallery) ? body.gallery : [];
+  const gallery = raw
+    .map((item) => {
+      if (!item) return null;
+      if (typeof item === "string") {
+        const url = item.trim();
+        if (!url) return null;
+        const isVideo = /\.(mp4|webm|mov|m4v|avi|mkv|3gp|mpeg|mpg|ogv)(\?|$)/i.test(url) || /\/video\//i.test(url);
+        return { url, type: isVideo ? "video" : "image" };
+      }
+      const url = String(item.url || "").trim();
+      if (!url) return null;
+      const type = item.type === "video" ? "video" : "image";
+      return { url, type };
+    })
+    .filter(Boolean);
+
+  if (gallery.length) {
+    return {
+      gallery,
+      images: gallery.filter((g) => g.type === "image").map((g) => g.url),
+      videos: gallery.filter((g) => g.type === "video").map((g) => g.url),
+    };
+  }
+
+  const images = Array.isArray(body.images) ? body.images.filter(Boolean) : [];
+  const videos = Array.isArray(body.videos) ? body.videos.filter(Boolean) : [];
+  return {
+    images,
+    videos,
+    gallery: [
+      ...images.map((url) => ({ url, type: "image" })),
+      ...videos.map((url) => ({ url, type: "video" })),
+    ],
+  };
+}
 async function resolveCategories(body) {
   const keys = [];
   const push = (v) => {
@@ -204,6 +310,7 @@ router.post(
     }
 
     const primary = categoryDocs[0];
+    const media = normalizeGallery(req.body);
     const product = await Product.create({
       ...req.body,
       name,
@@ -217,8 +324,9 @@ router.post(
       saleDiscountPercent: Number(req.body.saleDiscountPercent) || 0,
       stock: Number(req.body.stock) || 0,
       inStock: req.body.inStock !== false && (Number(req.body.stock) || 0) > 0,
-      images: req.body.images || [],
-      videos: req.body.videos || [],
+      images: media.images,
+      videos: media.videos,
+      gallery: media.gallery,
       specs: req.body.specs || [],
       colors: req.body.colors || [],
       sizes: req.body.sizes || [],
@@ -256,6 +364,13 @@ router.put(
     }
     delete updates.categoryId;
     delete updates.categoryIds;
+
+    if (updates.gallery !== undefined || updates.images !== undefined || updates.videos !== undefined) {
+      const media = normalizeGallery(updates);
+      updates.gallery = media.gallery;
+      updates.images = media.images;
+      updates.videos = media.videos;
+    }
 
     if (updates.stock !== undefined) {
       updates.stock = Number(updates.stock) || 0;

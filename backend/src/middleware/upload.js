@@ -22,16 +22,70 @@ if (!cloudinaryEnabled && !fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+const IMAGE_EXTS = new Set([
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".gif",
+  ".avif",
+  ".bmp",
+  ".heic",
+  ".heif",
+]);
+const VIDEO_EXTS = new Set([
+  ".mp4",
+  ".webm",
+  ".mov",
+  ".m4v",
+  ".avi",
+  ".mkv",
+  ".3gp",
+  ".mpeg",
+  ".mpg",
+  ".ogv",
+]);
+
 const allowed = new Set([
   "image/jpeg",
   "image/png",
   "image/webp",
   "image/gif",
   "image/avif",
+  "image/bmp",
+  "image/heic",
+  "image/heif",
   "video/mp4",
   "video/webm",
   "video/quicktime",
+  "video/x-m4v",
+  "video/m4v",
+  "video/avi",
+  "video/x-msvideo",
+  "video/x-matroska",
+  "video/3gpp",
+  "video/mpeg",
+  "video/ogg",
+  "application/mp4",
+  "application/octet-stream",
 ]);
+
+function extOf(name = "") {
+  const i = String(name).lastIndexOf(".");
+  return i >= 0 ? String(name).slice(i).toLowerCase() : "";
+}
+
+function isAllowedUpload(file) {
+  const mime = String(file.mimetype || "").toLowerCase();
+  const ext = extOf(file.originalname);
+  if (allowed.has(mime) && mime !== "application/octet-stream") return true;
+  if (IMAGE_EXTS.has(ext) || VIDEO_EXTS.has(ext)) return true;
+  // Some browsers send empty / octet-stream for valid media — trust known extensions.
+  if ((!mime || mime === "application/octet-stream") && (IMAGE_EXTS.has(ext) || VIDEO_EXTS.has(ext))) {
+    return true;
+  }
+  return false;
+}
 
 /**
  * Memory storage for Cloudinary (buffer → upload_stream).
@@ -57,8 +111,8 @@ export const upload = multer({
     files: 100,
   },
   fileFilter: (_req, file, cb) => {
-    if (allowed.has(file.mimetype)) cb(null, true);
-    else cb(new Error(`Unsupported file type: ${file.mimetype}`));
+    if (isAllowedUpload(file)) cb(null, true);
+    else cb(new Error(`Unsupported file type: ${file.mimetype || "unknown"} (${file.originalname})`));
   },
 });
 

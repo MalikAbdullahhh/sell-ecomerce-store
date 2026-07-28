@@ -13,6 +13,12 @@ import {
   slugify,
 } from "@/components/admin/field";
 import { Uploader } from "@/components/admin/uploader";
+import {
+  galleryFromParts,
+  MediaGalleryField,
+  splitGallery,
+  type GalleryItem,
+} from "@/components/admin/media-gallery-field";
 import { RichEditor } from "@/components/admin/rich-editor";
 import { adminApi, mediaUrl, type ProductDoc, type VariantDoc } from "@/lib/api";
 import { useStore } from "@/lib/store";
@@ -32,8 +38,7 @@ type FormState = {
   saleDiscountPercent: string;
   short: string;
   description: string;
-  images: string[];
-  videos: string[];
+  gallery: GalleryItem[];
   specs: { label: string; value: string }[];
   colors: VariantDoc[];
   sizes: VariantDoc[];
@@ -57,8 +62,7 @@ const emptyForm = (): FormState => ({
   saleDiscountPercent: "",
   short: "",
   description: "",
-  images: [],
-  videos: [],
+  gallery: [],
   specs: [{ label: "", value: "" }],
   colors: [],
   sizes: [],
@@ -103,8 +107,13 @@ function fromProduct(p: ProductDoc): FormState {
     saleDiscountPercent: p.saleDiscountPercent != null ? String(p.saleDiscountPercent) : "",
     short: p.short || "",
     description: p.description || "",
-    images: p.images || [],
-    videos: p.videos || [],
+    gallery:
+      Array.isArray(p.gallery) && p.gallery.length
+        ? p.gallery.map((g) => ({
+            url: g.url,
+            type: g.type === "video" ? "video" : "image",
+          }))
+        : galleryFromParts(p.images || [], p.videos || []),
     specs: p.specs?.length ? p.specs : [{ label: "", value: "" }],
     colors: p.colors || [],
     sizes: p.sizes || [],
@@ -165,8 +174,8 @@ function AdminProducts() {
           : undefined,
         short: form.short,
         description: form.description,
-        images: form.images,
-        videos: form.videos,
+        gallery: form.gallery,
+        ...splitGallery(form.gallery),
         specs: form.specs.filter((s) => s.label.trim() || s.value.trim()),
         colors: form.colors.filter((c) => c.label.trim()),
         sizes: form.sizes.filter((s) => s.label.trim()),
@@ -467,20 +476,10 @@ function AdminProducts() {
                   placeholder="Full product description — formatting, lists and links supported"
                 />
               </Field>
-              <Field label="Images (multiple, any size)">
-                <Uploader
-                  value={form.images}
-                  onChange={(images) => setForm((f) => ({ ...f, images }))}
-                  accept="image/*"
-                  label="Add"
-                />
-              </Field>
-              <Field label="Videos (multiple, any size)">
-                <Uploader
-                  value={form.videos}
-                  onChange={(videos) => setForm((f) => ({ ...f, videos }))}
-                  accept="video/*"
-                  label="Add"
+              <Field label="Media (images & videos)">
+                <MediaGalleryField
+                  value={form.gallery}
+                  onChange={(gallery) => setForm((f) => ({ ...f, gallery }))}
                 />
               </Field>
 

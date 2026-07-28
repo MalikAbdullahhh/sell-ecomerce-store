@@ -109,26 +109,43 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
-    Promise.allSettled([catalogApi.products(), catalogApi.categories(), cmsApi.site()])
-      .then(([productResult, categoryResult, siteResult]) => {
+
+    // Settings + CMS home/footer first — unlock boot ASAP.
+    void cmsApi
+      .site()
+      .then((siteData) => {
         if (!active) return;
-        if (productResult.status === "fulfilled") {
-          setProducts(productResult.value.products.map(apiProductToProduct));
-        } else {
-          setProducts([]);
-        }
-        if (categoryResult.status === "fulfilled") {
-          setCategories(categoryResult.value.categories);
-        } else {
-          setCategories([]);
-        }
-        if (siteResult.status === "fulfilled") {
-          applySettings(siteResult.value.settings);
-        } else {
-          setSettingsReady(true);
-        }
+        applySettings(siteData.settings);
       })
-      .finally(() => active && setCatalogLoading(false));
+      .catch(() => {
+        if (active) setSettingsReady(true);
+      });
+
+    void import("@/lib/page-content").then(({ prefetchPageContent }) => {
+      void prefetchPageContent("home");
+      void prefetchPageContent("footer");
+    });
+
+    // Lean product cards for storefront lists (no full descriptions/galleries).
+    Promise.allSettled([
+      catalogApi.products({ limit: 96, lean: 1 }),
+      catalogApi.categories(),
+    ]).then(([productResult, categoryResult]) => {
+      if (!active) return;
+      if (productResult.status === "fulfilled") {
+        setProducts(productResult.value.products.map(apiProductToProduct));
+      } else {
+        setProducts([]);
+      }
+      if (categoryResult.status === "fulfilled") {
+        setCategories(categoryResult.value.categories);
+      } else {
+        setCategories([]);
+      }
+    }).finally(() => {
+      if (active) setCatalogLoading(false);
+    });
+
     return () => {
       active = false;
     };
@@ -215,7 +232,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const refreshCatalog = useCallback(async () => {
     try {
       const [productData, categoryData] = await Promise.all([
-        catalogApi.products(),
+        catalogApi.products({ limit: 96, lean: 1 }),
         catalogApi.categories(),
       ]);
       setProducts(productData.products.map(apiProductToProduct));
@@ -366,8 +383,19 @@ export function apiProductToProduct(p: ProductDoc): Product {
     reviewCount: p.reviewCount,
     images: (p.images || []).map(mediaUrl),
     videos: (p.videos || []).map(mediaUrl),
-    short: p.short,
-    description: p.description,
+    gallery: (
+      Array.isArray(p.gallery) && p.gallery.length
+        ? p.gallery
+        : [
+            ...(p.images || []).map((url) => ({ url, type: "image" as const })),
+            ...(p.videos || []).map((url) => ({ url, type: "video" as const })),
+          ]
+    ).map((g) => ({
+      url: mediaUrl(g.url),
+      type: g.type === "video" ? ("video" as const) : ("image" as const),
+    })),
+    short: p.short || "",
+    description: p.description || "",
     specs: p.specs || [],
     colors: (p.colors || []).map((v, i) => ({
       id: v._id || `color-${i}`,
@@ -385,7 +413,7 @@ export function apiProductToProduct(p: ProductDoc): Product {
     inStock: p.inStock,
     stock: p.stock,
     soldCount: p.soldCount ?? 0,
-    flags: p.flags.filter((f): f is "new" | "hot" => f === "new" || f === "hot"),
+    flags: (p.flags || []).filter((f): f is "new" | "hot" => f === "new" || f === "hot"),
     reviews: (p.reviews || []).map((r, i) => ({
       id: r.id || r._id || `review-${i}`,
       userId: (r as { userId?: string | null }).userId ?? null,

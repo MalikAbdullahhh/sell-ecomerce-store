@@ -355,6 +355,7 @@ export type ProductDoc = {
   reviewCount: number;
   images: string[];
   videos?: string[];
+  gallery?: { url: string; type: "image" | "video" }[];
   short: string;
   description: string;
   specs: { label: string; value: string }[];

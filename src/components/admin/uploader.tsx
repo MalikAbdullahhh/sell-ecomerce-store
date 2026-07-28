@@ -1,5 +1,5 @@
-import { Crop, ImagePlus, Loader2, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Crop, ImagePlus, Loader2, Upload, X } from "lucide-react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import { toast } from "sonner";
 import { adminApi, mediaUrl } from "@/lib/api";
 import { ImageEditorModal } from "./image-editor";
@@ -20,14 +20,10 @@ type Props = {
 type EditSession =
   | {
       mode: "queue";
-      /** Local object URL */
       src: string;
       file: File;
-      /** Remaining image files after this one */
       rest: File[];
-      /** Videos (and skipped/edited images) waiting to upload with this batch */
       pendingUpload: File[];
-      /** 1-based index among images in this pick */
       index: number;
       total: number;
     }
@@ -36,12 +32,15 @@ type EditSession =
       src: string;
       index: number;
       fileName: string;
-      /** Revoke this object URL on close if we created it */
       revokeOnClose?: string;
     };
 
 function isImageFile(file: File) {
   return file.type.startsWith("image/");
+}
+
+function isVideoFile(file: File) {
+  return file.type.startsWith("video/");
 }
 
 function isVideoUrl(url: string) {
@@ -50,6 +49,40 @@ function isVideoUrl(url: string) {
 
 function looksLikeImageAccept(accept: string) {
   return accept.includes("image") || accept === "*/*" || accept === "";
+}
+
+function acceptHint(accept: string) {
+  const parts: string[] = [];
+  if (accept.includes("image") || accept === "*/*" || !accept) parts.push("images");
+  if (accept.includes("video") || accept === "*/*" || !accept) parts.push("videos");
+  return parts.join(" or ") || "files";
+}
+
+/** Match a File against an HTML accept string (e.g. "image/*,video/*"). */
+function fileMatchesAccept(file: File, accept: string): boolean {
+  if (!accept || accept === "*/*") return true;
+  const tokens = accept.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
+  const type = (file.type || "").toLowerCase();
+  const name = file.name.toLowerCase();
+  const ext = name.includes(".") ? `.${name.split(".").pop()}` : "";
+
+  const imageExts = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif", ".bmp", ".heic", ".heif"];
+  const videoExts = [".mp4", ".webm", ".mov", ".m4v", ".avi", ".mkv", ".3gp", ".mpeg", ".mpg", ".ogv"];
+
+  return tokens.some((token) => {
+    if (token === "image/*") {
+      return type.startsWith("image/") || imageExts.includes(ext);
+    }
+    if (token === "video/*") {
+      return type.startsWith("video/") || type === "application/mp4" || videoExts.includes(ext);
+    }
+    if (token.endsWith("/*")) {
+      const prefix = token.slice(0, -1);
+      return type.startsWith(prefix);
+    }
+    if (token.startsWith(".")) return name.endsWith(token);
+    return type === token;
+  });
 }
 
 export function Uploader({
@@ -62,9 +95,11 @@ export function Uploader({
   enableEdit,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const dragDepth = useRef(0);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [session, setSession] = useState<EditSession | null>(null);
+  const [dragging, setDragging] = useState(false);
   const allowEdit = enableEdit ?? looksLikeImageAccept(accept);
 
   useEffect(() => {
@@ -135,12 +170,56 @@ export function Uploader({
     });
   }
 
-  async function onPick(files: FileList | null) {
-    if (!files?.length) return;
-    const list = Array.from(files);
+  function ingestFiles(raw: File[]) {
+    if (!raw.length || busy) return;
+    let list = raw.filter((f) => fileMatchesAccept(f, accept));
+    if (!list.length) {
+      toast.error(`Drop ${acceptHint(accept)} only`);
+      return;
+    }
+    if (!multiple) list = list.slice(0, 1);
+
     const images = list.filter(isImageFile);
-    const videos = list.filter((f) => !isImageFile(f));
-    startQueue(images, videos);
+    const videos = list.filter(isVideoFile);
+    const other = list.filter((f) => !isImageFile(f) && !isVideoFile(f));
+    // Non image/video that still matched accept (rare) — upload with videos path.
+    startQueue(images, [...videos, ...other]);
+  }
+
+  function onPick(files: FileList | null) {
+    if (!files?.length) return;
+    ingestFiles(Array.from(files));
+  }
+
+  function onDragEnter(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (busy) return;
+    dragDepth.current += 1;
+    if (e.dataTransfer?.types?.includes("Files")) setDragging(true);
+  }
+
+  function onDragLeave(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) setDragging(false);
+  }
+
+  function onDragOver(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = busy ? "none" : "copy";
+  }
+
+  function onDrop(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepth.current = 0;
+    setDragging(false);
+    if (busy) return;
+    const files = Array.from(e.dataTransfer?.files || []);
+    ingestFiles(files);
   }
 
   function finishQueueUpload(files: File[]) {
@@ -205,7 +284,6 @@ export function Uploader({
     if (!session) return;
     if (session.mode === "queue") {
       URL.revokeObjectURL(session.src);
-      // Drop remaining queue without uploading
       setSession(null);
       if (inputRef.current) inputRef.current.value = "";
       return;
@@ -282,53 +360,92 @@ export function Uploader({
         </div>
       )}
 
-      <div className={cn("flex flex-wrap gap-2", busy && "pointer-events-none opacity-40")}>
-        {value.map((url, i) => {
-          const src = mediaUrl(url);
-          const video = isVideoUrl(url);
-          return (
-            <div key={`${url}-${i}`} className="group relative h-20 w-20 overflow-hidden border border-border">
-              {video ? (
-                <video src={src} className="h-full w-full object-cover" muted />
-              ) : (
-                <img src={src} alt="" className="h-full w-full object-cover" />
-              )}
-              <button
-                type="button"
-                onClick={() => remove(i)}
-                className="absolute right-0 top-0 grid h-5 w-5 place-items-center bg-foreground text-background"
-                aria-label="Remove"
+      <div
+        onDragEnter={onDragEnter}
+        onDragLeave={onDragLeave}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
+        className={cn(
+          "relative border border-dashed p-3 transition-colors",
+          dragging
+            ? "border-foreground bg-mist/80"
+            : "border-border bg-transparent hover:border-foreground/40",
+          busy && "pointer-events-none opacity-40",
+        )}
+      >
+        {dragging ? (
+          <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/90">
+            <Upload width={22} height={22} />
+            <p className="font-mono text-[11px] uppercase tracking-[0.16em]">
+              Drop {acceptHint(accept)} to upload
+            </p>
+          </div>
+        ) : null}
+
+        <div className="flex flex-wrap gap-2">
+          {value.map((url, i) => {
+            const src = mediaUrl(url);
+            const video = isVideoUrl(url);
+            return (
+              <div
+                key={`${url}-${i}`}
+                className="group relative h-20 w-20 overflow-hidden border border-border"
               >
-                <X width={11} height={11} />
-              </button>
-              {!video && allowEdit && (
+                {video ? (
+                  <video src={src} className="h-full w-full object-cover" muted />
+                ) : (
+                  <img src={src} alt="" className="h-full w-full object-cover" />
+                )}
                 <button
                   type="button"
-                  onClick={() => void openReplaceEditor(i)}
-                  className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-1 bg-foreground/85 py-1 font-mono text-[8px] uppercase tracking-[0.12em] text-background opacity-0 transition-opacity group-hover:opacity-100"
-                  aria-label="Edit image"
+                  onClick={() => remove(i)}
+                  className="absolute right-0 top-0 grid h-5 w-5 place-items-center bg-foreground text-background"
+                  aria-label="Remove"
                 >
-                  <Crop width={10} height={10} />
-                  Edit
+                  <X width={11} height={11} />
                 </button>
-              )}
-            </div>
-          );
-        })}
+                {!video && allowEdit && (
+                  <button
+                    type="button"
+                    onClick={() => void openReplaceEditor(i)}
+                    className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-1 bg-foreground/85 py-1 font-mono text-[8px] uppercase tracking-[0.12em] text-background opacity-0 transition-opacity group-hover:opacity-100"
+                    aria-label="Edit image"
+                  >
+                    <Crop width={10} height={10} />
+                    Edit
+                  </button>
+                )}
+              </div>
+            );
+          })}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => inputRef.current?.click()}
+            className={cn(adminBtnGhost, "h-20 w-20 flex-col gap-1")}
+          >
+            {busy ? (
+              <Loader2 width={16} height={16} className="animate-spin" />
+            ) : (
+              <ImagePlus width={16} height={16} />
+            )}
+            <span>{busy ? "…" : label}</span>
+          </button>
+        </div>
+
         <button
           type="button"
           disabled={busy}
           onClick={() => inputRef.current?.click()}
-          className={cn(adminBtnGhost, "h-20 w-20 flex-col gap-1")}
+          className="mt-3 flex w-full flex-col items-center justify-center gap-1.5 border border-transparent py-4 text-center transition-colors hover:border-border"
         >
-          {busy ? (
-            <Loader2 width={16} height={16} className="animate-spin" />
-          ) : (
-            <ImagePlus width={16} height={16} />
-          )}
-          <span>{busy ? "…" : label}</span>
+          <Upload width={16} height={16} className="text-muted-foreground" />
+          <span className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+            Drag & drop {acceptHint(accept)} here, or click to browse
+          </span>
         </button>
       </div>
+
       <input
         ref={inputRef}
         type="file"
@@ -336,7 +453,7 @@ export function Uploader({
         multiple={multiple}
         className="hidden"
         disabled={busy}
-        onChange={(e) => void onPick(e.target.files)}
+        onChange={(e) => onPick(e.target.files)}
       />
       <div className={cn("flex gap-2", busy && "pointer-events-none opacity-40")}>
         <input

@@ -201,7 +201,7 @@ function Index() {
     return () => window.clearTimeout(t);
   }, [catalogLoading, settings]);
 
-  if (catalogLoading || !pageLoaded) return <PageSkeleton />;
+  if (!pageLoaded) return <PageSkeleton />;
 
   const heroSlides = (hero.slides || []).filter((s) => s.image || s.title);
   const promiseItems = (promises.items || []).filter((i) => i.title?.trim());

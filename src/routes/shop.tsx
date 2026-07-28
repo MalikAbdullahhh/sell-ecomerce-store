@@ -56,7 +56,6 @@ function Shop() {
     category: category ?? null,
   });
   const [sort, setSort] = useState<keyof typeof SORTS>("featured");
-  const [loading, setLoading] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   // Keep filters in sync when landing from category links / browser back-forward.
@@ -65,12 +64,6 @@ function Shop() {
       f.category === (category ?? null) ? f : { ...f, category: category ?? null },
     );
   }, [category]);
-
-  useEffect(() => {
-    setLoading(true);
-    const t = setTimeout(() => setLoading(false), 320);
-    return () => clearTimeout(t);
-  }, [filters, sort, products]);
 
   const applyFilters = (next: FilterState) => {
     setFilters(next);
@@ -152,7 +145,7 @@ function Shop() {
             <FilterChips value={filters} onChange={applyFilters} />
           </div>
 
-          {loading ? (
+          {catalogLoading ? (
             <div className="mt-8 grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-3 xl:grid-cols-4">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i}>

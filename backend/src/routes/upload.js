@@ -5,10 +5,22 @@ import { asyncHandler } from "../utils/helpers.js";
 
 const router = Router();
 
+function runUpload(middleware) {
+  return (req, res, next) => {
+    middleware(req, res, (err) => {
+      if (!err) return next();
+      const message =
+        err instanceof Error ? err.message : "Upload failed";
+      const status = err.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+      return res.status(status).json({ message });
+    });
+  };
+}
+
 router.post(
   "/",
   requireAdmin,
-  upload.array("files", 100),
+  runUpload(upload.array("files", 100)),
   asyncHandler(async (req, res) => {
     const files = await persistFiles(req.files || [], req, { folder: "media" });
     res.status(201).json({ files, provider: storageProvider });
@@ -18,7 +30,7 @@ router.post(
 router.post(
   "/single",
   requireAdmin,
-  upload.single("file"),
+  runUpload(upload.single("file")),
   asyncHandler(async (req, res) => {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
     const saved = await persistFile(req.file, req, { folder: "media" });
@@ -29,7 +41,7 @@ router.post(
 /** Public review media upload (images/videos on product reviews) */
 router.post(
   "/review",
-  upload.array("files", 8),
+  runUpload(upload.array("files", 8)),
   asyncHandler(async (req, res) => {
     const files = await persistFiles(req.files || [], req, { folder: "reviews" });
     res.status(201).json({ files, provider: storageProvider });
@@ -39,7 +51,7 @@ router.post(
 /** Optional payment proof image for online transfers (checkout) */
 router.post(
   "/payment-proof",
-  upload.single("file"),
+  runUpload(upload.single("file")),
   asyncHandler(async (req, res) => {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
     if (!String(req.file.mimetype || "").startsWith("image/")) {
@@ -58,7 +70,7 @@ router.post(
 router.post(
   "/avatar",
   requireUser,
-  upload.single("file"),
+  runUpload(upload.single("file")),
   asyncHandler(async (req, res) => {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
     const saved = await persistFile(req.file, req, { folder: "avatars" });

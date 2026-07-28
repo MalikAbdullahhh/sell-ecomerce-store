@@ -97,6 +97,9 @@ export function HeroCarousel({
                 alt=""
                 className="h-full w-full object-cover"
                 draggable={false}
+                fetchPriority={index === 0 ? "high" : "auto"}
+                decoding={index === 0 ? "sync" : "async"}
+                loading={index === 0 ? "eager" : "lazy"}
               />
             ) : (
               <div className="h-full w-full bg-neutral-900" />

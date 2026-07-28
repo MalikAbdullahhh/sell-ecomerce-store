@@ -112,7 +112,7 @@ function ProductPage() {
   const [reviewFiles, setReviewFiles] = useState<{ file: File; url: string; isVideo: boolean }[]>(
     [],
   );
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [lightbox, setLightbox] = useState<{ items: MediaItem[]; index: number } | null>(null);
   const galleryRef = useRef<HTMLDivElement>(null);
 
   // Keep local product in sync when navigating between PDPs.
@@ -225,11 +225,35 @@ function ProductPage() {
   );
 
   const galleryMedia = useMemo<MediaItem[]>(() => {
+    if (product.gallery?.length) {
+      return product.gallery.map((g) => ({
+        url: g.url,
+        type: g.type === "video" ? "video" : "image",
+      }));
+    }
     const items: MediaItem[] = [];
     for (const url of product.images || []) items.push({ url, type: "image" });
     for (const url of product.videos || []) items.push({ url, type: "video" });
     return items;
-  }, [product.images, product.videos]);
+  }, [product.gallery, product.images, product.videos]);
+
+  const openGalleryLightbox = useCallback(
+    (index: number) => {
+      if (!galleryMedia.length) return;
+      const safe = Math.max(0, Math.min(index, galleryMedia.length - 1));
+      setLightbox({ items: galleryMedia, index: safe });
+    },
+    [galleryMedia],
+  );
+
+  const openReviewLightbox = useCallback(
+    (url: string) => {
+      const i = reviewMedia.findIndex((m) => m.url === url);
+      if (i < 0) return;
+      setLightbox({ items: reviewMedia, index: i });
+    },
+    [reviewMedia],
+  );
 
   const mediaCount = galleryMedia.length;
   const activeMedia = galleryMedia[imgIndex];
@@ -270,7 +294,10 @@ function ProductPage() {
                     type="button"
                     whileHover={reduce ? undefined : { scale: 1.04 }}
                     whileTap={reduce ? undefined : { scale: 0.96 }}
-                    onClick={() => goImage(i, i > imgIndex ? 1 : -1)}
+                    onClick={() => {
+                      goImage(i, i > imgIndex ? 1 : -1);
+                      openGalleryLightbox(i);
+                    }}
                     className={cn(
                       "relative aspect-square overflow-hidden border transition-all duration-300",
                       i === imgIndex
@@ -310,11 +337,8 @@ function ProductPage() {
               >
                 <AnimatePresence initial={false} custom={imgDir} mode="popLayout">
                   {activeMedia?.type === "video" ? (
-                    <motion.video
+                    <motion.div
                       key={`video-${imgIndex}-${color}`}
-                      src={activeMedia.url}
-                      controls
-                      playsInline
                       custom={imgDir}
                       initial={
                         imgDir === 0
@@ -328,8 +352,21 @@ function ProductPage() {
                         transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
                       }}
                       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                      className="absolute inset-0 h-full w-full object-cover"
-                    />
+                      className="absolute inset-0"
+                    >
+                      <video
+                        src={activeMedia.url}
+                        className="h-full w-full object-cover"
+                        muted
+                        playsInline
+                        preload="metadata"
+                      />
+                      <span className="pointer-events-none absolute inset-0 grid place-items-center bg-black/25">
+                        <span className="grid h-14 w-14 place-items-center rounded-full bg-white/90 text-foreground shadow-lg">
+                          <Play width={22} height={22} fill="currentColor" className="ml-0.5" />
+                        </span>
+                      </span>
+                    </motion.div>
                   ) : (
                     <motion.img
                       key={`image-${imgIndex}-${color}`}
@@ -362,7 +399,15 @@ function ProductPage() {
                     />
                   )}
                 </AnimatePresence>
-                <Brackets size={26} className="pointer-events-none text-primary/70" />
+
+                <button
+                  type="button"
+                  onClick={() => openGalleryLightbox(imgIndex)}
+                  className="absolute inset-0 z-[6] cursor-zoom-in"
+                  aria-label="Open media fullscreen"
+                />
+
+                <Brackets size={26} className="pointer-events-none z-[7] text-primary/70" />
 
                 {discount > 0 && (
                   <motion.div
@@ -744,7 +789,7 @@ function ProductPage() {
                     setKeepVideos([]);
                     setReviewOpen(true);
                   }}
-                  onOpenMedia={(url) => setLightboxIndex(mediaIndexOf(url))}
+                  onOpenMedia={openReviewLightbox}
                   onEdit={(r) => {
                     setEditingReview(r);
                     setReviewRating(r.rating);
@@ -865,7 +910,7 @@ function ProductPage() {
                   setKeepVideos([]);
                   setReviewOpen(true);
                 }}
-                onOpenMedia={(url) => setLightboxIndex(mediaIndexOf(url))}
+                onOpenMedia={openReviewLightbox}
                 onEdit={(r) => {
                   setEditingReview(r);
                   setReviewRating(r.rating);
@@ -952,10 +997,10 @@ function ProductPage() {
       </Section>
 
       <MediaLightbox
-        items={reviewMedia}
-        index={lightboxIndex}
-        onClose={() => setLightboxIndex(null)}
-        onIndexChange={setLightboxIndex}
+        items={lightbox?.items || []}
+        index={lightbox?.index ?? null}
+        onClose={() => setLightbox(null)}
+        onIndexChange={(i) => setLightbox((prev) => (prev ? { ...prev, index: i } : prev))}
       />
 
       <AnimatePresence>

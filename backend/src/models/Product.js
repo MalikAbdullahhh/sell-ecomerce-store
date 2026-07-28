@@ -40,6 +40,14 @@ const productSchema = new mongoose.Schema(
     description: { type: String, default: "" },
     images: [{ type: String }],
     videos: [{ type: String }],
+    /** Ordered product media (images + videos). Preferred for PDP gallery order. */
+    gallery: [
+      {
+        url: { type: String, required: true },
+        type: { type: String, enum: ["image", "video"], default: "image" },
+        _id: false,
+      },
+    ],
     specs: [specSchema],
     colors: [variantSchema],
     sizes: [variantSchema],

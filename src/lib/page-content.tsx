@@ -65,6 +65,14 @@ export function usePageContent(page: string): { section: SectionReader; loaded: 
   return { section, loaded };
 }
 
+/** Prefetch CMS page sections so routes can paint without an extra waterfall. */
+export function prefetchPageContent(page: string) {
+  if (cache.has(page) || inflight.has(page)) {
+    return inflight.get(page) || Promise.resolve(cache.get(page)!);
+  }
+  return loadPage(page);
+}
+
 /** Clears the cache so the storefront picks up a fresh save from admin. */
 export function invalidatePageContent(page?: string) {
   if (page) cache.delete(page);

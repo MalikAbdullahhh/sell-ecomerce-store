@@ -45,27 +45,26 @@ export function ProductCard({ product, className }: { product: Product; classNam
           src={product.images[0]}
           alt={product.name}
           loading="lazy"
+          decoding="async"
           animate={
-            reduce ? undefined : hover ? { scale: 1.06, opacity: 0 } : { scale: 1, opacity: 1 }
+            reduce ? undefined : hover ? { scale: 1.06, opacity: product.images[1] ? 0 : 1 } : { scale: 1, opacity: 1 }
           }
           transition={soft}
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <motion.img
-          src={product.images[1] ?? product.images[0]}
-          alt=""
-          aria-hidden
-          loading="lazy"
-          animate={
-            reduce
-              ? undefined
-              : hover
-                ? { scale: 1, opacity: 1, filter: "blur(0px)" }
-                : { scale: 1.08, opacity: 0, filter: "blur(6px)" }
-          }
-          transition={soft}
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+        {product.images[1] && hover ? (
+          <motion.img
+            src={product.images[1]}
+            alt=""
+            aria-hidden
+            loading="eager"
+            decoding="async"
+            initial={reduce ? false : { opacity: 0, scale: 1.08 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={soft}
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : null}
         <Brackets size={16} className="text-foreground" />
         <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
           {discount > 0 && <Tag>-{discount}%</Tag>}

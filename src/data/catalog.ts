@@ -41,6 +41,8 @@ export type Product = {
   reviewCount: number;
   images: string[];
   videos?: string[];
+  /** Ordered gallery (images + videos). Prefer this on PDP when present. */
+  gallery?: { url: string; type: "image" | "video" }[];
   short: string;
   description: string;
   specs: { label: string; value: string }[];
