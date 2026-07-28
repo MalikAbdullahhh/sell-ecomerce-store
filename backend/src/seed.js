@@ -213,7 +213,7 @@ async function seed() {
       price: pkr(379),
       compareAt: pkr(449),
       saleDiscountPercent: 16,
-      rating: 4.6,
+      rating: 4.9,
       reviewCount: 3,
       images: [
         u("1523275335684-37898b6baf30"),
@@ -392,7 +392,7 @@ async function seed() {
       price: pkr(79),
       compareAt: pkr(99),
       saleDiscountPercent: 20,
-      rating: 4.6,
+      rating: 4.8,
       reviewCount: 3,
       images: [
         u("1583863788434-e58a36330cf0"),

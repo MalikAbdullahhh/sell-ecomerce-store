@@ -52,7 +52,7 @@ const emptySettings = (): SiteSettings => ({
   },
   testimonialsSection: {
     eyebrow: "Verified purchasers",
-    title: "What owners report",
+    title: "What customers report",
   },
   instagramShots: [],
   trendingProductSlugs: [],

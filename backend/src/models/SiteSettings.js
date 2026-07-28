@@ -112,7 +112,7 @@ const siteSettingsSchema = new mongoose.Schema(
     },
     testimonialsSection: {
       eyebrow: { type: String, default: "Verified purchasers" },
-      title: { type: String, default: "What owners report" },
+      title: { type: String, default: "What customers report" },
     },
     instagramShots: [{ type: String }],
     // Ordered product slugs shown in the storefront "Trending" rail.
