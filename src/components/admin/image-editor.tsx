@@ -1,6 +1,7 @@
-import Cropper, { type Area } from "react-easy-crop";
+import { Cropper, CropperRef } from "react-advanced-cropper";
+import "react-advanced-cropper/dist/style.css";
 import { RotateCcw, RotateCw, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { adminBtn, adminBtnGhost, adminBtnOutline } from "./field";
 import { cn } from "@/lib/utils";
 
@@ -36,87 +37,6 @@ type Props = {
   defaultAspect?: number | undefined;
 };
 
-function createImage(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.addEventListener("load", () => resolve(img));
-    img.addEventListener("error", (e) => reject(e));
-    img.crossOrigin = "anonymous";
-    img.src = url;
-  });
-}
-
-function rotateSize(width: number, height: number, rotation: number) {
-  const rad = (rotation * Math.PI) / 180;
-  const sin = Math.abs(Math.sin(rad));
-  const cos = Math.abs(Math.cos(rad));
-  return {
-    width: Math.floor(width * cos + height * sin),
-    height: Math.floor(width * sin + height * cos),
-  };
-}
-
-/**
- * Draw the source image with rotation + crop + brightness/contrast into a canvas,
- * then export as a JPEG/PNG File.
- */
-export async function getCroppedImageFile(
-  imageSrc: string,
-  pixelCrop: Area,
-  rotation = 0,
-  brightness = 100,
-  contrast = 100,
-  fileName = "edited.jpg",
-): Promise<File> {
-  const image = await createImage(imageSrc);
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Canvas not supported");
-
-  const rot = ((rotation % 360) + 360) % 360;
-  const { width: bBoxW, height: bBoxH } = rotateSize(image.width, image.height, rot);
-
-  // Intermediate canvas holds the fully rotated image.
-  const rotCanvas = document.createElement("canvas");
-  rotCanvas.width = bBoxW;
-  rotCanvas.height = bBoxH;
-  const rotCtx = rotCanvas.getContext("2d");
-  if (!rotCtx) throw new Error("Canvas not supported");
-
-  rotCtx.translate(bBoxW / 2, bBoxH / 2);
-  rotCtx.rotate((rot * Math.PI) / 180);
-  rotCtx.drawImage(image, -image.width / 2, -image.height / 2);
-
-  canvas.width = Math.max(1, Math.round(pixelCrop.width));
-  canvas.height = Math.max(1, Math.round(pixelCrop.height));
-
-  ctx.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
-  ctx.drawImage(
-    rotCanvas,
-    pixelCrop.x,
-    pixelCrop.y,
-    pixelCrop.width,
-    pixelCrop.height,
-    0,
-    0,
-    canvas.width,
-    canvas.height,
-  );
-
-  const mime = fileName.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
-  const blob: Blob = await new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (b) => (b ? resolve(b) : reject(new Error("Failed to export image"))),
-      mime,
-      mime === "image/jpeg" ? 0.92 : undefined,
-    );
-  });
-
-  const base = fileName.replace(/\.[^.]+$/, "") || "edited";
-  const ext = mime === "image/png" ? "png" : "jpg";
-  return new File([blob], `${base}-edited.${ext}`, { type: mime });
-}
-
 export function ImageEditorModal({
   src,
   open,
@@ -127,26 +47,27 @@ export function ImageEditorModal({
   fileName = "image.jpg",
   defaultAspect = 1,
 }: Props) {
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [rotation, setRotation] = useState(0);
+  const cropperRef = useRef<CropperRef>(null);
   const [aspect, setAspect] = useState<number | undefined>(defaultAspect);
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [saving, setSaving] = useState(false);
+  /** Track rotation so the slider stays in sync with button clicks. */
+  const [rotation, setRotation] = useState(0);
+  /** Track zoom level (1 = 100%) for the slider. */
+  const [zoom, setZoom] = useState(1);
 
+  // Reset all state when the modal opens or src changes.
   useEffect(() => {
     if (!open) return;
-    setCrop({ x: 0, y: 0 });
-    setZoom(1);
-    setRotation(0);
     setAspect(defaultAspect);
     setBrightness(100);
     setContrast(100);
-    setCroppedAreaPixels(null);
+    setRotation(0);
+    setZoom(1);
   }, [open, src, defaultAspect]);
 
+  // Keyboard close.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -156,22 +77,75 @@ export function ImageEditorModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, saving, onClose]);
 
-  const onCropComplete = useCallback((_area: Area, pixels: Area) => {
-    setCroppedAreaPixels(pixels);
+  /** Rotate by a fixed increment (button clicks). */
+  const rotateBy = useCallback((delta: number) => {
+    if (cropperRef.current) {
+      cropperRef.current.rotateImage(delta);
+      setRotation((r) => r + delta);
+    }
   }, []);
 
+  /** Set an absolute rotation target from the slider. */
+  const setAbsoluteRotation = useCallback(
+    (target: number) => {
+      if (cropperRef.current) {
+        const current = cropperRef.current.getTransforms()?.rotate ?? rotation;
+        const delta = target - current;
+        if (delta !== 0) {
+          cropperRef.current.rotateImage(delta);
+        }
+      }
+      setRotation(target);
+    },
+    [rotation],
+  );
+
+  /** Zoom via slider — value is absolute (1–3). */
+  const handleZoomSlider = useCallback(
+    (target: number) => {
+      if (cropperRef.current) {
+        // zoomImage is relative; compute factor from current to target.
+        const factor = target / zoom;
+        cropperRef.current.zoomImage(factor);
+      }
+      setZoom(target);
+    },
+    [zoom],
+  );
+
   async function apply() {
-    if (!croppedAreaPixels) return;
+    if (!cropperRef.current) return;
     setSaving(true);
     try {
-      const file = await getCroppedImageFile(
-        src,
-        croppedAreaPixels,
-        rotation,
-        brightness,
-        contrast,
-        fileName,
-      );
+      const canvas = cropperRef.current.getCanvas();
+      if (!canvas) throw new Error("Cropper canvas not available");
+
+      let finalCanvas: HTMLCanvasElement = canvas;
+
+      // Apply brightness/contrast if they differ from defaults.
+      if (brightness !== 100 || contrast !== 100) {
+        const out = document.createElement("canvas");
+        out.width = canvas.width;
+        out.height = canvas.height;
+        const ctx = out.getContext("2d");
+        if (!ctx) throw new Error("Canvas not supported");
+        ctx.filter = `brightness(${brightness}%) contrast(${contrast}%)`;
+        ctx.drawImage(canvas, 0, 0);
+        finalCanvas = out;
+      }
+
+      const mime = fileName.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
+      const blob: Blob = await new Promise((resolve, reject) => {
+        finalCanvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("Failed to export image"))),
+          mime,
+          mime === "image/jpeg" ? 0.92 : undefined,
+        );
+      });
+
+      const base = fileName.replace(/\.[^.]+$/, "") || "edited";
+      const ext = mime === "image/png" ? "png" : "jpg";
+      const file = new File([blob], `${base}-edited.${ext}`, { type: mime });
       await onApply(file);
     } catch (e) {
       console.error(e);
@@ -191,6 +165,7 @@ export function ImageEditorModal({
         aria-label={title}
         className="flex max-h-[min(920px,95vh)] w-full max-w-3xl flex-col border border-border bg-background shadow-2xl"
       >
+        {/* ── Header ── */}
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -209,31 +184,29 @@ export function ImageEditorModal({
           </button>
         </div>
 
-        <div className="relative h-[min(420px,50vh)] bg-neutral-950">
-          <div
-            className="absolute inset-0"
+        {/* ── Cropper canvas ── */}
+        <div className="relative h-[min(420px,50vh)] bg-neutral-950 overflow-hidden">
+          <Cropper
+            key={src}
+            ref={cropperRef}
+            src={src}
+            stencilProps={
+              aspect !== undefined
+                ? { aspectRatio: aspect }
+                : { aspectRatio: undefined }
+            }
+            className="h-full w-full"
             style={{ filter: `brightness(${brightness}%) contrast(${contrast}%)` }}
-          >
-            <Cropper
-              image={src}
-              crop={crop}
-              zoom={zoom}
-              rotation={rotation}
-              aspect={aspect}
-              onCropChange={setCrop}
-              onZoomChange={setZoom}
-              onRotationChange={setRotation}
-              onCropComplete={onCropComplete}
-              objectFit="contain"
-              showGrid
-            />
-          </div>
+          />
         </div>
 
+        {/* ── Controls ── */}
         <div className="space-y-4 overflow-y-auto border-t border-border p-4">
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
             1:1 matches the product page image frame — what you crop is what shoppers see
           </p>
+
+          {/* Aspect ratio + rotate buttons */}
           <div className="flex flex-wrap gap-1.5">
             {ASPECTS.map((a) => (
               <button
@@ -251,7 +224,7 @@ export function ImageEditorModal({
             <button
               type="button"
               className={adminBtnGhost}
-              onClick={() => setRotation((r) => r - 90)}
+              onClick={() => rotateBy(-90)}
               title="Rotate left"
             >
               <RotateCcw width={13} height={13} />
@@ -259,13 +232,14 @@ export function ImageEditorModal({
             <button
               type="button"
               className={adminBtnGhost}
-              onClick={() => setRotation((r) => r + 90)}
+              onClick={() => rotateBy(90)}
               title="Rotate right"
             >
               <RotateCw width={13} height={13} />
             </button>
           </div>
 
+          {/* Zoom slider */}
           <label className="grid gap-1.5">
             <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
               Zoom · {zoom.toFixed(1)}×
@@ -276,11 +250,12 @@ export function ImageEditorModal({
               max={3}
               step={0.05}
               value={zoom}
-              onChange={(e) => setZoom(Number(e.target.value))}
+              onChange={(e) => handleZoomSlider(Number(e.target.value))}
               className="w-full accent-foreground"
             />
           </label>
 
+          {/* Rotation slider */}
           <label className="grid gap-1.5">
             <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
               Rotate · {Math.round(rotation)}°
@@ -291,11 +266,12 @@ export function ImageEditorModal({
               max={180}
               step={1}
               value={rotation}
-              onChange={(e) => setRotation(Number(e.target.value))}
+              onChange={(e) => setAbsoluteRotation(Number(e.target.value))}
               className="w-full accent-foreground"
             />
           </label>
 
+          {/* Brightness / Contrast */}
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="grid gap-1.5">
               <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
@@ -328,6 +304,7 @@ export function ImageEditorModal({
           </div>
         </div>
 
+        {/* ── Footer ── */}
         <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border p-4">
           {onSkip ? (
             <button type="button" className={adminBtnOutline} disabled={saving} onClick={onSkip}>
@@ -341,7 +318,7 @@ export function ImageEditorModal({
           <button
             type="button"
             className={adminBtn}
-            disabled={saving || !croppedAreaPixels}
+            disabled={saving}
             onClick={() => {
               void apply().catch(() => {
                 /* toast handled by parent */
