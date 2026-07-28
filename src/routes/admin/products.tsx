@@ -512,10 +512,10 @@ function AdminProducts() {
                 />
               </Field>
 
-              <Field label="Preview product video (mobile)">
+              <Field label="Preview product video">
                 <p className="mb-2 text-xs leading-relaxed text-muted-foreground">
-                  Shown on mobile below Reviews & Description. Autoplays muted — shoppers tap volume
-                  for sound.
+                  Shown at the end of the product page (mobile & desktop). Autoplays muted —
+                  shoppers tap volume for sound.
                 </p>
                 {form.gallery.some((g) => g.type === "video") ? (
                   <div className="mb-3 flex flex-wrap gap-2">

@@ -488,6 +488,11 @@ function ProductPage() {
                 {product.rating.toFixed(1)} · {product.reviewCount} reviews
               </span>
             </a>
+            {(product.soldCount ?? 0) > 0 ? (
+              <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                {product.soldCount!.toLocaleString("en-PK")} sold
+              </p>
+            ) : null}
 
             <div className="mt-4 flex flex-wrap items-center gap-3 md:mt-5">
               <motion.span
@@ -826,21 +831,7 @@ function ProductPage() {
                 <ProductHtml html={product.description} />
               </AccordionContent>
             </AccordionItem>
-          </Accordion>
 
-          {product.previewVideo ? (
-            <PreviewProductVideo
-              src={product.previewVideo}
-              title="See it in action"
-              className="mt-8 border-t border-border pt-8 md:hidden"
-            />
-          ) : null}
-
-          <Accordion
-            type="multiple"
-            defaultValue={[]}
-            className="w-full border-t border-border md:hidden"
-          >
             <AccordionItem value="specifications" className="border-border">
               <AccordionTrigger className="py-4 font-mono text-[12px] uppercase tracking-[0.16em] hover:no-underline">
                 Specifications
@@ -964,6 +955,14 @@ function ProductPage() {
               </p>
             </TabsContent>
           </Tabs>
+
+          {product.previewVideo ? (
+            <PreviewProductVideo
+              src={product.previewVideo}
+              title="See it in action"
+              className="mt-10 border-t border-border pt-10 md:mt-14 md:pt-14"
+            />
+          ) : null}
         </div>
       </div>
 
