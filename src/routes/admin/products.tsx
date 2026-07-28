@@ -8,12 +8,12 @@ import {
   adminBtnGhost,
   adminBtnOutline,
   adminField,
-  adminTextarea,
   Field,
   pkr,
   slugify,
 } from "@/components/admin/field";
 import { Uploader } from "@/components/admin/uploader";
+import { RichEditor } from "@/components/admin/rich-editor";
 import { adminApi, mediaUrl, type ProductDoc, type VariantDoc } from "@/lib/api";
 import { useStore } from "@/lib/store";
 
@@ -461,25 +461,26 @@ function AdminProducts() {
                 />
               </Field>
               <Field label="Description">
-                <textarea
-                  rows={4}
-                  className={adminTextarea}
+                <RichEditor
                   value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                  onChange={(description) => setForm((f) => ({ ...f, description }))}
+                  placeholder="Full product description — formatting, lists and links supported"
                 />
               </Field>
-              <Field label="Images">
+              <Field label="Images (multiple, any size)">
                 <Uploader
                   value={form.images}
                   onChange={(images) => setForm((f) => ({ ...f, images }))}
                   accept="image/*"
+                  label="Add"
                 />
               </Field>
-              <Field label="Videos">
+              <Field label="Videos (multiple, any size)">
                 <Uploader
                   value={form.videos}
                   onChange={(videos) => setForm((f) => ({ ...f, videos }))}
                   accept="video/*"
+                  label="Add"
                 />
               </Field>
 

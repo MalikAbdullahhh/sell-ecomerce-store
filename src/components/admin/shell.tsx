@@ -14,6 +14,7 @@ import {
   Settings,
   ShoppingBag,
   Sun,
+  TrendingUp,
   Users,
   Globe,
   X,
@@ -34,6 +35,7 @@ const NAV: {
 }[] = [
   { to: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/admin/products", label: "Products", icon: Package },
+  { to: "/admin/trending", label: "Trending", icon: TrendingUp },
   { to: "/admin/categories", label: "Categories", icon: FolderTree },
   { to: "/admin/orders", label: "Orders", icon: ShoppingBag, badgeKey: "orders" },
   { to: "/admin/users", label: "Users", icon: Users },

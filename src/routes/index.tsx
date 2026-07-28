@@ -173,7 +173,13 @@ function Index() {
     blurb: c.blurb || "",
     image: c.image ? mediaUrl(c.image) : "",
   }));
-  const trending = catalogue.filter((p) => p.flags.includes("hot") || p.rating >= 4.6).slice(0, 8);
+  const trendingSlugs = settings?.trendingProductSlugs || [];
+  const trending =
+    trendingSlugs.length > 0
+      ? trendingSlugs
+          .map((slug) => catalogue.find((p) => p.slug === slug))
+          .filter((p): p is (typeof catalogue)[number] => Boolean(p))
+      : [];
   const arrivals = catalogue.slice(0, 8);
   const [testimonials, setTestimonials] = useState<TestimonialDoc[]>([]);
   const [email, setEmail] = useState("");
@@ -220,17 +226,17 @@ function Index() {
       )}
 
       {/* Trending */}
-      {trendingBand.visible !== false && (
+      {trendingBand.visible !== false && trending.length > 0 && (
         <Section>
           <SectionHead
-            eyebrow={trendingBand.eyebrow}
-            title={trendingBand.title}
+            eyebrow={trendingBand.eyebrow || "Trending"}
+            title={trendingBand.title || "Trending now"}
             action={
               <Link
                 to="/shop"
                 className="border-b border-foreground pb-1 font-mono text-[11px] uppercase tracking-[0.2em]"
               >
-                {trendingBand.actionLabel}
+                {trendingBand.actionLabel || "View all"}
               </Link>
             }
           />

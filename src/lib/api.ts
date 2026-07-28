@@ -443,6 +443,8 @@ export type SiteSettings = {
     title: string;
   };
   instagramShots?: string[];
+  /** Ordered product slugs for the homepage Trending rail. */
+  trendingProductSlugs?: string[];
 };
 
 export type ExtraCharge = {

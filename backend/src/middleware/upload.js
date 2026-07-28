@@ -50,7 +50,11 @@ const storage = cloudinaryEnabled
 export const upload = multer({
   storage,
   limits: {
-    fileSize: (Number(process.env.UPLOAD_MAX_MB) || 25) * 1024 * 1024,
+    // 0 or unset = no per-file size cap (admin may upload large product videos).
+    ...(Number(process.env.UPLOAD_MAX_MB) > 0
+      ? { fileSize: Number(process.env.UPLOAD_MAX_MB) * 1024 * 1024 }
+      : {}),
+    files: 100,
   },
   fileFilter: (_req, file, cb) => {
     if (allowed.has(file.mimetype)) cb(null, true);

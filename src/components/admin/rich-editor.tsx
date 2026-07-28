@@ -1,4 +1,4 @@
-import { Bold, Italic, Link as LinkIcon } from "lucide-react";
+import { Bold, Italic, Link as LinkIcon, List, ListOrdered, Underline } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { adminBtnGhost } from "./field";
 import { cn } from "@/lib/utils";
@@ -9,9 +9,17 @@ type Props = {
   mode?: "html" | "plain";
   className?: string;
   rows?: number;
+  placeholder?: string;
 };
 
-export function RichEditor({ value, onChange, mode = "html", className, rows = 12 }: Props) {
+export function RichEditor({
+  value,
+  onChange,
+  mode = "html",
+  className,
+  rows = 12,
+  placeholder,
+}: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,14 +44,14 @@ export function RichEditor({ value, onChange, mode = "html", className, rows = 1
           "w-full border border-border bg-transparent p-3 font-mono text-sm outline-none focus:border-foreground",
           className,
         )}
-        placeholder="HTML content…"
+        placeholder={placeholder || "HTML content…"}
       />
     );
   }
 
   return (
     <div className={cn("border border-border", className)}>
-      <div className="flex gap-1 border-b border-border p-1">
+      <div className="flex flex-wrap gap-1 border-b border-border p-1">
         <button type="button" className={adminBtnGhost} onClick={() => exec("bold")} title="Bold">
           <Bold width={13} height={13} />
         </button>
@@ -58,6 +66,30 @@ export function RichEditor({ value, onChange, mode = "html", className, rows = 1
         <button
           type="button"
           className={adminBtnGhost}
+          onClick={() => exec("underline")}
+          title="Underline"
+        >
+          <Underline width={13} height={13} />
+        </button>
+        <button
+          type="button"
+          className={adminBtnGhost}
+          onClick={() => exec("insertUnorderedList")}
+          title="Bullet list"
+        >
+          <List width={13} height={13} />
+        </button>
+        <button
+          type="button"
+          className={adminBtnGhost}
+          onClick={() => exec("insertOrderedList")}
+          title="Numbered list"
+        >
+          <ListOrdered width={13} height={13} />
+        </button>
+        <button
+          type="button"
+          className={adminBtnGhost}
           onClick={() => {
             const url = window.prompt("Link URL");
             if (url) exec("createLink", url);
@@ -65,6 +97,14 @@ export function RichEditor({ value, onChange, mode = "html", className, rows = 1
           title="Link"
         >
           <LinkIcon width={13} height={13} />
+        </button>
+        <button
+          type="button"
+          className={adminBtnGhost}
+          onClick={() => exec("formatBlock", "h3")}
+          title="Heading"
+        >
+          H
         </button>
         <button
           type="button"
@@ -81,7 +121,8 @@ export function RichEditor({ value, onChange, mode = "html", className, rows = 1
         ref={ref}
         contentEditable
         suppressContentEditableWarning
-        className="min-h-[200px] p-3 font-sans text-sm outline-none [&_a]:underline [&_b]:font-bold [&_i]:italic"
+        data-placeholder={placeholder || "Write product details…"}
+        className="min-h-[220px] p-3 font-sans text-sm outline-none empty:before:pointer-events-none empty:before:text-muted-foreground empty:before:content-[attr(data-placeholder)] [&_a]:underline [&_b]:font-bold [&_h3]:mb-2 [&_h3]:mt-3 [&_h3]:text-base [&_h3]:font-semibold [&_i]:italic [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5"
         onInput={() => {
           if (ref.current) onChange(ref.current.innerHTML);
         }}

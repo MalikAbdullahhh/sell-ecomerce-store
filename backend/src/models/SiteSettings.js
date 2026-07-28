@@ -115,6 +115,8 @@ const siteSettingsSchema = new mongoose.Schema(
       title: { type: String, default: "What owners report" },
     },
     instagramShots: [{ type: String }],
+    // Ordered product slugs shown in the storefront "Trending" rail.
+    trendingProductSlugs: { type: [String], default: [] },
   },
   { timestamps: true },
 );

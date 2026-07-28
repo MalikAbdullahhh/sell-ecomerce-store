@@ -11,7 +11,6 @@ import {
   User,
   X,
   Phone,
-  MessageCircle,
   Pencil,
   Trash2,
   ChevronLeft,
@@ -28,6 +27,8 @@ import { ProductCard } from "@/components/site/product-card";
 import { Rail, RailItem, Section, SectionHead } from "@/components/site/rail";
 import { MediaLightbox, type MediaItem } from "@/components/site/media-lightbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WhatsAppIcon } from "@/components/site/whatsapp-icon";
+import { buildWhatsAppOrderUrl } from "@/lib/whatsapp-order";
 import {
   Accordion,
   AccordionContent,
@@ -38,7 +39,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { PageSkeleton } from "@/components/site/skeletons";
 import type { Product, Review } from "@/data/catalog";
-import { GIFT_FEE, apiProductToProduct, money, useStore } from "@/lib/store";
+import { GIFT_FEE, apiProductToProduct, money, useBrand, useStore } from "@/lib/store";
 import { catalogApi, mediaUrl, reviewApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { consumePrimedProduct } from "@/lib/product-nav-cache";
@@ -90,6 +91,7 @@ function ProductPage() {
   const reduce = useReducedMotion();
   const giftFee = settings?.shipping?.giftFee ?? GIFT_FEE;
   const contact = settings?.contact;
+  const { name: brandName } = useBrand();
   const [color, setColor] = useState(product.colors[0]?.label || "Default");
   const [size, setSize] = useState(product.sizes?.[0]?.label);
   const [qty, setQty] = useState(1);
@@ -195,14 +197,49 @@ function ProductPage() {
     toast(`${product.name} × ${qty} added to cart`);
   };
 
-  const imageCount = product.images.length;
+  const whatsappOrderUrl = useMemo(
+    () =>
+      buildWhatsAppOrderUrl(contact?.whatsapp, {
+        productName: product.name,
+        productSlug: product.slug,
+        qty,
+        unitPrice: product.price,
+        color,
+        size,
+        gift,
+        giftMessage,
+        brandName,
+      }),
+    [
+      contact?.whatsapp,
+      product.name,
+      product.slug,
+      product.price,
+      qty,
+      color,
+      size,
+      gift,
+      giftMessage,
+      brandName,
+    ],
+  );
+
+  const galleryMedia = useMemo<MediaItem[]>(() => {
+    const items: MediaItem[] = [];
+    for (const url of product.images || []) items.push({ url, type: "image" });
+    for (const url of product.videos || []) items.push({ url, type: "video" });
+    return items;
+  }, [product.images, product.videos]);
+
+  const mediaCount = galleryMedia.length;
+  const activeMedia = galleryMedia[imgIndex];
   const goImage = useCallback(
     (next: number, dir: number) => {
-      if (imageCount <= 1) return;
+      if (mediaCount <= 1) return;
       setImgDir(dir);
-      setImgIndex(((next % imageCount) + imageCount) % imageCount);
+      setImgIndex(((next % mediaCount) + mediaCount) % mediaCount);
     },
-    [imageCount],
+    [mediaCount],
   );
   const prevImage = useCallback(() => goImage(imgIndex - 1, -1), [goImage, imgIndex]);
   const nextImage = useCallback(() => goImage(imgIndex + 1, 1), [goImage, imgIndex]);
@@ -227,21 +264,30 @@ function ProductPage() {
           <div ref={galleryRef} className="md:sticky md:top-24 md:self-start">
             <div className="flex gap-3">
               <div className="hidden w-16 shrink-0 flex-col gap-2 md:flex">
-                {product.images.map((src, i) => (
+                {galleryMedia.map((item, i) => (
                   <motion.button
-                    key={src}
+                    key={`${item.type}-${item.url}-${i}`}
                     type="button"
                     whileHover={reduce ? undefined : { scale: 1.04 }}
                     whileTap={reduce ? undefined : { scale: 0.96 }}
                     onClick={() => goImage(i, i > imgIndex ? 1 : -1)}
                     className={cn(
-                      "aspect-square overflow-hidden border transition-all duration-300",
+                      "relative aspect-square overflow-hidden border transition-all duration-300",
                       i === imgIndex
                         ? "border-primary opacity-100 ring-1 ring-primary/50"
                         : "border-border opacity-55 hover:opacity-90",
                     )}
                   >
-                    <img src={src} alt="" className="h-full w-full object-cover" />
+                    {item.type === "video" ? (
+                      <>
+                        <video src={item.url} className="h-full w-full object-cover" muted />
+                        <span className="absolute inset-0 grid place-items-center bg-black/25">
+                          <Play width={12} height={12} className="text-white" fill="currentColor" />
+                        </span>
+                      </>
+                    ) : (
+                      <img src={item.url} alt="" className="h-full w-full object-cover" />
+                    )}
                   </motion.button>
                 ))}
               </div>
@@ -259,39 +305,62 @@ function ProductPage() {
                 }}
                 tabIndex={0}
                 role="region"
-                aria-roledescription="image carousel"
-                aria-label={`${product.name} images`}
+                aria-roledescription="media carousel"
+                aria-label={`${product.name} media`}
               >
                 <AnimatePresence initial={false} custom={imgDir} mode="popLayout">
-                  <motion.img
-                    key={`${imgIndex}-${color}`}
-                    src={product.images[imgIndex]}
-                    alt={`${product.name} — image ${imgIndex + 1} of ${imageCount}`}
-                    custom={imgDir}
-                    drag={imageCount > 1 ? "x" : false}
-                    dragConstraints={{ left: 0, right: 0 }}
-                    dragElastic={0.18}
-                    onDragEnd={(_e, info) => {
-                      const swipe = info.offset.x;
-                      const velocity = info.velocity.x;
-                      if (swipe < -64 || velocity < -500) nextImage();
-                      else if (swipe > 64 || velocity > 500) prevImage();
-                    }}
-                    initial={
-                      imgDir === 0
-                        ? { opacity: 0, scale: 1.03 }
-                        : { opacity: 0, x: imgDir > 0 ? 72 : -72, scale: 1.02 }
-                    }
-                    animate={{ opacity: 1, x: 0, scale: 1 }}
-                    exit={{
-                      opacity: 0,
-                      x: imgDir > 0 ? -56 : 56,
-                      transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
-                    }}
-                    transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-                    className="absolute inset-0 h-full w-full cursor-grab object-cover active:cursor-grabbing"
-                    draggable={false}
-                  />
+                  {activeMedia?.type === "video" ? (
+                    <motion.video
+                      key={`video-${imgIndex}-${color}`}
+                      src={activeMedia.url}
+                      controls
+                      playsInline
+                      custom={imgDir}
+                      initial={
+                        imgDir === 0
+                          ? { opacity: 0, scale: 1.03 }
+                          : { opacity: 0, x: imgDir > 0 ? 72 : -72, scale: 1.02 }
+                      }
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      exit={{
+                        opacity: 0,
+                        x: imgDir > 0 ? -56 : 56,
+                        transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
+                      }}
+                      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  ) : (
+                    <motion.img
+                      key={`image-${imgIndex}-${color}`}
+                      src={activeMedia?.url}
+                      alt={`${product.name} — media ${imgIndex + 1} of ${mediaCount}`}
+                      custom={imgDir}
+                      drag={mediaCount > 1 ? "x" : false}
+                      dragConstraints={{ left: 0, right: 0 }}
+                      dragElastic={0.18}
+                      onDragEnd={(_e, info) => {
+                        const swipe = info.offset.x;
+                        const velocity = info.velocity.x;
+                        if (swipe < -64 || velocity < -500) nextImage();
+                        else if (swipe > 64 || velocity > 500) prevImage();
+                      }}
+                      initial={
+                        imgDir === 0
+                          ? { opacity: 0, scale: 1.03 }
+                          : { opacity: 0, x: imgDir > 0 ? 72 : -72, scale: 1.02 }
+                      }
+                      animate={{ opacity: 1, x: 0, scale: 1 }}
+                      exit={{
+                        opacity: 0,
+                        x: imgDir > 0 ? -56 : 56,
+                        transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
+                      }}
+                      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                      className="absolute inset-0 h-full w-full cursor-grab object-cover active:cursor-grabbing"
+                      draggable={false}
+                    />
+                  )}
                 </AnimatePresence>
                 <Brackets size={26} className="pointer-events-none text-primary/70" />
 
@@ -305,11 +374,11 @@ function ProductPage() {
                   </motion.div>
                 )}
 
-                {imageCount > 1 && (
+                {mediaCount > 1 && (
                   <>
                     <button
                       type="button"
-                      aria-label="Previous image"
+                      aria-label="Previous media"
                       onClick={prevImage}
                       className="absolute left-2 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center border border-foreground/20 bg-background/80 text-foreground backdrop-blur-sm transition-all duration-300 hover:border-primary hover:bg-primary hover:text-primary-foreground md:left-3"
                     >
@@ -317,7 +386,7 @@ function ProductPage() {
                     </button>
                     <button
                       type="button"
-                      aria-label="Next image"
+                      aria-label="Next media"
                       onClick={nextImage}
                       className="absolute right-2 top-1/2 z-10 grid h-11 w-11 -translate-y-1/2 place-items-center border border-foreground/20 bg-background/80 text-foreground backdrop-blur-sm transition-all duration-300 hover:border-primary hover:bg-primary hover:text-primary-foreground md:right-3"
                     >
@@ -325,18 +394,18 @@ function ProductPage() {
                     </button>
                     <div className="pointer-events-none absolute bottom-3 right-3 z-10 bg-background/75 px-2 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground backdrop-blur-sm">
                       {String(imgIndex + 1).padStart(2, "0")} /{" "}
-                      {String(imageCount).padStart(2, "0")}
+                      {String(mediaCount).padStart(2, "0")}
                     </div>
                   </>
                 )}
               </div>
             </div>
             <div className="mt-3 flex justify-center gap-1.5 md:hidden">
-              {product.images.map((src, i) => (
+              {galleryMedia.map((item, i) => (
                 <button
-                  key={src}
+                  key={`${item.url}-${i}`}
                   type="button"
-                  aria-label={`Image ${i + 1}`}
+                  aria-label={`Media ${i + 1}`}
                   onClick={() => goImage(i, i > imgIndex ? 1 : -1)}
                   className={cn(
                     "h-1.5 transition-all duration-300",
@@ -567,6 +636,18 @@ function ProductPage() {
               </Link>
             </div>
 
+            {whatsappOrderUrl ? (
+              <a
+                href={whatsappOrderUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 flex h-14 w-full items-center justify-center gap-2.5 rounded-none bg-[#25D366] px-6 font-mono text-[13px] font-medium uppercase tracking-[0.16em] text-white shadow-[0_8px_24px_-12px_rgba(37,211,102,0.7)] transition-[transform,filter] hover:brightness-105 active:scale-[0.985] md:h-12 md:text-xs md:tracking-[0.2em]"
+              >
+                <WhatsAppIcon size={20} className="shrink-0" />
+                <span>Order from WhatsApp</span>
+              </a>
+            ) : null}
+
             {/* Gift wrap */}
             <div className="mt-6 rounded-xl border border-border/80 bg-secondary/30 p-4">
               <div className="flex items-center justify-between gap-4">
@@ -696,7 +777,7 @@ function ProductPage() {
                 Description
               </AccordionTrigger>
               <AccordionContent className="pb-6 text-[15px] leading-relaxed text-muted-foreground">
-                {product.description}
+                <ProductHtml html={product.description} />
               </AccordionContent>
             </AccordionItem>
 
@@ -754,7 +835,7 @@ function ProductPage() {
               value="description"
               className="max-w-2xl py-8 leading-relaxed text-muted-foreground"
             >
-              {product.description}
+              <ProductHtml html={product.description} />
             </TabsContent>
 
             <TabsContent value="specifications" className="max-w-2xl py-8">
@@ -834,18 +915,27 @@ function ProductPage() {
               "Questions about this product? Reach us by call or WhatsApp — we reply within one working day."}
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <a
-              href={`tel:${contact?.phone || ""}`}
-              className="flex h-11 items-center gap-2 border border-foreground px-4 font-mono text-xs transition-colors hover:bg-foreground hover:text-background"
-            >
-              <Phone width={15} /> {settings?.help?.callLabel || "Call"} · {contact?.phone || ""}
-            </a>
-            <a
-              href={`https://wa.me/${(contact?.whatsapp || "").replace(/\D/g, "")}`}
-              className="flex h-11 items-center gap-2 bg-foreground px-4 font-mono text-xs text-background"
-            >
-              <MessageCircle width={15} /> {settings?.help?.whatsappLabel || "WhatsApp"}
-            </a>
+            {contact?.phone ? (
+              <a
+                href={`tel:${contact.phone}`}
+                className="flex h-11 items-center gap-2 border border-foreground px-4 font-mono text-xs transition-colors hover:bg-foreground hover:text-background"
+              >
+                <Phone width={15} /> {settings?.help?.callLabel || "Call"} · {contact.phone}
+              </a>
+            ) : null}
+            {contact?.whatsapp ? (
+              <a
+                href={
+                  whatsappOrderUrl ||
+                  `https://wa.me/${(contact.whatsapp || "").replace(/\D/g, "")}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-11 items-center gap-2 bg-[#25D366] px-4 font-mono text-xs text-white transition-[filter] hover:brightness-105"
+              >
+                <WhatsAppIcon size={16} /> {settings?.help?.whatsappLabel || "WhatsApp"}
+              </a>
+            ) : null}
           </div>
         </div>
       </section>
@@ -1085,16 +1175,35 @@ function ProductPage() {
             initial={{ y: 80 }}
             animate={{ y: 0 }}
             exit={{ y: 80 }}
-            className="fixed bottom-16 left-0 right-0 z-40 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 border-t border-border bg-background/95 p-3 backdrop-blur md:hidden"
+            className={cn(
+              "fixed bottom-16 left-0 right-0 z-40 grid items-center gap-2 border-t border-border bg-background/95 p-3 backdrop-blur md:hidden",
+              whatsappOrderUrl
+                ? "grid-cols-[auto_minmax(0,1fr)_minmax(0,1.15fr)]"
+                : "grid-cols-[auto_minmax(0,1fr)]",
+            )}
           >
-            <span className="premium-text font-mono text-base">{money(product.price * qty)}</span>
+            <span className="premium-text font-mono text-sm leading-tight">
+              {money(product.price * qty)}
+            </span>
             <button
+              type="button"
               onClick={add}
               disabled={!product.inStock}
-              className="glass-sweep glass-sweep-strong premium-badge h-14 font-mono text-[13px] uppercase tracking-[0.18em] text-background disabled:opacity-40"
+              className="glass-sweep glass-sweep-strong premium-badge h-12 font-mono text-[11px] uppercase tracking-[0.14em] text-background disabled:opacity-40"
             >
               Add to cart
             </button>
+            {whatsappOrderUrl ? (
+              <a
+                href={whatsappOrderUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-12 items-center justify-center gap-1.5 bg-[#25D366] px-2 font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-white"
+              >
+                <WhatsAppIcon size={16} className="shrink-0" />
+                <span className="truncate">WhatsApp</span>
+              </a>
+            ) : null}
           </motion.div>
         )}
       </AnimatePresence>
@@ -1285,5 +1394,15 @@ function ReviewItem({
         </div>
       </div>
     </li>
+  );
+}
+
+function ProductHtml({ html }: { html: string }) {
+  if (!html?.trim()) return null;
+  return (
+    <div
+      className="product-html space-y-3 [&_a]:underline [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-foreground [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   );
 }

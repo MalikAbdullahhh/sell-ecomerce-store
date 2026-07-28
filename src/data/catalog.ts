@@ -40,6 +40,7 @@ export type Product = {
   rating: number;
   reviewCount: number;
   images: string[];
+  videos?: string[];
   short: string;
   description: string;
   specs: { label: string; value: string }[];

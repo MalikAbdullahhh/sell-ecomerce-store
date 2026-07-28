@@ -1,7 +1,8 @@
-import { ImagePlus, Loader2, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { Crop, ImagePlus, Loader2, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { adminApi, mediaUrl } from "@/lib/api";
+import { ImageEditorModal } from "./image-editor";
 import { adminBtnGhost } from "./field";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +13,44 @@ type Props = {
   accept?: string;
   label?: string;
   className?: string;
+  /** When false, skip the crop/edit step for new images (default true for image uploads). */
+  enableEdit?: boolean;
 };
+
+type EditSession =
+  | {
+      mode: "queue";
+      /** Local object URL */
+      src: string;
+      file: File;
+      /** Remaining image files after this one */
+      rest: File[];
+      /** Videos (and skipped/edited images) waiting to upload with this batch */
+      pendingUpload: File[];
+      /** 1-based index among images in this pick */
+      index: number;
+      total: number;
+    }
+  | {
+      mode: "replace";
+      src: string;
+      index: number;
+      fileName: string;
+      /** Revoke this object URL on close if we created it */
+      revokeOnClose?: string;
+    };
+
+function isImageFile(file: File) {
+  return file.type.startsWith("image/");
+}
+
+function isVideoUrl(url: string) {
+  return /\.(mp4|webm|mov)(\?|$)/i.test(url) || /\/video\//i.test(url);
+}
+
+function looksLikeImageAccept(accept: string) {
+  return accept.includes("image") || accept === "*/*" || accept === "";
+}
 
 export function Uploader({
   value = [],
@@ -21,29 +59,204 @@ export function Uploader({
   accept = "image/*,video/*",
   label = "Upload",
   className,
+  enableEdit,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [session, setSession] = useState<EditSession | null>(null);
+  const allowEdit = enableEdit ?? looksLikeImageAccept(accept);
 
-  async function onPick(files: FileList | null) {
-    if (!files?.length) return;
-    const list = Array.from(files);
+  useEffect(() => {
+    return () => {
+      if (session?.mode === "queue") URL.revokeObjectURL(session.src);
+      if (session?.mode === "replace" && session.revokeOnClose) {
+        URL.revokeObjectURL(session.revokeOnClose);
+      }
+    };
+  }, [session]);
+
+  async function uploadFiles(files: File[]) {
+    if (!files.length) return [] as string[];
     setBusy(true);
-    setProgress({ done: 0, total: list.length });
+    setProgress({ done: 0, total: files.length });
     try {
-      // Upload in one request; update progress when the request settles.
-      const { files: uploaded } = await adminApi.upload(list);
-      setProgress({ done: list.length, total: list.length });
-      const urls = uploaded.map((f) => f.url);
-      onChange(multiple ? [...value, ...urls] : urls.slice(0, 1));
-      toast.success(urls.length === 1 ? "Uploaded" : `${urls.length} files uploaded`);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Upload failed");
+      const { files: uploaded } = await adminApi.upload(files);
+      setProgress({ done: files.length, total: files.length });
+      return uploaded.map((f) => f.url);
     } finally {
       setBusy(false);
       setProgress(null);
       if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  function startQueue(images: File[], videos: File[]) {
+    if (!images.length) {
+      void (async () => {
+        try {
+          const urls = await uploadFiles(videos);
+          if (urls.length) {
+            onChange(multiple ? [...value, ...urls] : urls.slice(0, 1));
+            toast.success(urls.length === 1 ? "Uploaded" : `${urls.length} files uploaded`);
+          }
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Upload failed");
+        }
+      })();
+      return;
+    }
+
+    if (!allowEdit) {
+      void (async () => {
+        try {
+          const urls = await uploadFiles([...images, ...videos]);
+          if (urls.length) {
+            onChange(multiple ? [...value, ...urls] : urls.slice(0, 1));
+            toast.success(urls.length === 1 ? "Uploaded" : `${urls.length} files uploaded`);
+          }
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Upload failed");
+        }
+      })();
+      return;
+    }
+
+    const [first, ...rest] = images;
+    const src = URL.createObjectURL(first);
+    setSession({
+      mode: "queue",
+      src,
+      file: first,
+      rest,
+      pendingUpload: [...videos],
+      index: 1,
+      total: images.length,
+    });
+  }
+
+  async function onPick(files: FileList | null) {
+    if (!files?.length) return;
+    const list = Array.from(files);
+    const images = list.filter(isImageFile);
+    const videos = list.filter((f) => !isImageFile(f));
+    startQueue(images, videos);
+  }
+
+  function finishQueueUpload(files: File[]) {
+    void (async () => {
+      try {
+        const urls = await uploadFiles(files);
+        if (urls.length) {
+          onChange(multiple ? [...value, ...urls] : urls.slice(0, 1));
+          toast.success(urls.length === 1 ? "Uploaded" : `${urls.length} files uploaded`);
+        }
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Upload failed");
+      }
+    })();
+  }
+
+  async function applyQueueEdit(file: File) {
+    if (!session || session.mode !== "queue") return;
+    const current = session;
+    const pending = [...current.pendingUpload, file];
+    const [next, ...rest] = current.rest;
+    URL.revokeObjectURL(current.src);
+    if (next) {
+      setSession({
+        mode: "queue",
+        src: URL.createObjectURL(next),
+        file: next,
+        rest,
+        pendingUpload: pending,
+        index: current.index + 1,
+        total: current.total,
+      });
+      return;
+    }
+    setSession(null);
+    finishQueueUpload(pending);
+  }
+
+  function skipQueueEdit() {
+    if (!session || session.mode !== "queue") return;
+    const current = session;
+    const pending = [...current.pendingUpload, current.file];
+    const [next, ...rest] = current.rest;
+    URL.revokeObjectURL(current.src);
+    if (next) {
+      setSession({
+        mode: "queue",
+        src: URL.createObjectURL(next),
+        file: next,
+        rest,
+        pendingUpload: pending,
+        index: current.index + 1,
+        total: current.total,
+      });
+      return;
+    }
+    setSession(null);
+    finishQueueUpload(pending);
+  }
+
+  function closeSession() {
+    if (!session) return;
+    if (session.mode === "queue") {
+      URL.revokeObjectURL(session.src);
+      // Drop remaining queue without uploading
+      setSession(null);
+      if (inputRef.current) inputRef.current.value = "";
+      return;
+    }
+    if (session.revokeOnClose) URL.revokeObjectURL(session.revokeOnClose);
+    setSession(null);
+  }
+
+  async function openReplaceEditor(index: number) {
+    const url = value[index];
+    if (!url || isVideoUrl(url)) return;
+    const remote = mediaUrl(url);
+    const fileName = url.split("/").pop()?.split("?")[0] || "image.jpg";
+    try {
+      const res = await fetch(remote);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      setSession({
+        mode: "replace",
+        src: objectUrl,
+        index,
+        fileName,
+        revokeOnClose: objectUrl,
+      });
+    } catch {
+      setSession({
+        mode: "replace",
+        src: remote,
+        index,
+        fileName,
+      });
+    }
+  }
+
+  async function applyReplace(file: File) {
+    if (!session || session.mode !== "replace") return;
+    const index = session.index;
+    try {
+      setBusy(true);
+      const { files: uploaded } = await adminApi.upload([file]);
+      const nextUrl = uploaded[0]?.url;
+      if (!nextUrl) throw new Error("Upload failed");
+      const next = [...value];
+      next[index] = nextUrl;
+      onChange(next);
+      toast.success("Image updated");
+      setSession(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -72,10 +285,10 @@ export function Uploader({
       <div className={cn("flex flex-wrap gap-2", busy && "pointer-events-none opacity-40")}>
         {value.map((url, i) => {
           const src = mediaUrl(url);
-          const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(url) || /\/video\//i.test(url);
+          const video = isVideoUrl(url);
           return (
-            <div key={`${url}-${i}`} className="relative h-20 w-20 overflow-hidden border border-border">
-              {isVideo ? (
+            <div key={`${url}-${i}`} className="group relative h-20 w-20 overflow-hidden border border-border">
+              {video ? (
                 <video src={src} className="h-full w-full object-cover" muted />
               ) : (
                 <img src={src} alt="" className="h-full w-full object-cover" />
@@ -88,6 +301,17 @@ export function Uploader({
               >
                 <X width={11} height={11} />
               </button>
+              {!video && allowEdit && (
+                <button
+                  type="button"
+                  onClick={() => void openReplaceEditor(i)}
+                  className="absolute bottom-0 left-0 right-0 flex items-center justify-center gap-1 bg-foreground/85 py-1 font-mono text-[8px] uppercase tracking-[0.12em] text-background opacity-0 transition-opacity group-hover:opacity-100"
+                  aria-label="Edit image"
+                >
+                  <Crop width={10} height={10} />
+                  Edit
+                </button>
+              )}
             </div>
           );
         })}
@@ -112,7 +336,7 @@ export function Uploader({
         multiple={multiple}
         className="hidden"
         disabled={busy}
-        onChange={(e) => onPick(e.target.files)}
+        onChange={(e) => void onPick(e.target.files)}
       />
       <div className={cn("flex gap-2", busy && "pointer-events-none opacity-40")}>
         <input
@@ -130,6 +354,35 @@ export function Uploader({
           }}
         />
       </div>
+      {allowEdit ? (
+        <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          Images open in the editor to crop, rotate and adjust before upload. Hover a thumbnail to
+          re-edit.
+        </p>
+      ) : null}
+
+      {session ? (
+        <ImageEditorModal
+          open
+          src={session.src}
+          fileName={session.mode === "queue" ? session.file.name : session.fileName}
+          title={
+            session.mode === "queue"
+              ? `Edit image${session.total > 1 ? ` (${session.index} of ${session.total})` : ""}`
+              : "Edit uploaded image"
+          }
+          onClose={closeSession}
+          onSkip={session.mode === "queue" ? skipQueueEdit : undefined}
+          onApply={async (file) => {
+            try {
+              if (session.mode === "queue") await applyQueueEdit(file);
+              else await applyReplace(file);
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : "Could not apply edit");
+            }
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -139,11 +392,13 @@ export function SingleUploader({
   onChange,
   accept = "image/*",
   label = "Upload",
+  enableEdit,
 }: {
   value?: string;
   onChange: (url: string) => void;
   accept?: string;
   label?: string;
+  enableEdit?: boolean;
 }) {
   return (
     <Uploader
@@ -152,6 +407,7 @@ export function SingleUploader({
       multiple={false}
       accept={accept}
       label={label}
+      enableEdit={enableEdit}
     />
   );
 }

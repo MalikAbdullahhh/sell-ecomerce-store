@@ -22,6 +22,10 @@ async function ensureSettings() {
     s.discountCodes = [];
     await s.save();
   }
+  if (!Array.isArray(s.trendingProductSlugs)) {
+    s.trendingProductSlugs = [];
+    await s.save();
+  }
   // Migrate leftover seed/default brand name to the current store default.
   const current = (s.brandName || "").trim();
   if (!current || current === "APERTURE" || current === "Aperture") {
@@ -38,6 +42,9 @@ router.get(
     const doc = settings.toObject();
     if (!Array.isArray(doc.extraCharges)) {
       doc.extraCharges = [];
+    }
+    if (!Array.isArray(doc.trendingProductSlugs)) {
+      doc.trendingProductSlugs = [];
     }
     res.json({ settings: doc });
   }),
@@ -64,6 +71,7 @@ router.put(
       "extraCharges",
       "discountCodes",
       "instagramShots",
+      "trendingProductSlugs",
     ];
     for (const key of allowed) {
       if (req.body[key] !== undefined) {

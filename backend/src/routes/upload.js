@@ -8,7 +8,7 @@ const router = Router();
 router.post(
   "/",
   requireAdmin,
-  upload.array("files", 20),
+  upload.array("files", 100),
   asyncHandler(async (req, res) => {
     const files = await persistFiles(req.files || [], req, { folder: "media" });
     res.status(201).json({ files, provider: storageProvider });

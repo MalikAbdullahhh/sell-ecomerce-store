@@ -54,6 +54,8 @@ const emptySettings = (): SiteSettings => ({
     eyebrow: "Verified purchasers",
     title: "What owners report",
   },
+  instagramShots: [],
+  trendingProductSlugs: [],
 });
 
 const EMOJI_OPTIONS = [

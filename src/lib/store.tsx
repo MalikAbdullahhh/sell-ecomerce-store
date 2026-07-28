@@ -365,6 +365,7 @@ export function apiProductToProduct(p: ProductDoc): Product {
     rating: p.rating,
     reviewCount: p.reviewCount,
     images: (p.images || []).map(mediaUrl),
+    videos: (p.videos || []).map(mediaUrl),
     short: p.short,
     description: p.description,
     specs: p.specs || [],
