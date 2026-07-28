@@ -934,9 +934,9 @@ function ProductPage() {
           <div className="hidden md:block">
             <div className="border-t border-border pt-10">
               <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                Reviews ({product.reviewCount})
+                Ratings & reviews ({product.reviewCount})
               </p>
-              <div className="mt-6">
+              <div className="mt-5">
                 <ReviewsPanel
                   product={product}
                   breakdown={breakdown}
@@ -1377,58 +1377,90 @@ function ReviewsPanel({
   onEdit: (r: Review) => void;
   onDelete: (r: Review) => void | Promise<void>;
 }) {
+  const manyReviews = product.reviews.length > 2;
+
   return (
-    <div className="grid gap-6 md:grid-cols-[280px_minmax(0,1fr)] md:gap-10">
-      <div className="rounded-2xl border border-border bg-card p-4 md:rounded-none md:border-0 md:bg-transparent md:p-0">
+    <div
+      className={cn(
+        "flex overflow-hidden border border-border bg-card/30",
+        // Cap to viewport; review list scrolls inside so the page stays usable.
+        "max-h-[min(70vh,560px)] flex-col",
+        "md:max-h-[min(100dvh-8rem,820px)] md:flex-row",
+        // Lock height when there is enough content so the feed scrolls reliably.
+        manyReviews && "h-[min(70vh,560px)] md:h-[min(100dvh-8rem,820px)]",
+      )}
+    >
+      {/* Summary — fixed beside the scrollable feed on desktop */}
+      <aside
+        className={cn(
+          "flex shrink-0 flex-col border-b border-border p-4",
+          "md:w-[min(32%,300px)] md:border-b-0 md:border-r md:p-6 lg:p-8",
+        )}
+      >
         <div className="flex items-end gap-3 md:block">
-          <p className="font-display text-4xl md:text-6xl">{product.rating}</p>
-          <div className="pb-1 md:mt-0 md:pb-0">
+          <p className="font-display text-4xl tracking-tight md:text-6xl lg:text-7xl">
+            {Number(product.rating).toFixed(1)}
+          </p>
+          <div className="pb-1 md:mt-2 md:pb-0">
             <Stars rating={product.rating} size={15} />
             <p className="mt-1 font-mono text-[11px] text-muted-foreground">
-              {product.reviewCount} reviews
+              Based on {product.reviewCount} review{product.reviewCount === 1 ? "" : "s"}
             </p>
           </div>
         </div>
-        <div className="mt-4 space-y-2 md:mt-5">
+        <div className="mt-4 space-y-2 md:mt-6">
           {breakdown.map((b) => (
             <div key={b.star} className="flex items-center gap-2 font-mono text-[11px]">
-              <span className="w-3">{b.star}</span>
+              <span className="w-3 tabular-nums">{b.star}</span>
               <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                 <span
                   className="block h-full rounded-full bg-primary"
                   style={{ width: `${b.pct}%` }}
                 />
               </span>
-              <span className="w-8 text-right">{b.pct}%</span>
+              <span className="w-9 text-right tabular-nums text-muted-foreground">{b.pct}%</span>
             </div>
           ))}
         </div>
         <button
           type="button"
           onClick={onWrite}
-          className="premium-badge mt-5 h-14 w-full font-mono text-[13px] uppercase tracking-[0.18em] md:mt-6 md:h-12 md:text-xs md:tracking-[0.2em]"
+          className="premium-badge mt-5 h-12 w-full shrink-0 font-mono text-[12px] uppercase tracking-[0.16em] md:mt-auto md:pt-8"
         >
           Write a review
         </button>
+      </aside>
+
+      {/* Scrollable review feed */}
+      <div
+        className={cn(
+          "min-h-0 flex-1 overflow-y-auto overscroll-contain",
+          "scroll-smooth [scrollbar-gutter:stable]",
+          "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent",
+        )}
+        role="region"
+        aria-label="Customer reviews"
+        tabIndex={0}
+      >
+        {product.reviews.length === 0 ? (
+          <p className="px-4 py-8 text-sm text-muted-foreground md:px-8 md:py-12">
+            No reviews yet — be the first to share your experience.
+          </p>
+        ) : (
+          <ul className="divide-y divide-border px-4 md:px-6 lg:px-8">
+            {product.reviews.map((r) => (
+              <ReviewItem
+                key={r.id}
+                review={r}
+                isOwner={Boolean(userId && r.userId && String(r.userId) === String(userId))}
+                onOpenMedia={onOpenMedia}
+                onEdit={() => onEdit(r)}
+                onDelete={() => onDelete(r)}
+              />
+            ))}
+          </ul>
+        )}
       </div>
-      {product.reviews.length === 0 ? (
-        <p className="py-4 text-sm text-muted-foreground md:py-8">
-          No reviews yet — be the first to share your experience.
-        </p>
-      ) : (
-        <ul className="divide-y divide-border">
-          {product.reviews.map((r) => (
-            <ReviewItem
-              key={r.id}
-              review={r}
-              isOwner={Boolean(userId && r.userId && String(r.userId) === String(userId))}
-              onOpenMedia={onOpenMedia}
-              onEdit={() => onEdit(r)}
-              onDelete={() => onDelete(r)}
-            />
-          ))}
-        </ul>
-      )}
     </div>
   );
 }
