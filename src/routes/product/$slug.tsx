@@ -43,7 +43,7 @@ import { Switch } from "@/components/ui/switch";
 import { PageSkeleton } from "@/components/site/skeletons";
 import type { Product, Review } from "@/data/catalog";
 import { GIFT_FEE, apiProductToProduct, money, useBrand, useStore } from "@/lib/store";
-import { catalogApi, mediaUrl, reviewApi } from "@/lib/api";
+import { catalogApi, mediaThumbUrl, mediaUrl, reviewApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { consumePrimedProduct } from "@/lib/product-nav-cache";
 import { cn } from "@/lib/utils";
@@ -1436,12 +1436,17 @@ function ReviewsPanel({
 function ReviewAvatar({ src, name, size = 40 }: { src?: string; name: string; size?: number }) {
   const [failed, setFailed] = useState(false);
   const dim = { width: size, height: size };
-  if (src && !failed) {
+  const thumb = src ? mediaThumbUrl(src, { w: size * 2, h: size * 2 }) : "";
+  if (thumb && !failed) {
     return (
       <img
-        src={src}
+        src={thumb}
         alt={name}
+        width={size}
+        height={size}
         style={dim}
+        loading="lazy"
+        decoding="async"
         onError={() => setFailed(true)}
         className="shrink-0 rounded-full border border-border object-cover"
       />
@@ -1487,29 +1492,50 @@ function ReviewItem({
 
           {media.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
-              {media.map((m) => (
-                <button
-                  key={m.url}
-                  type="button"
-                  onClick={() => onOpenMedia(m.url)}
-                  className="group premium-pill relative h-20 w-20 overflow-hidden"
-                >
-                  {m.type === "video" ? (
-                    <>
-                      <video src={m.url} className="h-full w-full object-cover" muted />
-                      <span className="absolute inset-0 grid place-items-center bg-black/30 text-white transition-colors group-hover:bg-black/50">
-                        <Play width={18} height={18} fill="currentColor" />
-                      </span>
-                    </>
-                  ) : (
-                    <img
-                      src={m.url}
-                      alt=""
-                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                    />
-                  )}
-                </button>
-              ))}
+              {media.map((m) => {
+                const thumb = mediaThumbUrl(m.url, { w: 160, h: 160 });
+                return (
+                  <button
+                    key={m.url}
+                    type="button"
+                    onClick={() => onOpenMedia(m.url)}
+                    className="group premium-pill relative h-20 w-20 overflow-hidden bg-secondary"
+                  >
+                    {m.type === "video" ? (
+                      <>
+                        {/* Never mount <video> in the grid — that was downloading full clips for 80px cells. */}
+                        {thumb && thumb !== m.url ? (
+                          <img
+                            src={thumb}
+                            alt=""
+                            width={80}
+                            height={80}
+                            loading="lazy"
+                            decoding="async"
+                            className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                          />
+                        ) : (
+                          <span className="absolute inset-0 bg-gradient-to-br from-secondary to-muted" />
+                        )}
+                        <span className="absolute inset-0 grid place-items-center bg-black/35 text-white transition-colors group-hover:bg-black/50">
+                          <Play width={18} height={18} fill="currentColor" />
+                        </span>
+                      </>
+                    ) : (
+                      <img
+                        src={thumb}
+                        alt=""
+                        width={80}
+                        height={80}
+                        loading="lazy"
+                        decoding="async"
+                        fetchPriority="low"
+                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
 

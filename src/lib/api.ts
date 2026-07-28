@@ -13,6 +13,42 @@ export function mediaUrl(path?: string | null) {
   return `${UPLOADS_URL}/uploads/${path}`;
 }
 
+/** True when URL is served by Cloudinary (supports on-the-fly transforms). */
+export function isCloudinaryUrl(url: string) {
+  return /res\.cloudinary\.com\//i.test(url) || /cloudinary\.com\/.*\/(image|video)\/upload\//i.test(url);
+}
+
+/**
+ * Small display URL for grids/thumbs. Uses Cloudinary transforms when possible
+ * so the browser does not download multi‑MB originals for 80px cells.
+ */
+export function mediaThumbUrl(
+  path?: string | null,
+  opts: { w?: number; h?: number } = {},
+) {
+  const url = mediaUrl(path);
+  if (!url) return "";
+  const w = Math.max(40, Math.round(opts.w ?? 160));
+  const h = Math.max(40, Math.round(opts.h ?? 160));
+
+  if (/\/image\/upload\//i.test(url) && isCloudinaryUrl(url)) {
+    // Avoid double-transforming if already optimized.
+    if (/\/upload\/[^/]*[wh]_/.test(url)) return url;
+    return url.replace(/\/image\/upload\//i, `/image/upload/c_fill,g_auto,w_${w},h_${h},f_auto,q_auto/`);
+  }
+
+  // Video → still JPEG frame (much cheaper than loading the mp4 for a thumb).
+  if (/\/video\/upload\//i.test(url) && isCloudinaryUrl(url)) {
+    const framed = url.replace(
+      /\/video\/upload\//i,
+      `/video/upload/so_0,c_fill,g_auto,w_${w},h_${h},f_jpg,q_auto/`,
+    );
+    return framed.replace(/\.(mp4|webm|mov|m4v)(\?|#|$)/i, ".jpg$2");
+  }
+
+  return url;
+}
+
 type RequestOpts = {
   method?: string;
   body?: unknown;

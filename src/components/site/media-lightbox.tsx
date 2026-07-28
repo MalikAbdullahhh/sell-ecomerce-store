@@ -130,6 +130,7 @@ export function MediaLightbox({
                   controls
                   autoPlay
                   playsInline
+                  preload="metadata"
                   className="max-h-[85vh] max-w-[90vw] rounded-md"
                 />
               ) : (
@@ -137,6 +138,7 @@ export function MediaLightbox({
                   src={items[index!].url}
                   alt=""
                   draggable={false}
+                  decoding="async"
                   className="max-h-[85vh] max-w-[90vw] cursor-grab rounded-md object-contain active:cursor-grabbing"
                 />
               )}
