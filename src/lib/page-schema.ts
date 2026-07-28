@@ -106,6 +106,18 @@ export const PAGE_SCHEMA: CmsPage[] = [
                 help: "Each word animates in. Press Enter for a line break.",
               },
               { key: "subtitle", label: "Subtitle", type: "textarea", default: "" },
+              { key: "linkUrl", label: "Button Link (URL)", type: "text", default: "" },
+              { key: "linkText", label: "Button Text", type: "text", default: "" },
+              {
+                key: "theme",
+                label: "Theme",
+                type: "select",
+                default: "dark",
+                options: [
+                  { label: "Dark (Light text / Black background)", value: "dark" },
+                  { label: "Light (Dark text / White background)", value: "light" },
+                ],
+              },
             ],
             default: [],
           },

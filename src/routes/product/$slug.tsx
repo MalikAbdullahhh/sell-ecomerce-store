@@ -1425,7 +1425,7 @@ function ReviewsPanel({
         <button
           type="button"
           onClick={onWrite}
-          className="premium-badge mt-5 h-12 w-full shrink-0 font-mono text-[12px] uppercase tracking-[0.16em] md:mt-auto md:pt-8"
+          className="premium-badge mt-5 h-12 w-full shrink-0 font-mono text-[12px] uppercase tracking-[0.16em] md:mt-auto"
         >
           Write a review
         </button>
@@ -1433,6 +1433,7 @@ function ReviewsPanel({
 
       {/* Scrollable review feed */}
       <div
+        data-lenis-prevent
         className={cn(
           "min-h-0 flex-1 overflow-y-auto overscroll-contain",
           "scroll-smooth [scrollbar-gutter:stable]",
