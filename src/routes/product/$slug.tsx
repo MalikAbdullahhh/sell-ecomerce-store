@@ -1414,79 +1414,54 @@ function ReviewsPanel({
 }) {
   const manyReviews = product.reviews.length > 2;
   const scrollRef = useRef<HTMLDivElement>(null);
-  useBoundaryScroll(scrollRef);
 
   return (
-    <div
-      className={cn(
-        "flex overflow-hidden border border-border bg-card/30 flex-col",
-        // Cap to absolute height on mobile so 7-8 reviews can fit (ignoring viewport vh caps)
-        "max-h-[950px]",
-        "md:max-h-[min(100dvh-8rem,820px)] md:flex-row",
-        // Lock height when there is enough content so the feed scrolls reliably.
-        manyReviews && "h-[950px] md:h-[min(100dvh-8rem,820px)]",
-      )}
-    >
-      {/* Summary — fixed beside the scrollable feed on desktop */}
-      <aside
-        className={cn(
-          "flex shrink-0 flex-col border-b border-border p-4",
-          "md:w-[min(32%,300px)] md:border-b-0 md:border-r md:p-6 lg:p-8",
-        )}
-      >
-        <div className="flex items-end gap-3 md:block">
-          <p className="font-display text-4xl tracking-tight md:text-6xl lg:text-7xl">
+    <>
+      {/* ── MOBILE: plain page flow, no height cap, no inner scroll ── */}
+      <div className="border border-border bg-card/30 md:hidden">
+        {/* Summary bar */}
+        <div className="flex items-center gap-4 border-b border-border p-4">
+          <p className="font-display text-5xl tracking-tight">
             {Number(product.rating).toFixed(1)}
           </p>
-          <div className="pb-1 md:mt-2 md:pb-0">
+          <div className="flex-1">
             <Stars rating={product.rating} size={15} />
             <p className="mt-1 font-mono text-[11px] text-muted-foreground">
               Based on {product.reviewCount} review{product.reviewCount === 1 ? "" : "s"}
             </p>
+            <div className="mt-2 space-y-1.5">
+              {breakdown.map((b) => (
+                <div key={b.star} className="flex items-center gap-2 font-mono text-[10px]">
+                  <span className="w-3 tabular-nums">{b.star}</span>
+                  <span className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
+                    <span
+                      className="block h-full rounded-full bg-primary"
+                      style={{ width: `${b.pct}%` }}
+                    />
+                  </span>
+                  <span className="w-8 text-right tabular-nums text-muted-foreground">{b.pct}%</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-        <div className="mt-4 space-y-2 md:mt-6">
-          {breakdown.map((b) => (
-            <div key={b.star} className="flex items-center gap-2 font-mono text-[11px]">
-              <span className="w-3 tabular-nums">{b.star}</span>
-              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-                <span
-                  className="block h-full rounded-full bg-primary"
-                  style={{ width: `${b.pct}%` }}
-                />
-              </span>
-              <span className="w-9 text-right tabular-nums text-muted-foreground">{b.pct}%</span>
-            </div>
-          ))}
+        {/* Write a review button */}
+        <div className="px-4 py-3 border-b border-border">
+          <button
+            type="button"
+            onClick={onWrite}
+            className="premium-badge h-11 w-full font-mono text-[12px] uppercase tracking-[0.16em]"
+          >
+            Write a review
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={onWrite}
-          className="premium-badge mt-5 h-12 w-full shrink-0 font-mono text-[12px] uppercase tracking-[0.16em] md:mt-auto"
-        >
-          Write a review
-        </button>
-      </aside>
-
-      {/* Scrollable review feed */}
-      <div
-        ref={scrollRef}
-        data-lenis-prevent
-        className={cn(
-          "min-h-0 flex-1 overflow-y-auto overscroll-contain",
-          "scroll-smooth [scrollbar-gutter:stable]",
-          "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent",
-        )}
-        role="region"
-        aria-label="Customer reviews"
-        tabIndex={0}
-      >
+        {/* All reviews — no clipping, scrolls with the page */}
         {product.reviews.length === 0 ? (
-          <p className="px-4 py-8 text-sm text-muted-foreground md:px-8 md:py-12">
+          <p className="px-4 py-8 text-sm text-muted-foreground">
             No reviews yet — be the first to share your experience.
           </p>
         ) : (
-          <ul className="divide-y divide-border px-4 md:px-6 lg:px-8">
+          <ul className="divide-y divide-border px-4">
             {product.reviews.map((r) => (
               <ReviewItem
                 key={r.id}
@@ -1500,7 +1475,85 @@ function ReviewsPanel({
           </ul>
         )}
       </div>
-    </div>
+
+      {/* ── DESKTOP: fixed-height two-column scrollable panel ── */}
+      <div
+        className={cn(
+          "hidden md:flex overflow-hidden border border-border bg-card/30 flex-row",
+          "md:max-h-[min(100dvh-8rem,820px)]",
+          manyReviews && "md:h-[min(100dvh-8rem,820px)]",
+        )}
+      >
+        {/* Summary sidebar */}
+        <aside className="flex shrink-0 flex-col border-r border-border md:w-[min(32%,300px)] md:p-6 lg:p-8">
+          <div className="md:block">
+            <p className="font-display text-6xl tracking-tight lg:text-7xl">
+              {Number(product.rating).toFixed(1)}
+            </p>
+            <div className="mt-2">
+              <Stars rating={product.rating} size={15} />
+              <p className="mt-1 font-mono text-[11px] text-muted-foreground">
+                Based on {product.reviewCount} review{product.reviewCount === 1 ? "" : "s"}
+              </p>
+            </div>
+          </div>
+          <div className="mt-6 space-y-2">
+            {breakdown.map((b) => (
+              <div key={b.star} className="flex items-center gap-2 font-mono text-[11px]">
+                <span className="w-3 tabular-nums">{b.star}</span>
+                <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                  <span
+                    className="block h-full rounded-full bg-primary"
+                    style={{ width: `${b.pct}%` }}
+                  />
+                </span>
+                <span className="w-9 text-right tabular-nums text-muted-foreground">{b.pct}%</span>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={onWrite}
+            className="premium-badge mt-auto h-12 w-full shrink-0 font-mono text-[12px] uppercase tracking-[0.16em]"
+          >
+            Write a review
+          </button>
+        </aside>
+
+        {/* Scrollable review feed */}
+        <div
+          ref={scrollRef}
+          data-lenis-prevent
+          className={cn(
+            "min-h-0 flex-1 overflow-y-auto overscroll-contain",
+            "scroll-smooth [scrollbar-gutter:stable]",
+            "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent",
+          )}
+          role="region"
+          aria-label="Customer reviews"
+          tabIndex={0}
+        >
+          {product.reviews.length === 0 ? (
+            <p className="px-8 py-12 text-sm text-muted-foreground">
+              No reviews yet — be the first to share your experience.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border px-6 lg:px-8">
+              {product.reviews.map((r) => (
+                <ReviewItem
+                  key={r.id}
+                  review={r}
+                  isOwner={Boolean(userId && r.userId && String(r.userId) === String(userId))}
+                  onOpenMedia={onOpenMedia}
+                  onEdit={() => onEdit(r)}
+                  onDelete={() => onDelete(r)}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 
