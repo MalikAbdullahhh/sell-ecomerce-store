@@ -19,6 +19,7 @@ import {
   Zap,
   Check,
   Sparkles,
+  ShoppingBag,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -270,6 +271,56 @@ function ProductPage() {
   const prevImage = useCallback(() => goImage(imgIndex - 1, -1), [goImage, imgIndex]);
   const nextImage = useCallback(() => goImage(imgIndex + 1, 1), [goImage, imgIndex]);
 
+  const productSpecs = useMemo(
+    () => (product.specs || []).filter((s) => s.label.trim() || s.value.trim()),
+    [product.specs],
+  );
+  const hasDescription = hasRichText(product.description);
+  const hasSpecs = productSpecs.length > 0;
+  const hasShipping = hasRichText(product.shippingInfo);
+  const hasPreview = Boolean(product.previewVideo?.trim());
+  const detailTabs = [
+    hasDescription ? "description" : null,
+    hasSpecs ? "specifications" : null,
+  ].filter(Boolean) as string[];
+  const defaultDetailTab = detailTabs[0] || "description";
+
+  const openReviewComposer = useCallback(() => {
+    setEditingReview(null);
+    setReviewRating(5);
+    setReviewBody("");
+    setReviewAuthor("");
+    setReviewFiles([]);
+    setKeepImages([]);
+    setKeepVideos([]);
+    setReviewOpen(true);
+  }, []);
+
+  const editReview = useCallback((r: Review) => {
+    setEditingReview(r);
+    setReviewRating(r.rating);
+    setReviewBody(r.body);
+    setReviewFiles([]);
+    const toPath = (u: string) => {
+      const i = u.indexOf("/uploads/");
+      return i >= 0 ? u.slice(i) : u;
+    };
+    setKeepImages((r.images || []).map(toPath));
+    setKeepVideos((r.videos || []).map(toPath));
+    setReviewOpen(true);
+  }, []);
+
+  const deleteReview = useCallback(async (r: Review) => {
+    if (!confirm("Delete your review?")) return;
+    try {
+      await reviewApi.deleteMine(r.id);
+      toast.success("Review deleted");
+      window.location.reload();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not delete");
+    }
+  }, []);
+
   return (
     <div className="relative">
       <div className="mx-auto max-w-[1440px] px-4 pb-28 pt-4 md:px-10 md:pb-16 md:pt-6">
@@ -479,20 +530,51 @@ function ProductPage() {
             >
               {product.name}
             </motion.h1>
-            <a
-              href="#reviews"
-              className="mt-3 inline-flex items-center gap-2 rounded-full border border-border/80 bg-secondary/50 px-3 py-1.5 text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-            >
-              <Stars rating={product.rating} size={14} />
-              <span className="font-mono text-xs">
-                {product.rating.toFixed(1)} · {product.reviewCount} reviews
-              </span>
-            </a>
-            {(product.soldCount ?? 0) > 0 ? (
-              <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                {product.soldCount!.toLocaleString("en-PK")} sold
-              </p>
-            ) : null}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <motion.a
+                href="#reviews"
+                whileHover={reduce ? undefined : { y: -2, scale: 1.02 }}
+                whileTap={reduce ? undefined : { scale: 0.98 }}
+                className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-secondary/50 px-3 py-1.5 text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              >
+                <Stars rating={product.rating} size={14} />
+                <span className="font-mono text-xs">
+                  {product.rating.toFixed(1)} · {product.reviewCount} reviews
+                </span>
+              </motion.a>
+              {(product.soldCount ?? 0) > 0 ? (
+                <motion.span
+                  initial={reduce ? false : { opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={reduce ? undefined : { y: -2, scale: 1.03 }}
+                  whileTap={reduce ? undefined : { scale: 0.97 }}
+                  className="premium-badge inline-flex cursor-default items-center gap-1.5 rounded-full border border-orange-500/35 bg-orange-500/12 px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.14em] text-orange-700 shadow-[0_0_0_1px_rgba(249,115,22,0.08)] dark:text-orange-300"
+                  title={`${product.soldCount!.toLocaleString("en-PK")} units sold`}
+                >
+                  <motion.span
+                    aria-hidden
+                    animate={reduce ? undefined : { scale: [1, 1.15, 1] }}
+                    transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                    className="text-sm leading-none"
+                  >
+                    🔥
+                  </motion.span>
+                  <ShoppingBag width={13} height={13} strokeWidth={2} className="opacity-90" />
+                  <span>
+                    {product.soldCount!.toLocaleString("en-PK")}{" "}
+                    <span className="opacity-80">sold</span>
+                  </span>
+                </motion.span>
+              ) : null}
+              {discount > 0 ? (
+                <motion.span
+                  whileHover={reduce ? undefined : { y: -2, scale: 1.03 }}
+                  className="inline-flex"
+                >
+                  <Tag>Save {discount}%</Tag>
+                </motion.span>
+              ) : null}
+            </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-3 md:mt-5">
               <motion.span
@@ -508,7 +590,6 @@ function ProductPage() {
                   <span className="font-mono text-sm text-muted-foreground line-through">
                     {money(product.compareAt * qty)}
                   </span>
-                  <Tag>Save {discount}%</Tag>
                 </>
               )}
               {qty > 1 && (
@@ -518,7 +599,9 @@ function ProductPage() {
               )}
             </div>
 
-            <p className="mt-5 max-w-md text-muted-foreground">{product.short}</p>
+            {product.short?.trim() ? (
+              <p className="mt-5 max-w-md text-muted-foreground">{product.short}</p>
+            ) : null}
 
             {/* Soft highlight chips — icons only, no childish emoji */}
             <div className="mt-5 flex flex-wrap gap-2">
@@ -553,63 +636,69 @@ function ProductPage() {
             )}
 
             {/* Variants */}
-            <div className="mt-8">
-              <p className="font-mono text-[10px] uppercase tracking-[0.22em] opacity-60">
-                Finish · <span className="text-primary">{color}</span>
-              </p>
-              <div className="mt-3 flex gap-2">
-                {product.colors.map((c) => (
-                  <motion.button
-                    key={c.id}
-                    type="button"
-                    whileTap={reduce ? undefined : { scale: 0.94 }}
-                    onClick={() => setColor(c.label)}
-                    className={cn(
-                      "flex h-11 items-center gap-2 border px-3 font-mono text-[11px] transition-all",
-                      color === c.label
-                        ? "border-primary ring-1 ring-primary"
-                        : "border-border hover:border-primary/50",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "h-4 w-4 border border-border",
-                        !c.value && (c.id === "ink" ? "bg-foreground" : "bg-secondary"),
-                      )}
-                      style={{ backgroundColor: c.value || undefined }}
-                      aria-hidden="true"
-                    />
-                    {c.label}
-                  </motion.button>
-                ))}
+            {product.colors.some((c) => c.label.trim()) ? (
+              <div className="mt-8">
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] opacity-60">
+                  Finish · <span className="text-primary">{color}</span>
+                </p>
+                <div className="mt-3 flex gap-2">
+                  {product.colors
+                    .filter((c) => c.label.trim())
+                    .map((c) => (
+                      <motion.button
+                        key={c.id}
+                        type="button"
+                        whileTap={reduce ? undefined : { scale: 0.94 }}
+                        onClick={() => setColor(c.label)}
+                        className={cn(
+                          "flex h-11 items-center gap-2 border px-3 font-mono text-[11px] transition-all",
+                          color === c.label
+                            ? "border-primary ring-1 ring-primary"
+                            : "border-border hover:border-primary/50",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "h-4 w-4 border border-border",
+                            !c.value && (c.id === "ink" ? "bg-foreground" : "bg-secondary"),
+                          )}
+                          style={{ backgroundColor: c.value || undefined }}
+                          aria-hidden="true"
+                        />
+                        {c.label}
+                      </motion.button>
+                    ))}
+                </div>
               </div>
-            </div>
+            ) : null}
 
-            {product.sizes && (
+            {product.sizes?.some((s) => s.label.trim()) ? (
               <div className="mt-6">
                 <p className="font-mono text-[10px] uppercase tracking-[0.22em] opacity-60">
                   Option
                 </p>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  {product.sizes.map((s) => (
-                    <motion.button
-                      key={s.id}
-                      type="button"
-                      whileTap={reduce ? undefined : { scale: 0.94 }}
-                      onClick={() => setSize(s.label)}
-                      className={cn(
-                        "h-11 border px-4 font-mono text-[11px] transition-colors",
-                        size === s.label
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border hover:border-primary/60",
-                      )}
-                    >
-                      {s.label}
-                    </motion.button>
-                  ))}
+                  {product.sizes
+                    .filter((s) => s.label.trim())
+                    .map((s) => (
+                      <motion.button
+                        key={s.id}
+                        type="button"
+                        whileTap={reduce ? undefined : { scale: 0.94 }}
+                        onClick={() => setSize(s.label)}
+                        className={cn(
+                          "h-11 border px-4 font-mono text-[11px] transition-colors",
+                          size === s.label
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border hover:border-primary/60",
+                        )}
+                      >
+                        {s.label}
+                      </motion.button>
+                    ))}
                 </div>
               </div>
-            )}
+            ) : null}
 
             {/* Qty + actions */}
             <div className="mt-8 flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center">
@@ -716,10 +805,6 @@ function ProductPage() {
               )}
             </div>
 
-            <p className="mt-6 font-mono text-xs text-muted-foreground">
-              Free delivery by Thu 30 Jul · Cash on Delivery available
-            </p>
-
             <div className="mt-6 grid grid-cols-3 overflow-hidden rounded-2xl border border-border/70 md:rounded-xl">
               {[
                 { icon: Lock, t: "Secure checkout", tone: "text-primary" },
@@ -768,9 +853,9 @@ function ProductPage() {
           </div>
         </div>
 
-        {/* Detail sections — mobile accordion (reviews open), desktop tabs */}
+        {/* Detail sections — empty admin fields are omitted */}
         <div className="mt-12 md:mt-20" id="reviews">
-          {/* Mobile */}
+          {/* Mobile accordion */}
           <Accordion
             type="multiple"
             defaultValue={["reviews"]}
@@ -785,230 +870,235 @@ function ProductPage() {
                   product={product}
                   breakdown={breakdown}
                   userId={user?.id}
-                  onWrite={() => {
-                    setEditingReview(null);
-                    setReviewRating(5);
-                    setReviewBody("");
-                    setReviewAuthor("");
-                    setReviewFiles([]);
-                    setKeepImages([]);
-                    setKeepVideos([]);
-                    setReviewOpen(true);
-                  }}
+                  onWrite={openReviewComposer}
                   onOpenMedia={openReviewLightbox}
-                  onEdit={(r) => {
-                    setEditingReview(r);
-                    setReviewRating(r.rating);
-                    setReviewBody(r.body);
-                    setReviewFiles([]);
-                    const toPath = (u: string) => {
-                      const i = u.indexOf("/uploads/");
-                      return i >= 0 ? u.slice(i) : u;
-                    };
-                    setKeepImages((r.images || []).map(toPath));
-                    setKeepVideos((r.videos || []).map(toPath));
-                    setReviewOpen(true);
-                  }}
-                  onDelete={async (r) => {
-                    if (!confirm("Delete your review?")) return;
-                    try {
-                      await reviewApi.deleteMine(r.id);
-                      toast.success("Review deleted");
-                      window.location.reload();
-                    } catch (err) {
-                      toast.error(err instanceof Error ? err.message : "Could not delete");
-                    }
-                  }}
+                  onEdit={editReview}
+                  onDelete={deleteReview}
                 />
               </AccordionContent>
             </AccordionItem>
 
-            <AccordionItem value="description" className="border-border">
-              <AccordionTrigger className="py-4 font-mono text-[12px] uppercase tracking-[0.16em] hover:no-underline">
-                Description
-              </AccordionTrigger>
-              <AccordionContent className="pb-6 text-[15px] leading-relaxed text-muted-foreground">
-                <ProductHtml html={product.description} />
-              </AccordionContent>
-            </AccordionItem>
+            {hasDescription ? (
+              <AccordionItem value="description" className="border-border">
+                <AccordionTrigger className="py-4 font-mono text-[12px] uppercase tracking-[0.16em] hover:no-underline">
+                  Description
+                </AccordionTrigger>
+                <AccordionContent className="pb-6 text-[15px] leading-relaxed text-muted-foreground">
+                  <ProductHtml html={product.description} />
+                </AccordionContent>
+              </AccordionItem>
+            ) : null}
 
-            <AccordionItem value="specifications" className="border-border">
-              <AccordionTrigger className="py-4 font-mono text-[12px] uppercase tracking-[0.16em] hover:no-underline">
-                Specifications
-              </AccordionTrigger>
-              <AccordionContent className="pb-6">
-                <dl className="space-y-3">
-                  {product.specs.map((s) => (
-                    <div
-                      key={s.label}
-                      className="flex items-start justify-between gap-4 border-b border-border/70 pb-3 font-mono text-[13px] last:border-0"
-                    >
-                      <dt className="text-muted-foreground">{s.label}</dt>
-                      <dd className="max-w-[55%] text-right">{s.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </AccordionContent>
-            </AccordionItem>
+            {hasSpecs ? (
+              <AccordionItem value="specifications" className="border-border">
+                <AccordionTrigger className="py-4 font-mono text-[12px] uppercase tracking-[0.16em] hover:no-underline">
+                  Specifications
+                </AccordionTrigger>
+                <AccordionContent className="pb-6">
+                  <dl className="space-y-3">
+                    {productSpecs.map((s) => (
+                      <div
+                        key={`${s.label}-${s.value}`}
+                        className="flex items-start justify-between gap-4 border-b border-border/70 pb-3 font-mono text-[13px] last:border-0"
+                      >
+                        <dt className="text-muted-foreground">{s.label}</dt>
+                        <dd className="max-w-[55%] text-right">{s.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </AccordionContent>
+              </AccordionItem>
+            ) : null}
 
-            <AccordionItem value="shipping" className="border-border">
-              <AccordionTrigger className="py-4 font-mono text-[12px] uppercase tracking-[0.16em] hover:no-underline">
-                Shipping & returns
-              </AccordionTrigger>
-              <AccordionContent className="space-y-3 pb-6 text-[15px] leading-relaxed text-muted-foreground">
-                <p>
-                  Standard delivery is 2–4 business days domestically, 5–9 days internationally.
-                </p>
-                <p>Free over $75. Cash on Delivery available on domestic orders up to $600.</p>
-                <p>
-                  30-day returns, unused and in original packaging. We cover return shipping on
-                  faults.
-                </p>
-              </AccordionContent>
-            </AccordionItem>
+            {hasShipping ? (
+              <AccordionItem value="shipping" className="border-border">
+                <AccordionTrigger className="py-4 font-mono text-[12px] uppercase tracking-[0.16em] hover:no-underline">
+                  Shipping & returns
+                </AccordionTrigger>
+                <AccordionContent className="pb-6 text-[15px] leading-relaxed text-muted-foreground">
+                  <ProductHtml html={product.shippingInfo || ""} />
+                </AccordionContent>
+              </AccordionItem>
+            ) : null}
           </Accordion>
 
-          {/* Desktop */}
-          <Tabs defaultValue="reviews" className="hidden md:block">
-            <TabsList className="no-scrollbar h-auto w-full justify-start overflow-x-auto rounded-none border-b border-border bg-transparent p-0">
-              {["description", "specifications", "reviews", "shipping"].map((t) => (
-                <TabsTrigger
-                  key={t}
-                  value={t}
-                  className="rounded-none border-b-2 border-transparent px-4 py-3 font-mono text-[11px] uppercase tracking-[0.18em] data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none"
-                >
-                  {t}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            <TabsContent
-              value="description"
-              className="max-w-2xl py-8 leading-relaxed text-muted-foreground"
-            >
-              <ProductHtml html={product.description} />
-            </TabsContent>
-
-            <TabsContent value="specifications" className="max-w-2xl py-8">
-              <dl className="space-y-3">
-                {product.specs.map((s) => (
-                  <div key={s.label} className="flex items-baseline gap-2 font-mono text-[13px]">
-                    <dt className="shrink-0 text-muted-foreground">{s.label}</dt>
-                    <span className="min-w-6 flex-1 border-b border-dotted border-border" />
-                    <dd className="shrink-0">{s.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            </TabsContent>
-
-            <TabsContent value="reviews" className="py-8">
-              <ReviewsPanel
-                product={product}
-                breakdown={breakdown}
-                userId={user?.id}
-                onWrite={() => {
-                  setEditingReview(null);
-                  setReviewRating(5);
-                  setReviewBody("");
-                  setReviewAuthor("");
-                  setReviewFiles([]);
-                  setKeepImages([]);
-                  setKeepVideos([]);
-                  setReviewOpen(true);
-                }}
-                onOpenMedia={openReviewLightbox}
-                onEdit={(r) => {
-                  setEditingReview(r);
-                  setReviewRating(r.rating);
-                  setReviewBody(r.body);
-                  setReviewFiles([]);
-                  const toPath = (u: string) => {
-                    const i = u.indexOf("/uploads/");
-                    return i >= 0 ? u.slice(i) : u;
-                  };
-                  setKeepImages((r.images || []).map(toPath));
-                  setKeepVideos((r.videos || []).map(toPath));
-                  setReviewOpen(true);
-                }}
-                onDelete={async (r) => {
-                  if (!confirm("Delete your review?")) return;
-                  try {
-                    await reviewApi.deleteMine(r.id);
-                    toast.success("Review deleted");
-                    window.location.reload();
-                  } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "Could not delete");
-                  }
-                }}
-              />
-            </TabsContent>
-
-            <TabsContent
-              value="shipping"
-              className="max-w-2xl space-y-3 py-8 text-muted-foreground"
-            >
-              <p>Standard delivery is 2–4 business days domestically, 5–9 days internationally.</p>
-              <p>Free over $75. Cash on Delivery available on domestic orders up to $600.</p>
-              <p>
-                30-day returns, unused and in original packaging. We cover return shipping on
-                faults.
-              </p>
-            </TabsContent>
-          </Tabs>
-
-          {product.previewVideo ? (
+          {hasPreview ? (
             <PreviewProductVideo
-              src={product.previewVideo}
+              src={product.previewVideo!}
               title="See it in action"
-              className="mt-10 border-t border-border pt-10 md:mt-14 md:pt-14"
+              className="mt-10 border-t border-border pt-10 md:hidden"
             />
           ) : null}
-        </div>
-      </div>
 
-      <section className="mx-auto max-w-[1440px] px-4 pb-8 md:px-10">
-        <div className="border-t border-border pt-8">
-          <Eyebrow>Contact & help</Eyebrow>
-          <p className="mt-2 max-w-xl text-sm text-muted-foreground">
-            {settings?.help?.helpText ||
-              "Questions about this product? Reach us by call or WhatsApp — we reply within one working day."}
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            {contact?.phone ? (
-              <a
-                href={`tel:${contact.phone}`}
-                className="flex h-11 items-center gap-2 border border-foreground px-4 font-mono text-xs transition-colors hover:bg-foreground hover:text-background"
+          {/* Desktop: description/specs beside preview video */}
+          <div className="hidden md:block">
+            {hasDescription || hasSpecs || hasPreview ? (
+              <div
+                className={cn(
+                  "grid gap-10 border-t border-border pt-10",
+                  hasPreview && (hasDescription || hasSpecs)
+                    ? "md:grid-cols-2 md:items-start md:gap-14"
+                    : "",
+                )}
               >
-                <Phone width={15} /> {settings?.help?.callLabel || "Call"} · {contact.phone}
-              </a>
+                {hasDescription || hasSpecs ? (
+                  <div className="min-w-0">
+                    {detailTabs.length > 1 ? (
+                      <Tabs defaultValue={defaultDetailTab}>
+                        <TabsList className="no-scrollbar h-auto w-full justify-start overflow-x-auto rounded-none border-b border-border bg-transparent p-0">
+                          {detailTabs.map((t) => (
+                            <TabsTrigger
+                              key={t}
+                              value={t}
+                              className="rounded-none border-b-2 border-transparent px-4 py-3 font-mono text-[11px] uppercase tracking-[0.18em] data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none"
+                            >
+                              {t}
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
+                        {hasDescription ? (
+                          <TabsContent
+                            value="description"
+                            className="py-8 leading-relaxed text-muted-foreground"
+                          >
+                            <ProductHtml html={product.description} />
+                          </TabsContent>
+                        ) : null}
+                        {hasSpecs ? (
+                          <TabsContent value="specifications" className="py-8">
+                            <dl className="space-y-3">
+                              {productSpecs.map((s) => (
+                                <div
+                                  key={`${s.label}-${s.value}`}
+                                  className="flex items-baseline gap-2 font-mono text-[13px]"
+                                >
+                                  <dt className="shrink-0 text-muted-foreground">{s.label}</dt>
+                                  <span className="min-w-6 flex-1 border-b border-dotted border-border" />
+                                  <dd className="shrink-0">{s.value}</dd>
+                                </div>
+                              ))}
+                            </dl>
+                          </TabsContent>
+                        ) : null}
+                      </Tabs>
+                    ) : hasDescription ? (
+                      <div>
+                        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                          Description
+                        </p>
+                        <div className="mt-4 leading-relaxed text-muted-foreground">
+                          <ProductHtml html={product.description} />
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                          Specifications
+                        </p>
+                        <dl className="mt-4 space-y-3">
+                          {productSpecs.map((s) => (
+                            <div
+                              key={`${s.label}-${s.value}`}
+                              className="flex items-baseline gap-2 font-mono text-[13px]"
+                            >
+                              <dt className="shrink-0 text-muted-foreground">{s.label}</dt>
+                              <span className="min-w-6 flex-1 border-b border-dotted border-border" />
+                              <dd className="shrink-0">{s.value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+
+                {hasPreview ? (
+                  <PreviewProductVideo
+                    src={product.previewVideo!}
+                    title="See it in action"
+                    className="md:sticky md:top-24"
+                  />
+                ) : null}
+              </div>
             ) : null}
-            {contact?.whatsapp ? (
-              <a
-                href={
-                  whatsappOrderUrl ||
-                  `https://wa.me/${(contact.whatsapp || "").replace(/\D/g, "")}`
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-11 items-center gap-2 bg-[#25D366] px-4 font-mono text-xs text-white transition-[filter] hover:brightness-105"
-              >
-                <WhatsAppIcon size={16} /> {settings?.help?.whatsappLabel || "WhatsApp"}
-              </a>
+
+            <div className="mt-14 border-t border-border pt-10">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                Reviews ({product.reviewCount})
+              </p>
+              <div className="mt-6">
+                <ReviewsPanel
+                  product={product}
+                  breakdown={breakdown}
+                  userId={user?.id}
+                  onWrite={openReviewComposer}
+                  onOpenMedia={openReviewLightbox}
+                  onEdit={editReview}
+                  onDelete={deleteReview}
+                />
+              </div>
+            </div>
+
+            {hasShipping ? (
+              <div className="mt-14 border-t border-border pt-10">
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  Shipping & returns
+                </p>
+                <div className="mt-4 max-w-2xl text-muted-foreground">
+                  <ProductHtml html={product.shippingInfo || ""} />
+                </div>
+              </div>
             ) : null}
           </div>
         </div>
-      </section>
+      </div>
 
-      <Section invert>
-        <SectionHead eyebrow="Same discipline" title="You might also like" />
-        <Rail resetKey={related.map((p) => p.slug).join("|") || "related-empty"}>
-          {related.map((p) => (
-            <RailItem key={p.slug}>
-              <ProductCard product={p} />
-            </RailItem>
-          ))}
-        </Rail>
-      </Section>
+      {(contact?.phone || contact?.whatsapp) ? (
+        <section className="mx-auto max-w-[1440px] px-4 pb-8 md:px-10">
+          <div className="border-t border-border pt-8">
+            <Eyebrow>Contact & help</Eyebrow>
+            {settings?.help?.helpText?.trim() ? (
+              <p className="mt-2 max-w-xl text-sm text-muted-foreground">{settings.help.helpText}</p>
+            ) : null}
+            <div className="mt-4 flex flex-wrap gap-3">
+              {contact?.phone ? (
+                <a
+                  href={`tel:${contact.phone}`}
+                  className="flex h-11 items-center gap-2 border border-foreground px-4 font-mono text-xs transition-colors hover:bg-foreground hover:text-background"
+                >
+                  <Phone width={15} /> {settings?.help?.callLabel || "Call"} · {contact.phone}
+                </a>
+              ) : null}
+              {contact?.whatsapp ? (
+                <a
+                  href={
+                    whatsappOrderUrl ||
+                    `https://wa.me/${(contact.whatsapp || "").replace(/\D/g, "")}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-11 items-center gap-2 bg-[#25D366] px-4 font-mono text-xs text-white transition-[filter] hover:brightness-105"
+                >
+                  <WhatsAppIcon size={16} /> {settings?.help?.whatsappLabel || "WhatsApp"}
+                </a>
+              ) : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      {related.length > 0 ? (
+        <Section invert>
+          <SectionHead eyebrow="Same discipline" title="You might also like" />
+          <Rail resetKey={related.map((p) => p.slug).join("|") || "related-empty"}>
+            {related.map((p) => (
+              <RailItem key={p.slug}>
+                <ProductCard product={p} />
+              </RailItem>
+            ))}
+          </Rail>
+        </Section>
+      ) : null}
 
       <MediaLightbox
         items={lightbox?.items || []}
@@ -1456,8 +1546,18 @@ function ReviewItem({
   );
 }
 
+function hasRichText(html?: string) {
+  if (!html?.trim()) return false;
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .length > 0;
+}
+
 function ProductHtml({ html }: { html: string }) {
-  if (!html?.trim()) return null;
+  if (!hasRichText(html)) return null;
   return (
     <div
       className="product-html space-y-3 [&_a]:underline [&_h3]:text-base [&_h3]:font-semibold [&_h3]:text-foreground [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5"

@@ -38,6 +38,8 @@ const productSchema = new mongoose.Schema(
     currency: { type: String, default: "PKR" },
     short: { type: String, default: "" },
     description: { type: String, default: "" },
+    /** Shipping & returns copy for PDP. Empty = section hidden. */
+    shippingInfo: { type: String, default: "" },
     images: [{ type: String }],
     videos: [{ type: String }],
     /** Dedicated preview clip shown on mobile PDP below description. */

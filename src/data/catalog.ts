@@ -45,6 +45,8 @@ export type Product = {
   gallery?: { url: string; type: "image" | "video" }[];
   /** Mobile-only preview clip below description. */
   previewVideo?: string;
+  /** Shipping & returns copy. Empty hides the section. */
+  shippingInfo?: string;
   short: string;
   description: string;
   specs: { label: string; value: string }[];

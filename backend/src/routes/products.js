@@ -329,6 +329,7 @@ router.post(
       videos: media.videos,
       gallery: media.gallery,
       previewVideo: String(req.body.previewVideo || "").trim(),
+      shippingInfo: String(req.body.shippingInfo || "").trim(),
       specs: req.body.specs || [],
       colors: req.body.colors || [],
       sizes: req.body.sizes || [],
@@ -376,6 +377,9 @@ router.put(
 
     if (updates.previewVideo !== undefined) {
       updates.previewVideo = String(updates.previewVideo || "").trim();
+    }
+    if (updates.shippingInfo !== undefined) {
+      updates.shippingInfo = String(updates.shippingInfo || "").trim();
     }
 
     if (updates.stock !== undefined) {

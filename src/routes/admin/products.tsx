@@ -42,6 +42,7 @@ type FormState = {
   description: string;
   gallery: GalleryItem[];
   previewVideo: string;
+  shippingInfo: string;
   specs: { label: string; value: string }[];
   colors: VariantDoc[];
   sizes: VariantDoc[];
@@ -67,6 +68,7 @@ const emptyForm = (): FormState => ({
   description: "",
   gallery: [],
   previewVideo: "",
+  shippingInfo: "",
   specs: [{ label: "", value: "" }],
   colors: [],
   sizes: [],
@@ -119,6 +121,7 @@ function fromProduct(p: ProductDoc): FormState {
           }))
         : galleryFromParts(p.images || [], p.videos || []),
     previewVideo: p.previewVideo || "",
+    shippingInfo: p.shippingInfo || "",
     specs: p.specs?.length ? p.specs : [{ label: "", value: "" }],
     colors: p.colors || [],
     sizes: p.sizes || [],
@@ -182,6 +185,7 @@ function AdminProducts() {
         gallery: form.gallery,
         ...splitGallery(form.gallery),
         previewVideo: form.previewVideo.trim(),
+        shippingInfo: form.shippingInfo.trim(),
         specs: form.specs.filter((s) => s.label.trim() || s.value.trim()),
         colors: form.colors.filter((c) => c.label.trim()),
         sizes: form.sizes.filter((s) => s.label.trim()),
@@ -482,6 +486,16 @@ function AdminProducts() {
                   placeholder="Full product description — formatting, lists and links supported"
                 />
               </Field>
+              <Field label="Shipping & returns">
+                <p className="mb-2 text-xs leading-relaxed text-muted-foreground">
+                  Leave empty to hide the Shipping & returns section on the product page.
+                </p>
+                <RichEditor
+                  value={form.shippingInfo}
+                  onChange={(shippingInfo) => setForm((f) => ({ ...f, shippingInfo }))}
+                  placeholder="Delivery times, COD, returns policy…"
+                />
+              </Field>
               <Field label="Media (images & videos)">
                 <MediaGalleryField
                   value={form.gallery}
@@ -514,8 +528,8 @@ function AdminProducts() {
 
               <Field label="Preview product video">
                 <p className="mb-2 text-xs leading-relaxed text-muted-foreground">
-                  Shown at the end of the product page (mobile & desktop). Autoplays muted —
-                  shoppers tap volume for sound.
+                  Shown beside Description & Specs on desktop, and after all sections on mobile.
+                  Plays at the uploaded aspect ratio and quality (muted until volume is tapped).
                 </p>
                 {form.gallery.some((g) => g.type === "video") ? (
                   <div className="mb-3 flex flex-wrap gap-2">
@@ -563,6 +577,9 @@ function AdminProducts() {
               <div>
                 <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                   Specs
+                </p>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Leave empty to hide Specifications on the product page.
                 </p>
                 <div className="space-y-2">
                   {form.specs.map((s, i) => (
@@ -615,13 +632,13 @@ function AdminProducts() {
               </div>
 
               <VariantEditor
-                title="Colors"
+                title="Finish (colors)"
                 items={form.colors}
                 onChange={(colors) => setForm((f) => ({ ...f, colors }))}
                 type="color"
               />
               <VariantEditor
-                title="Sizes"
+                title="Options (sizes)"
                 items={form.sizes}
                 onChange={(sizes) => setForm((f) => ({ ...f, sizes }))}
                 type="size"

@@ -395,6 +395,7 @@ export function apiProductToProduct(p: ProductDoc): Product {
       type: g.type === "video" ? ("video" as const) : ("image" as const),
     })),
     previewVideo: p.previewVideo ? mediaUrl(p.previewVideo) : "",
+    shippingInfo: p.shippingInfo || "",
     short: p.short || "",
     description: p.description || "",
     specs: p.specs || [],
