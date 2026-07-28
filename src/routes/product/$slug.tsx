@@ -930,12 +930,29 @@ function ProductPage() {
             />
           ) : null}
 
-          {/* Desktop: description/specs beside preview video */}
+          {/* Desktop: product → reviews → description + preview → shipping */}
           <div className="hidden md:block">
+            <div className="border-t border-border pt-10">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                Reviews ({product.reviewCount})
+              </p>
+              <div className="mt-6">
+                <ReviewsPanel
+                  product={product}
+                  breakdown={breakdown}
+                  userId={user?.id}
+                  onWrite={openReviewComposer}
+                  onOpenMedia={openReviewLightbox}
+                  onEdit={editReview}
+                  onDelete={deleteReview}
+                />
+              </div>
+            </div>
+
             {hasDescription || hasSpecs || hasPreview ? (
               <div
                 className={cn(
-                  "grid gap-10 border-t border-border pt-10",
+                  "mt-14 grid gap-10 border-t border-border pt-10",
                   hasPreview && (hasDescription || hasSpecs)
                     ? "md:grid-cols-2 md:items-start md:gap-14"
                     : "",
@@ -1021,23 +1038,6 @@ function ProductPage() {
                 ) : null}
               </div>
             ) : null}
-
-            <div className="mt-14 border-t border-border pt-10">
-              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                Reviews ({product.reviewCount})
-              </p>
-              <div className="mt-6">
-                <ReviewsPanel
-                  product={product}
-                  breakdown={breakdown}
-                  userId={user?.id}
-                  onWrite={openReviewComposer}
-                  onOpenMedia={openReviewLightbox}
-                  onEdit={editReview}
-                  onDelete={deleteReview}
-                />
-              </div>
-            </div>
 
             {hasShipping ? (
               <div className="mt-14 border-t border-border pt-10">
