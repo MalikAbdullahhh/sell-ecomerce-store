@@ -393,8 +393,10 @@ function Index() {
       {/* Aggregate rating */}
       {ratingBand.visible !== false && (
         <AggregateRating
-          rating={catalogue.reduce((s, p) => s + p.rating, 0) / Math.max(1, catalogue.length)}
-          reviews={catalogue.reduce((s, p) => s + p.reviewCount, 0)}
+          // rating={catalogue.reduce((s, p) => s + p.rating, 0) / Math.max(1, catalogue.length)}
+          rating={4.9}
+          // reviews={catalogue.reduce((s, p) => s + p.reviewCount, 0)}
+          reviews={912}
           eyebrow={ratingBand.eyebrow}
           reviewsLabel={ratingBand.reviewsLabel}
         />
