@@ -28,10 +28,10 @@ export function Field({
   className?: string;
 }) {
   return (
-    <label className={cn("grid gap-1.5", className)}>
+    <div className={cn("grid gap-1.5", className)}>
       <span className={adminLabel}>{label}</span>
       {children}
-    </label>
+    </div>
   );
 }
 
