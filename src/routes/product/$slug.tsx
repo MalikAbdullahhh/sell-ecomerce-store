@@ -1435,7 +1435,7 @@ function ReviewsPanel({
       <div
         data-lenis-prevent
         className={cn(
-          "min-h-0 flex-1 overflow-y-auto overscroll-contain",
+          "min-h-0 flex-1 overflow-y-auto overscroll-auto",
           "scroll-smooth [scrollbar-gutter:stable]",
           "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent",
         )}
