@@ -239,7 +239,7 @@ function AdminReviews() {
       videos: r.videos || [],
       productId: productIdFromReview(r, products?.products || []),
       isApproved: r.isApproved !== false,
-      date: (r.date || r.createdAt || "").slice(0, 10) || new Date().toISOString().slice(0, 10),
+      date: (r.date || r.createdAt || "").toString().slice(0, 10) || new Date().toISOString().slice(0, 10),
     });
     setEditing(r);
   }

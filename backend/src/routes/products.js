@@ -182,19 +182,22 @@ router.get(
       categoryPopulate,
     );
     if (!product) return res.status(404).json({ message: "Product not found" });
-    const reviews = await Review.find({ product: product._id, isApproved: true }).sort({
-      createdAt: -1,
+    const reviews = await Review.find({ product: product._id, isApproved: true });
+    const sorted = [...reviews].sort((a, b) => {
+      const ta = new Date(a.date || a.createdAt || 0).getTime();
+      const tb = new Date(b.date || b.createdAt || 0).getTime();
+      return tb - ta;
     });
     res.json({
       product: {
         ...mapProduct(product),
-        reviews: reviews.map((r) => ({
+        reviews: sorted.map((r) => ({
           id: r._id,
           userId: r.user ? String(r.user) : null,
           author: r.author,
           authorImage: r.authorImage,
           rating: r.rating,
-          date: r.createdAt.toISOString().slice(0, 10),
+          date: new Date(r.date || r.createdAt).toISOString().slice(0, 10),
           title: r.title,
           body: r.body,
           images: r.images,

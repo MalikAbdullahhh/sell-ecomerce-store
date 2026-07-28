@@ -14,6 +14,8 @@ const reviewSchema = new mongoose.Schema(
     videos: [{ type: String }],
     isApproved: { type: Boolean, default: true },
     createdByAdmin: { type: Boolean, default: false },
+    /** Display date on storefront (admin-editable). Falls back to createdAt when unset. */
+    date: { type: Date },
   },
   { timestamps: true },
 );

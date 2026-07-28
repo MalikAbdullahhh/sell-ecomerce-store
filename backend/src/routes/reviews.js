@@ -19,6 +19,24 @@ function parseReviewDate(raw) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+function formatReviewDate(r) {
+  const d = r?.date || r?.createdAt;
+  if (!d) return "";
+  try {
+    return new Date(d).toISOString().slice(0, 10);
+  } catch {
+    return "";
+  }
+}
+
+function sortReviewsByDate(reviews) {
+  return [...reviews].sort((a, b) => {
+    const ta = new Date(a.date || a.createdAt || 0).getTime();
+    const tb = new Date(b.date || b.createdAt || 0).getTime();
+    return tb - ta;
+  });
+}
+
 async function recalcProductRating(productId) {
   const product = await Product.findById(productId);
   if (!product) return { rating: 0, reviewCount: 0 };
@@ -41,8 +59,8 @@ router.get(
     const reviews = await Review.find({
       product: req.params.productId,
       isApproved: true,
-    }).sort({ createdAt: -1 });
-    res.json({ reviews });
+    });
+    res.json({ reviews: sortReviewsByDate(reviews) });
   }),
 );
 
@@ -200,7 +218,15 @@ router.get(
     const reviews = await Review.find()
       .sort({ createdAt: -1 })
       .populate("product", "name slug images categorySlug categorySlugs categories");
-    res.json({ reviews });
+    res.json({
+      reviews: sortReviewsByDate(reviews).map((r) => {
+        const obj = r.toObject ? r.toObject() : r;
+        return {
+          ...obj,
+          date: formatReviewDate(obj),
+        };
+      }),
+    });
   }),
 );
 
@@ -227,9 +253,7 @@ router.post(
     const product = await Product.findById(productId);
     if (!product) return res.status(404).json({ message: "Product not found" });
 
-    const reviewDate = date || createdAt;
-    const created = parseReviewDate(reviewDate);
-
+    const reviewDate = parseReviewDate(date || createdAt);
     const review = await Review.create({
       product: productId,
       author: author?.trim() || defaultReviewerName(),
@@ -241,8 +265,17 @@ router.post(
       videos: videos || [],
       isApproved: isApproved !== false,
       createdByAdmin: true,
-      ...(created ? { createdAt: created } : {}),
+      ...(reviewDate ? { date: reviewDate, createdAt: reviewDate } : { date: new Date() }),
     });
+    // Ensure createdAt sticks (mongoose timestamps can ignore overrides on create in some versions).
+    if (reviewDate) {
+      await Review.collection.updateOne(
+        { _id: review._id },
+        { $set: { date: reviewDate, createdAt: reviewDate } },
+      );
+      review.date = reviewDate;
+      review.createdAt = reviewDate;
+    }
     const stats = await recalcProductRating(productId);
     res.status(201).json({ review, ...stats });
   }),
@@ -263,26 +296,34 @@ router.put(
     delete payload.__v;
     delete payload.updatedAt;
 
-    // Admin can override the review date shown on the storefront.
+    // Admin-editable display date (also syncs createdAt for sorting).
+    let reviewDate = null;
     if (payload.date !== undefined || payload.createdAt !== undefined) {
       const raw = payload.date ?? payload.createdAt;
-      delete payload.date;
-      const parsed = parseReviewDate(raw);
-      if (parsed) payload.createdAt = parsed;
-      else delete payload.createdAt;
-    } else {
-      delete payload.createdAt;
+      reviewDate = parseReviewDate(raw);
     }
+    delete payload.date;
+    delete payload.createdAt;
 
     const review = await Review.findById(req.params.id);
     if (!review) return res.status(404).json({ message: "Review not found" });
 
     Object.assign(review, payload);
-    if (payload.createdAt) {
-      review.createdAt = payload.createdAt;
-      review.markModified("createdAt");
+    if (reviewDate) {
+      review.date = reviewDate;
     }
     await review.save();
+
+    if (reviewDate) {
+      // Native update — mongoose timestamps often refuse to change createdAt via save().
+      await Review.collection.updateOne(
+        { _id: review._id },
+        { $set: { date: reviewDate, createdAt: reviewDate } },
+      );
+      review.date = reviewDate;
+      review.createdAt = reviewDate;
+    }
+
     await recalcProductRating(review.product);
     res.json({ review });
   }),
