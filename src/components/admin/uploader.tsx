@@ -95,12 +95,26 @@ export function Uploader({
   enableEdit,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const dragDepth = useRef(0);
+  const dropRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [session, setSession] = useState<EditSession | null>(null);
-  const [dragging, setDragging] = useState(false);
+  const [fileDragOver, setFileDragOver] = useState(false);
   const allowEdit = enableEdit ?? looksLikeImageAccept(accept);
+
+  function clearFileDrag() {
+    setFileDragOver(false);
+  }
+
+  useEffect(() => {
+    const end = () => clearFileDrag();
+    window.addEventListener("dragend", end);
+    window.addEventListener("drop", end);
+    return () => {
+      window.removeEventListener("dragend", end);
+      window.removeEventListener("drop", end);
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -191,35 +205,42 @@ export function Uploader({
     ingestFiles(Array.from(files));
   }
 
+  function isFileDrag(e: DragEvent) {
+    return Array.from(e.dataTransfer?.types || []).includes("Files");
+  }
+
   function onDragEnter(e: DragEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (busy) return;
-    dragDepth.current += 1;
-    if (e.dataTransfer?.types?.includes("Files")) setDragging(true);
+    if (busy || !isFileDrag(e)) return;
+    setFileDragOver(true);
   }
 
   function onDragLeave(e: DragEvent) {
     e.preventDefault();
     e.stopPropagation();
-    dragDepth.current = Math.max(0, dragDepth.current - 1);
-    if (dragDepth.current === 0) setDragging(false);
+    const next = e.relatedTarget as Node | null;
+    if (next && dropRef.current?.contains(next)) return;
+    clearFileDrag();
   }
 
   function onDragOver(e: DragEvent) {
     e.preventDefault();
     e.stopPropagation();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = busy ? "none" : "copy";
+    if (!isFileDrag(e) || busy) {
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "none";
+      return;
+    }
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+    setFileDragOver(true);
   }
 
   function onDrop(e: DragEvent) {
     e.preventDefault();
     e.stopPropagation();
-    dragDepth.current = 0;
-    setDragging(false);
+    clearFileDrag();
     if (busy) return;
-    const files = Array.from(e.dataTransfer?.files || []);
-    ingestFiles(files);
+    ingestFiles(Array.from(e.dataTransfer?.files || []));
   }
 
   function finishQueueUpload(files: File[]) {
@@ -361,19 +382,20 @@ export function Uploader({
       )}
 
       <div
+        ref={dropRef}
         onDragEnter={onDragEnter}
         onDragLeave={onDragLeave}
         onDragOver={onDragOver}
         onDrop={onDrop}
         className={cn(
           "relative border border-dashed p-3 transition-colors",
-          dragging
+          fileDragOver
             ? "border-foreground bg-mist/80"
             : "border-border bg-transparent hover:border-foreground/40",
           busy && "pointer-events-none opacity-40",
         )}
       >
-        {dragging ? (
+        {fileDragOver ? (
           <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/90">
             <Upload width={22} height={22} />
             <p className="font-mono text-[11px] uppercase tracking-[0.16em]">

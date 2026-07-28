@@ -480,6 +480,29 @@ function AdminProducts() {
                 <MediaGalleryField
                   value={form.gallery}
                   onChange={(gallery) => setForm((f) => ({ ...f, gallery }))}
+                  onPersist={async (gallery) => {
+                    if (!editing || editing === "new") return;
+                    try {
+                      await adminApi.saveProduct(
+                        { gallery, ...splitGallery(gallery) },
+                        editing._id,
+                      );
+                      toast.success("Media saved");
+                      qc.invalidateQueries({ queryKey: ["admin", "products"] });
+                      void refreshCatalog();
+                      setEditing((cur) =>
+                        cur && cur !== "new"
+                          ? {
+                              ...cur,
+                              gallery,
+                              ...splitGallery(gallery),
+                            }
+                          : cur,
+                      );
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : "Failed to save media");
+                    }
+                  }}
                 />
               </Field>
 

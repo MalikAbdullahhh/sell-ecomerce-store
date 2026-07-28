@@ -14,6 +14,8 @@ export type GalleryItem = {
 type Props = {
   value?: GalleryItem[];
   onChange: (items: GalleryItem[]) => void;
+  /** Called (debounced) after gallery changes — use to auto-save existing products. */
+  onPersist?: (items: GalleryItem[]) => void | Promise<void>;
   className?: string;
   enableEdit?: boolean;
 };
@@ -82,24 +84,58 @@ export function splitGallery(items: GalleryItem[]) {
 export function MediaGalleryField({
   value = [],
   onChange,
+  onPersist,
   className,
   enableEdit = true,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const dragDepth = useRef(0);
+  const dropRef = useRef<HTMLDivElement>(null);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [session, setSession] = useState<EditSession | null>(null);
-  const [dragging, setDragging] = useState(false);
+  const [fileDragOver, setFileDragOver] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const valueRef = useRef(value);
   valueRef.current = value;
+  const persistTimer = useRef<number | null>(null);
+  const onPersistRef = useRef(onPersist);
+  onPersistRef.current = onPersist;
+
+  function clearFileDrag() {
+    setFileDragOver(false);
+  }
+
+  function schedulePersist(next: GalleryItem[]) {
+    if (!onPersistRef.current) return;
+    if (persistTimer.current) window.clearTimeout(persistTimer.current);
+    persistTimer.current = window.setTimeout(() => {
+      void onPersistRef.current?.(next);
+    }, 400);
+  }
 
   function commit(next: GalleryItem[]) {
     valueRef.current = next;
     onChange(next);
+    schedulePersist(next);
   }
+
+  useEffect(() => {
+    return () => {
+      if (persistTimer.current) window.clearTimeout(persistTimer.current);
+    };
+  }, []);
+
+  // Escape hatch: drag cancelled outside the window / browser chrome.
+  useEffect(() => {
+    const end = () => clearFileDrag();
+    window.addEventListener("dragend", end);
+    window.addEventListener("drop", end);
+    return () => {
+      window.removeEventListener("dragend", end);
+      window.removeEventListener("drop", end);
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -109,6 +145,45 @@ export function MediaGalleryField({
       }
     };
   }, [session]);
+
+  function isFileDrag(e: DragEvent) {
+    return Array.from(e.dataTransfer?.types || []).includes("Files");
+  }
+
+  function onDragEnter(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (busy || dragIndex !== null) return;
+    if (!isFileDrag(e)) return;
+    setFileDragOver(true);
+  }
+
+  function onDragLeave(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    const next = e.relatedTarget as Node | null;
+    if (next && dropRef.current?.contains(next)) return;
+    clearFileDrag();
+  }
+
+  function onDragOver(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isFileDrag(e) || busy || dragIndex !== null) {
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "none";
+      return;
+    }
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+    setFileDragOver(true);
+  }
+
+  function onDrop(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    clearFileDrag();
+    if (busy || dragIndex !== null) return;
+    ingestFiles(Array.from(e.dataTransfer?.files || []));
+  }
 
   async function uploadFiles(files: File[]) {
     if (!files.length) return [] as { url: string; type: "image" | "video" }[];
@@ -207,36 +282,6 @@ export function MediaGalleryField({
       return;
     }
     startQueue(list);
-  }
-
-  function onDragEnter(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (busy) return;
-    dragDepth.current += 1;
-    if (e.dataTransfer?.types?.includes("Files")) setDragging(true);
-  }
-
-  function onDragLeave(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    dragDepth.current = Math.max(0, dragDepth.current - 1);
-    if (dragDepth.current === 0) setDragging(false);
-  }
-
-  function onDragOver(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = busy ? "none" : "copy";
-  }
-
-  function onDrop(e: DragEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    dragDepth.current = 0;
-    setDragging(false);
-    if (busy) return;
-    ingestFiles(Array.from(e.dataTransfer?.files || []));
   }
 
   async function applyQueueEdit(file: File) {
@@ -392,6 +437,7 @@ export function MediaGalleryField({
   function onRowDragEnd() {
     setDragIndex(null);
     setOverIndex(null);
+    clearFileDrag();
   }
 
   return (
@@ -411,17 +457,18 @@ export function MediaGalleryField({
       )}
 
       <div
+        ref={dropRef}
         onDragEnter={onDragEnter}
         onDragLeave={onDragLeave}
         onDragOver={onDragOver}
         onDrop={onDrop}
         className={cn(
           "relative border border-dashed p-3 transition-colors",
-          dragging ? "border-foreground bg-mist/80" : "border-border hover:border-foreground/40",
+          fileDragOver ? "border-foreground bg-mist/80" : "border-border hover:border-foreground/40",
           busy && "pointer-events-none opacity-40",
         )}
       >
-        {dragging ? (
+        {fileDragOver ? (
           <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/90">
             <Upload width={22} height={22} />
             <p className="font-mono text-[11px] uppercase tracking-[0.16em]">
