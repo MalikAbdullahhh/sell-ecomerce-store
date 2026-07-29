@@ -6,11 +6,10 @@ import "lenis/dist/lenis.css";
 
 const options = {
   autoRaf: true,
-  lerp: 0.11,
-  duration: 0.9,
+  lerp: 0.14,
   smoothWheel: true,
   anchors: true,
-  touchMultiplier: 1.4,
+  touchMultiplier: 1.0,
   syncTouch: false,
   wheelMultiplier: 1.0,
 } as const;

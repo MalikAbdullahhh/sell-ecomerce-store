@@ -162,13 +162,23 @@ function ProductPage() {
   }, [product]);
 
   useEffect(() => {
-    const onScroll = () => {
-      const el = galleryRef.current;
-      if (!el) return;
-      setShowSticky(el.getBoundingClientRect().bottom < 80);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    const el = galleryRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // Show sticky bar when the bottom of the product gallery is scrolled past (above 80px from top)
+        const scrolledPast = !entry.isIntersecting && entry.boundingClientRect.bottom < 80;
+        setShowSticky(scrolledPast);
+      },
+      {
+        rootMargin: "-80px 0px 0px 0px",
+        threshold: 0,
+      }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
