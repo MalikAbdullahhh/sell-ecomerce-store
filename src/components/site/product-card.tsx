@@ -25,10 +25,10 @@ export function ProductCard({ product, className }: { product: Product; classNam
 
   return (
     <motion.article
-      initial={reduce ? { opacity: 0 } : { opacity: 0, filter: "blur(10px)", scale: 1.03 }}
-      whileInView={reduce ? { opacity: 1 } : { opacity: 1, filter: "blur(0px)", scale: 1 }}
+      initial={{ opacity: 0, y: reduce ? 0 : 14 }}
+      whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: reduce ? 0.2 : 0.7, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: reduce ? 0.2 : 0.55, ease: [0.16, 1, 0.3, 1] }}
       onHoverStart={() => setHover(true)}
       onHoverEnd={() => setHover(false)}
       className={cn("group relative flex flex-col", className)}

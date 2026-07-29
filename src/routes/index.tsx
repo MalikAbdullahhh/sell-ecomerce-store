@@ -85,10 +85,10 @@ function AggregateRating({
             {eyebrow}
           </p>
           <motion.p
-            initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.85, filter: "blur(12px)" }}
-            whileInView={reduce ? { opacity: 1 } : { opacity: 1, scale: 1, filter: "blur(0px)" }}
+            initial={{ opacity: 0, scale: reduce ? 1 : 0.88 }}
+            whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: reduce ? 0.2 : 0.9, ease: [0.16, 1, 0.3, 1] }}
             className="premium-text mt-3 font-display text-[24vw] leading-[0.85] md:text-[11rem]"
           >
             {rating.toFixed(1)}

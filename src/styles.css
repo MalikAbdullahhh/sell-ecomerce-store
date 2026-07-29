@@ -260,7 +260,6 @@
   animation: premium-blob-float 11s ease-in-out infinite;
 }
 
-/* Floating premium testimonial cards */
 .testimonial-card {
   position: relative;
   isolation: isolate;
@@ -269,12 +268,10 @@
   border: 1px solid color-mix(in oklab, var(--color-border) 50%, transparent);
   background: linear-gradient(
     160deg,
-    color-mix(in oklab, white 55%, transparent) 0%,
-    color-mix(in oklab, var(--color-card) 70%, transparent) 48%,
-    color-mix(in oklab, var(--color-card) 82%, transparent) 100%
+    color-mix(in oklab, var(--color-card) 85%, white) 0%,
+    var(--color-card) 48%,
+    var(--color-card) 100%
   );
-  backdrop-filter: blur(18px) saturate(1.15);
-  -webkit-backdrop-filter: blur(18px) saturate(1.15);
   box-shadow:
     0 22px 50px color-mix(in oklab, black 6%, transparent),
     0 4px 14px color-mix(in oklab, black 3%, transparent),
@@ -288,9 +285,9 @@
 .dark .testimonial-card {
   background: linear-gradient(
     160deg,
-    color-mix(in oklab, white 6%, transparent) 0%,
-    color-mix(in oklab, var(--color-card) 68%, transparent) 50%,
-    color-mix(in oklab, var(--color-card) 80%, transparent) 100%
+    color-mix(in oklab, var(--color-card) 92%, white) 0%,
+    color-mix(in oklab, var(--color-card) 96%, white) 50%,
+    var(--color-card) 100%
   );
   border-color: color-mix(in oklab, white 10%, transparent);
   box-shadow:
@@ -484,13 +481,6 @@
     opacity: 0;
     pointer-events: none;
     z-index: 2;
-    will-change: transform, opacity;
-    animation: glass-diagonal-auto 8.5s cubic-bezier(0.4, 0.05, 0.2, 1) infinite;
-  }
-
-  /* Product cards: shorter idle — restarts sooner */
-  .product-card-glass::after {
-    animation: glass-diagonal-auto-card 4.8s cubic-bezier(0.45, 0.05, 0.25, 1) infinite;
   }
 
   /* Stronger white flash on dark / filled CTAs + product cards */
@@ -634,9 +624,6 @@ button.glass-sweep.border-foreground:not(.bg-foreground)::after {
   opacity: 0;
   pointer-events: none;
   z-index: 2;
-  will-change: transform, opacity;
-  display: block !important;
-  animation: glass-diagonal-auto 8.5s cubic-bezier(0.4, 0.05, 0.2, 1) infinite !important;
 }
 
 /* White glass on dark CTAs (Add to cart, etc.) */

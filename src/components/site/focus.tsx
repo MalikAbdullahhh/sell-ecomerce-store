@@ -12,10 +12,10 @@ export function FocusIn({
   const reduce = useReducedMotion();
   return (
     <motion.div
-      initial={reduce ? { opacity: 0 } : { opacity: 0, filter: "blur(14px)", scale: 1.05, y: 18 }}
-      whileInView={reduce ? { opacity: 1 } : { opacity: 1, filter: "blur(0px)", scale: 1, y: 0 }}
+      initial={{ opacity: 0, y: reduce ? 0 : 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: reduce ? 0.25 : 0.9, delay, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: reduce ? 0.2 : 0.65, delay, ease: [0.16, 1, 0.3, 1] }}
       className={className}
       {...rest}
     >
