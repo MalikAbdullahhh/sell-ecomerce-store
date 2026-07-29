@@ -15,7 +15,7 @@ import {
   X,
   Youtube,
 } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode, lazy, Suspense } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePageContent } from "@/lib/page-content";
 import { DEFAULT_TAGLINE } from "@/lib/brand";
 import { mediaUrl } from "@/lib/api";
@@ -28,9 +28,7 @@ import { AnnouncementMarquee } from "./announcement-marquee";
 import { SiteBootLoader } from "./site-boot-loader";
 import { SmoothScroll } from "./smooth-scroll";
 
-const AmbientFallout = lazy(() =>
-  import("./ambient-fallout").then((m) => ({ default: m.AmbientFallout })),
-);
+
 
 const NAV = [
   { to: "/shop", label: "Shop" },
@@ -505,34 +503,8 @@ function PageTransition({ children }: { children: ReactNode }) {
 
 export function SiteChrome({ children }: { children: React.ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
-  const [showFallout, setShowFallout] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isAdmin = pathname.startsWith("/admin") || pathname === "/myadminlogin";
-
-  useEffect(() => {
-    if (isAdmin) return;
-    let cancelled = false;
-    let idleId: number | undefined;
-    let timeoutId: number | undefined;
-
-    const enable = () => {
-      if (!cancelled) setShowFallout(true);
-    };
-
-    if (typeof window.requestIdleCallback === "function") {
-      idleId = window.requestIdleCallback(enable, { timeout: 1800 });
-    } else {
-      timeoutId = window.setTimeout(enable, 900);
-    }
-
-    return () => {
-      cancelled = true;
-      if (idleId != null && typeof window.cancelIdleCallback === "function") {
-        window.cancelIdleCallback(idleId);
-      }
-      if (timeoutId != null) window.clearTimeout(timeoutId);
-    };
-  }, [isAdmin]);
 
   if (isAdmin) {
     return <>{children}</>;
@@ -542,11 +514,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
     <SmoothScroll>
       <SiteBootLoader />
       <div className="relative flex min-h-screen flex-col">
-        {showFallout ? (
-          <Suspense fallback={null}>
-            <AmbientFallout />
-          </Suspense>
-        ) : null}
+
         <div className="relative z-[2] flex min-h-screen flex-col">
           <AnnouncementMarquee />
           <TopBar onSearch={() => setSearchOpen(true)} />
