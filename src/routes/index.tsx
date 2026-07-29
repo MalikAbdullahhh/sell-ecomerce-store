@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion, useReducedMotion } from "framer-motion";
-import { Instagram, Star } from "lucide-react";
+import { Instagram } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Brackets, Eyebrow, FocusIn, Stars, Tag } from "@/components/site/focus";
 import { CmsIcon } from "@/components/site/cms-icon";
@@ -74,48 +74,9 @@ function AggregateRating({
   eyebrow: string;
   reviewsLabel: string;
 }) {
-  const reduce = useReducedMotion();
-  // Decorative stars floating in the background, deterministic layout.
-  const floaters = [
-    { left: "8%", top: "22%", size: 26, delay: 0 },
-    { left: "18%", top: "68%", size: 18, delay: 0.6 },
-    { left: "30%", top: "18%", size: 14, delay: 1.2 },
-    { left: "72%", top: "24%", size: 22, delay: 0.3 },
-    { left: "84%", top: "62%", size: 28, delay: 0.9 },
-    { left: "62%", top: "72%", size: 16, delay: 1.5 },
-    { left: "50%", top: "12%", size: 12, delay: 0.45 },
-  ];
 
   return (
     <section className="relative overflow-hidden bg-background text-foreground">
-      {/* Animated gradient glow */}
-      {!reduce && (
-        <>
-          <motion.div
-            aria-hidden
-            className="pointer-events-none absolute left-1/2 top-1/2 h-[120%] w-[70%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/20 blur-3xl"
-            animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.9, 0.5] }}
-            transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-          />
-          {floaters.map((f, i) => (
-            <motion.div
-              key={i}
-              aria-hidden
-              className="pointer-events-none absolute text-primary/25"
-              style={{ left: f.left, top: f.top }}
-              animate={{ y: [0, -14, 0], rotate: [0, 12, 0], opacity: [0.3, 0.7, 0.3] }}
-              transition={{
-                duration: 5 + (i % 3),
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: f.delay,
-              }}
-            >
-              <Star width={f.size} height={f.size} fill="currentColor" strokeWidth={0} />
-            </motion.div>
-          ))}
-        </>
-      )}
 
       <div className="relative mx-auto max-w-[1440px] px-4 py-20 text-center md:px-10 md:py-28">
         <FocusIn>

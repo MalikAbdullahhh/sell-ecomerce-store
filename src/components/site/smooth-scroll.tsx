@@ -6,13 +6,13 @@ import "lenis/dist/lenis.css";
 
 const options = {
   autoRaf: true,
-  lerp: 0.075,
-  duration: 1.15,
+  lerp: 0.11,
+  duration: 0.9,
   smoothWheel: true,
   anchors: true,
   touchMultiplier: 1.4,
   syncTouch: false,
-  wheelMultiplier: 0.95,
+  wheelMultiplier: 1.0,
 } as const;
 
 function forceScrollTop(
