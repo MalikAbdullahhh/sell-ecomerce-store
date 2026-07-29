@@ -149,14 +149,17 @@ export function TestimonialsMarquee({
 
   return (
     <section className="testimonial-section relative overflow-hidden bg-transparent py-14 md:py-20">
-      <div className="pointer-events-none absolute inset-x-0 top-1/2 h-[55%] -translate-y-1/2 bg-[radial-gradient(ellipse_at_center,color-mix(in_oklab,var(--primary)_7%,transparent),transparent_70%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-1/2 h-[55%] -translate-y-1/2 bg-[radial-gradient(ellipse_at_center,var(--primary)/0.06,transparent_70%)]" />
       <div className="relative mx-auto max-w-[1440px] px-4 md:px-10">
         <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
           {eyebrow || "Verified purchasers"}
         </p>
         <h2 className="mt-2 text-3xl md:text-4xl">{title || "What owners report"}</h2>
       </div>
-      <div className="relative mt-10 space-y-2">
+      <div className="relative mt-10 space-y-2 overflow-hidden">
+        {/* Hardware-accelerated edge fade overlays (0 GPU mask overhead) */}
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-12 bg-gradient-to-r from-background to-transparent md:w-28" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-12 bg-gradient-to-l from-background to-transparent md:w-28" />
         <MarqueeRow items={a.length ? a : items} />
         <MarqueeRow items={b.length ? b : items} reverse />
       </div>

@@ -366,27 +366,29 @@ function Index() {
       {ugc.visible !== false && (
         <Section invert>
           <SectionHead eyebrow={ugc.eyebrow} title={ugc.title} />
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-            {(settings?.instagramShots || []).map((src, i) => (
-              <FocusIn
-                key={src}
-                delay={i * 0.03}
-                className="crosshair group relative aspect-square overflow-hidden"
-              >
-                <img
-                  src={mediaUrl(src)}
-                  alt="Customer photo"
-                  loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-                <Instagram
-                  width={15}
-                  height={15}
-                  className="absolute right-2 top-2 text-paper opacity-0 transition-opacity group-hover:opacity-100"
-                />
-              </FocusIn>
-            ))}
-          </div>
+          <FocusIn>
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+              {(settings?.instagramShots || []).map((src) => (
+                <div
+                  key={src}
+                  className="crosshair group relative aspect-square overflow-hidden bg-neutral-900"
+                >
+                  <img
+                    src={mediaUrl(src)}
+                    alt="Customer photo"
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <Instagram
+                    width={15}
+                    height={15}
+                    className="absolute right-2 top-2 text-paper opacity-0 transition-opacity group-hover:opacity-100"
+                  />
+                </div>
+              ))}
+            </div>
+          </FocusIn>
         </Section>
       )}
 

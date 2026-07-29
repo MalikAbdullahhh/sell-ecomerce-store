@@ -36,7 +36,7 @@ export function ProductCard({ product, className }: { product: Product; classNam
       <Link
         to="/product/$slug"
         params={{ slug: product.slug }}
-        preload="intent"
+        preload={false}
         onClick={() => primeProductNav(product)}
         onPointerDown={() => primeProductNav(product)}
         className="product-card-glass premium-surface premium-glow crosshair relative block aspect-square overflow-hidden border border-border"
