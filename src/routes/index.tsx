@@ -222,12 +222,14 @@ function Index() {
                 <Link
                   to="/shop"
                   search={{ category: c.slug }}
+                  preload={false}
                   className="crosshair group relative block aspect-[4/3] overflow-hidden border border-white/20"
                 >
                   <img
                     src={c.image}
                     alt={c.name}
                     loading="lazy"
+                    decoding="async"
                     className="h-full w-full object-cover transition-transform duration-[900ms] group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-black/50 transition-colors group-hover:bg-black/40" />
@@ -277,6 +279,7 @@ function Index() {
                   src={mediaUrl(story.image)}
                   alt={story.title || "Brand story"}
                   loading="lazy"
+                  decoding="async"
                   className="h-full w-full object-cover"
                 />
                 <Brackets size={26} className="text-paper" />
