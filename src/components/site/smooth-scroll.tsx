@@ -6,7 +6,8 @@ import "lenis/dist/lenis.css";
 
 const options = {
   autoRaf: true,
-  lerp: 0.14,
+  duration: 1.2,
+  easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
   smoothWheel: true,
   anchors: true,
   touchMultiplier: 1.0,
