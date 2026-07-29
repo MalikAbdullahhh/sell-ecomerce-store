@@ -12,7 +12,8 @@ import { cmsApi, mediaUrl, newsletterApi, type TestimonialDoc } from "@/lib/api"
 import { usePageContent } from "@/lib/page-content";
 import { fillTokens } from "@/lib/page-schema";
 import { TestimonialsMarquee } from "@/components/site/testimonials-marquee";
-import { HomePageSkeleton } from "@/components/site/skeletons";
+import { HomePageSkeleton, Skeleton } from "@/components/site/skeletons";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
@@ -102,6 +103,60 @@ function AggregateRating({
         </FocusIn>
       </div>
     </section>
+  );
+}
+
+function CategoryCard({
+  c,
+}: {
+  c: { slug: string; name: string; blurb: string; image: string };
+}) {
+  const [imgError, setImgError] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  const hasImage = Boolean(c.image) && !imgError;
+
+  return (
+    <Link
+      to="/shop"
+      search={{ category: c.slug }}
+      preload={false}
+      className="crosshair group relative block aspect-[4/3] overflow-hidden border border-white/20 bg-neutral-900/90"
+    >
+      {hasImage ? (
+        <>
+          {!loaded && (
+            <Skeleton className="absolute inset-0 z-0 h-full w-full rounded-none bg-neutral-800" />
+          )}
+          <img
+            src={c.image}
+            alt={c.name}
+            loading="lazy"
+            decoding="async"
+            onLoad={() => setLoaded(true)}
+            onError={() => setImgError(true)}
+            className={cn(
+              "h-full w-full object-cover transition-transform duration-500 group-hover:scale-105",
+              loaded ? "opacity-100" : "opacity-0"
+            )}
+          />
+          <div className="absolute inset-0 bg-black/40 transition-colors group-hover:bg-black/25" />
+        </>
+      ) : (
+        <div className="absolute inset-0 flex flex-col justify-between p-4 bg-gradient-to-br from-neutral-800/80 via-neutral-900/90 to-neutral-950/95">
+          <Skeleton className="h-full w-full rounded-none bg-white/5" />
+        </div>
+      )}
+
+      <div className="absolute bottom-3 left-3 right-3 z-10">
+        <p className="text-lg font-medium text-paper">{c.name}</p>
+        {c.blurb ? (
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-paper/75">
+            {c.blurb}
+          </p>
+        ) : null}
+      </div>
+    </Link>
   );
 }
 
@@ -216,33 +271,13 @@ function Index() {
       {categoriesBand.visible !== false && (
         <Section invert>
           <SectionHead eyebrow={categoriesBand.eyebrow} title={categoriesBand.title} />
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-            {cats.map((c) => (
-              <FocusIn key={c.slug}>
-                <Link
-                  to="/shop"
-                  search={{ category: c.slug }}
-                  preload={false}
-                  className="crosshair group relative block aspect-[4/3] overflow-hidden border border-white/20"
-                >
-                  <img
-                    src={c.image}
-                    alt={c.name}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-full w-full object-cover transition-transform duration-[900ms] group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-black/50 transition-colors group-hover:bg-black/40" />
-                  <div className="absolute bottom-3 left-3 right-3">
-                    <p className="text-lg text-paper">{c.name}</p>
-                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-paper/70">
-                      {c.blurb}
-                    </p>
-                  </div>
-                </Link>
-              </FocusIn>
-            ))}
-          </div>
+          <FocusIn>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              {cats.map((c) => (
+                <CategoryCard key={c.slug} c={c} />
+              ))}
+            </div>
+          </FocusIn>
         </Section>
       )}
 
