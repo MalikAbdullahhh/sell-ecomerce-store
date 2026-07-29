@@ -55,23 +55,11 @@ function ScrollToTopWindow() {
   return null;
 }
 
-/** Premium inertia scrolling for the storefront (skipped when reduced motion). */
 export function SmoothScroll({ children }: { children: ReactNode }) {
-  const reduce = useReducedMotion();
-
-  if (reduce) {
-    return (
-      <>
-        <ScrollToTopWindow />
-        {children}
-      </>
-    );
-  }
-
   return (
-    <ReactLenis root options={options}>
-      <ScrollToTopLenis />
+    <>
+      <ScrollToTopWindow />
       {children}
-    </ReactLenis>
+    </>
   );
 }
