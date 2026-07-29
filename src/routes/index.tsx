@@ -74,6 +74,7 @@ function AggregateRating({
   eyebrow: string;
   reviewsLabel: string;
 }) {
+  const reduce = useReducedMotion();
 
   return (
     <section className="relative overflow-hidden bg-background text-foreground">
