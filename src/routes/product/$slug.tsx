@@ -47,7 +47,6 @@ import { catalogApi, mediaThumbUrl, mediaUrl, reviewApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { consumePrimedProduct } from "@/lib/product-nav-cache";
 import { cn } from "@/lib/utils";
-import { useLenis } from "lenis/react";
 
 const spring = { type: "spring" as const, stiffness: 420, damping: 28, mass: 0.7 };
 export const Route = createFileRoute("/product/$slug")({
@@ -856,28 +855,30 @@ function ProductPage() {
 
         {/* Detail sections — empty admin fields are omitted */}
         <div className="mt-12 md:mt-20" id="reviews">
-          {/* Mobile accordion */}
+          {/* Mobile: reviews shown directly on the page, no accordion */}
+          <div className="md:hidden border-t border-border pt-6">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              Ratings &amp; reviews ({product.reviewCount})
+            </p>
+            <div className="mt-4">
+              <ReviewsPanel
+                product={product}
+                breakdown={breakdown}
+                userId={user?.id}
+                onWrite={openReviewComposer}
+                onOpenMedia={openReviewLightbox}
+                onEdit={editReview}
+                onDelete={deleteReview}
+              />
+            </div>
+          </div>
+
+          {/* Mobile accordion — Description / Specs / Shipping only */}
           <Accordion
             type="multiple"
-            defaultValue={["reviews"]}
-            className="w-full border-t border-border md:hidden"
+            defaultValue={[]}
+            className="w-full border-t border-border mt-8 md:hidden"
           >
-            <AccordionItem value="reviews" className="border-border">
-              <AccordionTrigger className="py-4 font-mono text-[12px] uppercase tracking-[0.16em] hover:no-underline">
-                Reviews ({product.reviewCount})
-              </AccordionTrigger>
-              <AccordionContent className="pb-6">
-                <ReviewsPanel
-                  product={product}
-                  breakdown={breakdown}
-                  userId={user?.id}
-                  onWrite={openReviewComposer}
-                  onOpenMedia={openReviewLightbox}
-                  onEdit={editReview}
-                  onDelete={deleteReview}
-                />
-              </AccordionContent>
-            </AccordionItem>
 
             {hasDescription ? (
               <AccordionItem value="description" className="border-border">
@@ -1361,40 +1362,6 @@ function ProductPage() {
   );
 }
 
-/**
- * When the reviews feed is at its scroll boundary (top/bottom) and the user
- * keeps scrolling/wheeling, forward the delta to the Lenis main-page scroll
- * so the page continues moving naturally instead of getting stuck.
- */
-function useBoundaryScroll(ref: React.RefObject<HTMLDivElement | null>) {
-  const lenis = useLenis();
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-
-    const handler = (e: WheelEvent) => {
-      const { scrollTop, scrollHeight, clientHeight } = el;
-      const atTop = scrollTop <= 0 && e.deltaY < 0;
-      const atBottom = scrollTop + clientHeight >= scrollHeight - 1 && e.deltaY > 0;
-
-      if (atTop || atBottom) {
-        // Don't let the div try to (over-)scroll further.
-        e.preventDefault();
-        // Hand control to Lenis (or plain window scroll as fallback).
-        if (lenis) {
-          lenis.scrollTo((lenis as any).scroll + e.deltaY * 1.2, { immediate: false });
-        } else {
-          window.scrollBy({ top: e.deltaY, behavior: "smooth" });
-        }
-      }
-    };
-
-    el.addEventListener("wheel", handler, { passive: false });
-    return () => el.removeEventListener("wheel", handler);
-  }, [ref, lenis]);
-}
-
 function ReviewsPanel({
   product,
   breakdown,
@@ -1413,7 +1380,6 @@ function ReviewsPanel({
   onDelete: (r: Review) => void | Promise<void>;
 }) {
   const manyReviews = product.reviews.length > 2;
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   return (
     <>
@@ -1522,7 +1488,6 @@ function ReviewsPanel({
 
         {/* Scrollable review feed */}
         <div
-          ref={scrollRef}
           data-lenis-prevent
           className={cn(
             "min-h-0 flex-1 overflow-y-auto overscroll-contain",
