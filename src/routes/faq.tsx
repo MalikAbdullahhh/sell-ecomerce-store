@@ -8,7 +8,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { PageSkeleton } from "@/components/site/skeletons";
+import { FaqPageSkeleton } from "@/components/site/skeletons";
 import { cmsApi } from "@/lib/api";
 import { usePageContent } from "@/lib/page-content";
 
@@ -66,7 +66,7 @@ function Faq() {
       .filter((g) => g.items.length);
   }, [q, source]);
 
-  if (loading) return <PageSkeleton rows={3} />;
+  if (loading) return <FaqPageSkeleton />;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 md:py-20">

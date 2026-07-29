@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Eyebrow } from "@/components/site/focus";
-import { PageSkeleton } from "@/components/site/skeletons";
+import { LegalPageSkeleton } from "@/components/site/skeletons";
 import { cmsApi, type LegalDocApi } from "@/lib/api";
 
 export const Route = createFileRoute("/legal/$slug")({
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/legal/$slug")({
       throw notFound();
     }
   },
-  pendingComponent: () => <PageSkeleton rows={2} />,
+  pendingComponent: () => <LegalPageSkeleton />,
   head: ({ loaderData }) => {
     if (!loaderData) {
       return {
@@ -58,7 +58,13 @@ function LegalPage() {
 
   return (
     <div className="mx-auto grid max-w-[1100px] gap-10 px-4 py-12 md:grid-cols-[220px_minmax(0,1fr)] md:py-20">
-      {navLoading ? <PageSkeleton rows={1} /> : <LegalNav items={nav} />}
+      {navLoading ? (
+        <aside className="hidden space-y-2 md:block">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-9 w-full animate-pulse rounded-sm bg-muted" />
+          ))}
+        </aside>
+      ) : <LegalNav items={nav} />}
       <article>
         {updated && <Eyebrow>Updated {updated}</Eyebrow>}
         <h1 className="mt-2 text-4xl md:text-5xl">{doc.title}</h1>

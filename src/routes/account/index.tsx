@@ -3,7 +3,7 @@ import { Camera, MessageCircle, Phone, User as UserIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Eyebrow } from "@/components/site/focus";
-import { PageSkeleton } from "@/components/site/skeletons";
+import { AccountSkeleton } from "@/components/site/skeletons";
 import { authApi, mediaUrl, type UserAddress } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useStore } from "@/lib/store";
@@ -58,7 +58,7 @@ function Account() {
     });
   }, [user]);
 
-  if (loading) return <PageSkeleton rows={2} />;
+  if (loading) return <AccountSkeleton />;
 
   if (user) {
     const contact = settings?.contact;

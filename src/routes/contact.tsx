@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { CmsIcon } from "@/components/site/cms-icon";
 import { Eyebrow } from "@/components/site/focus";
-import { PageSkeleton } from "@/components/site/skeletons";
+import { ContactPageSkeleton } from "@/components/site/skeletons";
 import { contactApi } from "@/lib/api";
 import { usePageContent } from "@/lib/page-content";
 import { cn } from "@/lib/utils";
@@ -81,7 +81,7 @@ function Contact() {
   const hasPhone = Boolean(phoneTrim);
   const contactMissing = touched && !hasEmail && !hasPhone;
 
-  if (!loaded) return <PageSkeleton rows={2} />;
+  if (!loaded) return <ContactPageSkeleton />;
 
   const detailItems = (cards.items || []).filter((i) => i.label?.trim() || i.value?.trim());
 

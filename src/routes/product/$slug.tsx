@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/accordion";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { PageSkeleton } from "@/components/site/skeletons";
+import { ProductDetailSkeleton } from "@/components/site/skeletons";
 import type { Product, Review } from "@/data/catalog";
 import { GIFT_FEE, apiProductToProduct, money, useBrand, useStore } from "@/lib/store";
 import { catalogApi, mediaThumbUrl, mediaUrl, reviewApi } from "@/lib/api";
@@ -64,7 +64,7 @@ export const Route = createFileRoute("/product/$slug")({
   },
   // Paint destination immediately — never keep the previous page (home) on screen.
   pendingMs: 0,
-  pendingComponent: () => <PageSkeleton rows={6} />,
+  pendingComponent: () => <ProductDetailSkeleton />,
   head: ({ loaderData }) => {
     if (!loaderData) {
       return {

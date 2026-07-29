@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Eyebrow, FocusIn } from "@/components/site/focus";
-import { PageSkeleton } from "@/components/site/skeletons";
+import { JournalIndexSkeleton } from "@/components/site/skeletons";
 import { catalogApi, mediaUrl } from "@/lib/api";
 
 export const Route = createFileRoute("/journal/")({
@@ -29,7 +29,7 @@ function JournalIndex() {
   });
   const posts = data?.posts || [];
 
-  if (isLoading) return <PageSkeleton />;
+  if (isLoading) return <JournalIndexSkeleton />;
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-12 md:px-10 md:py-20">

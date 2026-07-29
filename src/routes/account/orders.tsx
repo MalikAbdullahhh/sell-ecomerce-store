@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { MessageCircle, Phone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Eyebrow } from "@/components/site/focus";
-import { PageSkeleton } from "@/components/site/skeletons";
+import { AccountOrdersSkeleton } from "@/components/site/skeletons";
 import { mediaUrl, orderApi, type OrderDoc } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { money, useStore } from "@/lib/store";
@@ -71,7 +71,7 @@ function Orders() {
       .finally(() => setFetching(false));
   }, [user]);
 
-  if (loading || fetching) return <PageSkeleton rows={3} />;
+  if (loading || fetching) return <AccountOrdersSkeleton />;
   if (!user)
     return (
       <div className="mx-auto max-w-md px-4 py-20 text-center">

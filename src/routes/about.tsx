@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Brackets, Eyebrow, FocusIn } from "@/components/site/focus";
 import { Section } from "@/components/site/rail";
-import { PageSkeleton } from "@/components/site/skeletons";
+import { AboutPageSkeleton } from "@/components/site/skeletons";
 import { mediaUrl } from "@/lib/api";
 import { usePageContent } from "@/lib/page-content";
 
@@ -42,7 +42,7 @@ function About() {
     photos: { image: string }[];
   }>("team");
 
-  if (!loaded) return <PageSkeleton rows={3} />;
+  if (!loaded) return <AboutPageSkeleton />;
 
   const paragraphs = (intro.paragraphs || []).filter((p) => p.text?.trim());
   const valueItems = (values.items || []).filter((v) => v.title?.trim() || v.body?.trim());

@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Brackets, Eyebrow } from "@/components/site/focus";
 import { Rail } from "@/components/site/rail";
-import { PageSkeleton } from "@/components/site/skeletons";
+import { JournalArticleSkeleton } from "@/components/site/skeletons";
 import { catalogApi, mediaUrl, type JournalDoc } from "@/lib/api";
 
 export const Route = createFileRoute("/journal/$slug")({
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/journal/$slug")({
       throw notFound();
     }
   },
-  pendingComponent: () => <PageSkeleton />,
+  pendingComponent: () => <JournalArticleSkeleton />,
   head: ({ loaderData }) => {
     if (!loaderData) {
       return {

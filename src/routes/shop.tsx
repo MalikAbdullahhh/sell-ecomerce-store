@@ -12,7 +12,7 @@ import {
 import { ProductCard } from "@/components/site/product-card";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PageSkeleton } from "@/components/site/skeletons";
+import { ShopPageSkeleton } from "@/components/site/skeletons";
 import { usePageContent } from "@/lib/page-content";
 import { useStore } from "@/lib/store";
 
@@ -102,7 +102,7 @@ function Shop() {
 
   const header = section<{ title: string; countSuffix: string; emptyText: string }>("header");
 
-  if (catalogLoading) return <PageSkeleton />;
+  if (catalogLoading) return <ShopPageSkeleton />;
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-8 md:px-10 md:py-12">

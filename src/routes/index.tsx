@@ -12,7 +12,7 @@ import { cmsApi, mediaUrl, newsletterApi, type TestimonialDoc } from "@/lib/api"
 import { usePageContent } from "@/lib/page-content";
 import { fillTokens } from "@/lib/page-schema";
 import { TestimonialsMarquee } from "@/components/site/testimonials-marquee";
-import { PageSkeleton } from "@/components/site/skeletons";
+import { HomePageSkeleton } from "@/components/site/skeletons";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
@@ -163,7 +163,7 @@ function Index() {
     return () => window.clearTimeout(t);
   }, [catalogLoading, settings]);
 
-  if (!pageLoaded) return <PageSkeleton />;
+  if (!pageLoaded) return <HomePageSkeleton />;
 
   const heroSlides = (hero.slides || []).filter((s) => s.image || s.title);
   const promiseItems = (promises.items || []).filter((i) => i.title?.trim());

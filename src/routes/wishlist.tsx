@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Eyebrow } from "@/components/site/focus";
 import { ProductCard } from "@/components/site/product-card";
-import { PageSkeleton } from "@/components/site/skeletons";
+import { WishlistPageSkeleton } from "@/components/site/skeletons";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/wishlist")({
@@ -20,7 +20,7 @@ function Wishlist() {
   const { wishlist, addToCart, setCartOpen, products, catalogLoading } = useStore();
   const saved = products.filter((p) => wishlist.includes(p.slug));
 
-  if (catalogLoading) return <PageSkeleton />;
+  if (catalogLoading) return <WishlistPageSkeleton />;
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-10 md:py-16">
