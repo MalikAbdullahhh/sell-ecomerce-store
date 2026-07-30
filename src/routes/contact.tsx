@@ -12,15 +12,15 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/contact")({
   head: () => ({
     meta: [
-      { title: "Contact — Genz Gadgets PK" },
+      { title: "Contact — Tech Gadgets PK" },
       {
         name: "description",
-        content: "Get in touch with Genz Gadgets PK support.",
+        content: "Get in touch with Tech Gadgets PK support.",
       },
-      { property: "og:title", content: "Contact — Genz Gadgets PK" },
+      { property: "og:title", content: "Contact — Tech Gadgets PK" },
       {
         property: "og:description",
-        content: "Get in touch with Genz Gadgets PK support.",
+        content: "Get in touch with Tech Gadgets PK support.",
       },
     ],
   }),

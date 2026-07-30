@@ -1,7 +1,7 @@
 import type { SiteSettings } from "@/lib/api";
 
 /** Permanent store brand — used everywhere, no settings fetch required. */
-export const DEFAULT_BRAND_NAME = "Genz Gadgets PK";
+export const DEFAULT_BRAND_NAME = "Tech Gadgets PK";
 export const DEFAULT_TAGLINE = "Precision Tech, Monochrome";
 
 const SETTINGS_CACHE_KEY = "aperture-site-settings-v2";

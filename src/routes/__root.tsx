@@ -85,14 +85,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Genz Gadgets PK — Precision Tech, Monochrome" },
+      { title: "Tech Gadgets PK — Precision Tech, Monochrome" },
       {
         name: "description",
         content:
-          "Genz Gadgets PK builds precision audio, wearables, smart home and desk hardware in small runs, documented in full.",
+          "Tech Gadgets PK builds precision audio, wearables, smart home and desk hardware in small runs, documented in full.",
       },
-      { name: "author", content: "Genz Gadgets PK" },
-      { property: "og:title", content: "Genz Gadgets PK — Precision Tech, Monochrome" },
+      { name: "author", content: "Tech Gadgets PK" },
+      { property: "og:title", content: "Tech Gadgets PK — Precision Tech, Monochrome" },
       {
         property: "og:description",
         content: "Precision consumer electronics, documented in full.",

@@ -19,13 +19,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Genz Gadgets PK — Precision Tech, Strictly Monochrome" },
+      { title: "Tech Gadgets PK — Precision Tech, Strictly Monochrome" },
       {
         name: "description",
         content:
           "Audio, wearables, smart home and desk hardware built to published tolerances. Free shipping over $75, Cash on Delivery available.",
       },
-      { property: "og:title", content: "Genz Gadgets PK — Precision Tech, Strictly Monochrome" },
+      { property: "og:title", content: "Tech Gadgets PK — Precision Tech, Strictly Monochrome" },
       {
         property: "og:description",
         content: "Precision consumer electronics built in small runs and documented in full.",
@@ -194,8 +194,8 @@ function Index() {
   const trending =
     trendingSlugs.length > 0
       ? trendingSlugs
-          .map((slug) => catalogue.find((p) => p.slug === slug))
-          .filter((p): p is (typeof catalogue)[number] => Boolean(p))
+        .map((slug) => catalogue.find((p) => p.slug === slug))
+        .filter((p): p is (typeof catalogue)[number] => Boolean(p))
       : [];
   const arrivals = catalogue.slice(0, 8);
   const [testimonials, setTestimonials] = useState<TestimonialDoc[]>([]);

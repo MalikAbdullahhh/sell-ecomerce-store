@@ -185,12 +185,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           return prev.map((l) =>
             l.id === id
               ? {
-                  ...l,
-                  qty: l.qty + (input.qty ?? 1),
-                  // Explicit gift flag from PDP wins; otherwise keep existing.
-                  gift: input.gift !== undefined ? Boolean(input.gift) : l.gift,
-                  giftMessage: input.giftMessage !== undefined ? input.giftMessage : l.giftMessage,
-                }
+                ...l,
+                qty: l.qty + (input.qty ?? 1),
+                // Explicit gift flag from PDP wins; otherwise keep existing.
+                gift: input.gift !== undefined ? Boolean(input.gift) : l.gift,
+                giftMessage: input.giftMessage !== undefined ? input.giftMessage : l.giftMessage,
+              }
               : l,
           );
         }
@@ -255,15 +255,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       subtotal === 0
         ? []
         : (settings?.extraCharges || [])
-            .filter((c) => c && c.enabled !== false && c.label && Number(c.value) > 0)
-            .map((c) => ({
-              label: c.label,
-              amount:
-                c.type === "percent"
-                  ? Math.round((subtotal * (Number(c.value) || 0)) / 100)
-                  : Number(c.value) || 0,
-            }))
-            .filter((c) => c.amount > 0);
+          .filter((c) => c && c.enabled !== false && c.label && Number(c.value) > 0)
+          .map((c) => ({
+            label: c.label,
+            amount:
+              c.type === "percent"
+                ? Math.round((subtotal * (Number(c.value) || 0)) / 100)
+                : Number(c.value) || 0,
+          }))
+          .filter((c) => c.amount > 0);
     const chargesTotal = charges.reduce((sum, c) => sum + c.amount, 0);
     return {
       lines,
@@ -339,7 +339,7 @@ export function useStore() {
 }
 
 /**
- * Permanent brand name (Genz Gadgets PK) — available immediately, no API wait.
+ * Permanent brand name (Tech Gadgets PK) — available immediately, no API wait.
  * Tagline still comes from settings when loaded.
  */
 export function useBrand(): BrandInfo {
@@ -387,9 +387,9 @@ export function apiProductToProduct(p: ProductDoc): Product {
       Array.isArray(p.gallery) && p.gallery.length
         ? p.gallery
         : [
-            ...(p.images || []).map((url) => ({ url, type: "image" as const })),
-            ...(p.videos || []).map((url) => ({ url, type: "video" as const })),
-          ]
+          ...(p.images || []).map((url) => ({ url, type: "image" as const })),
+          ...(p.videos || []).map((url) => ({ url, type: "video" as const })),
+        ]
     ).map((g) => ({
       url: mediaUrl(g.url),
       type: g.type === "video" ? ("video" as const) : ("image" as const),

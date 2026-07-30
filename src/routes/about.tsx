@@ -8,15 +8,15 @@ import { usePageContent } from "@/lib/page-content";
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About — Genz Gadgets PK" },
+      { title: "About — Tech Gadgets PK" },
       {
         name: "description",
-        content: "Learn more about Genz Gadgets PK.",
+        content: "Learn more about Tech Gadgets PK.",
       },
-      { property: "og:title", content: "About — Genz Gadgets PK" },
+      { property: "og:title", content: "About — Tech Gadgets PK" },
       {
         property: "og:description",
-        content: "Learn more about Genz Gadgets PK.",
+        content: "Learn more about Tech Gadgets PK.",
       },
     ],
   }),

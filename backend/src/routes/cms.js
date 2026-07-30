@@ -29,7 +29,7 @@ async function ensureSettings() {
   // Migrate leftover seed/default brand name to the current store default.
   const current = (s.brandName || "").trim();
   if (!current || current === "APERTURE" || current === "Aperture") {
-    s.brandName = "Genz Gadgets PK";
+    s.brandName = "Tech Gadgets PK";
     await s.save();
   }
   return s;
