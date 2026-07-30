@@ -17,6 +17,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { BrandMetaSync } from "@/components/site/brand-meta-sync";
 import { SiteChrome } from "@/components/site/chrome";
 import { Toaster } from "@/components/ui/sonner";
+import { Analytics } from "@vercel/analytics/react";
 
 function NotFoundComponent() {
   return (
@@ -153,6 +154,7 @@ function RootComponent() {
               <Outlet />
             </SiteChrome>
             <Toaster />
+            <Analytics />
           </StoreProvider>
         </AuthProvider>
       </ThemeProvider>
