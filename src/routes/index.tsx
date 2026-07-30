@@ -10,6 +10,7 @@ import { Rail, RailItem, Section, SectionHead } from "@/components/site/rail";
 import { money, useStore } from "@/lib/store";
 import { cmsApi, mediaUrl, newsletterApi, type TestimonialDoc } from "@/lib/api";
 import { usePageContent } from "@/lib/page-content";
+import { fillTokens } from "@/lib/page-schema";
 import { TestimonialsMarquee } from "@/components/site/testimonials-marquee";
 import { HomePageSkeleton, Skeleton } from "@/components/site/skeletons";
 import { FALLBACK_TESTIMONIALS } from "@/data/catalog";
