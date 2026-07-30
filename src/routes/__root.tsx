@@ -18,6 +18,7 @@ import { BrandMetaSync } from "@/components/site/brand-meta-sync";
 import { SiteChrome } from "@/components/site/chrome";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 function NotFoundComponent() {
   return (
@@ -155,6 +156,7 @@ function RootComponent() {
             </SiteChrome>
             <Toaster />
             <Analytics />
+            <SpeedInsights />
           </StoreProvider>
         </AuthProvider>
       </ThemeProvider>
