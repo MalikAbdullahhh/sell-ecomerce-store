@@ -167,17 +167,10 @@ router.get(
   "/pages/:page",
   asyncHandler(async (req, res) => {
     const page = await PageContent.findOne({ page: req.params.page });
-    // Unedited pages return empty sections — storefront shows nothing until admin fills CMS.
     if (!page) {
       return res.json({ page: { page: req.params.page, title: "", blocks: [], sections: {} } });
     }
     const doc = page.toObject();
-    const scrubbed = scrubPageSections(doc.sections);
-    if (JSON.stringify(scrubbed) !== JSON.stringify(doc.sections || {})) {
-      page.sections = scrubbed;
-      await page.save();
-      doc.sections = scrubbed;
-    }
     res.json({ page: doc });
   }),
 );

@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { type Product } from "@/data/catalog";
+import { type Product, FALLBACK_PRODUCTS, FALLBACK_CATEGORIES } from "@/data/catalog";
 import {
   catalogApi,
   cmsApi,
@@ -132,16 +132,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       catalogApi.categories(),
     ]).then(([productResult, categoryResult]) => {
       if (!active) return;
-      if (productResult.status === "fulfilled") {
+      if (productResult.status === "fulfilled" && productResult.value?.products?.length > 0) {
         setProducts(productResult.value.products.map(apiProductToProduct));
       } else {
-        setProducts([]);
+        setProducts(FALLBACK_PRODUCTS);
       }
-      if (categoryResult.status === "fulfilled") {
+      if (categoryResult.status === "fulfilled" && categoryResult.value?.categories?.length > 0) {
         setCategories(categoryResult.value.categories);
       } else {
-        setCategories([]);
+        setCategories(FALLBACK_CATEGORIES as unknown as CategoryDoc[]);
       }
+    }).catch(() => {
+      if (!active) return;
+      setProducts(FALLBACK_PRODUCTS);
+      setCategories(FALLBACK_CATEGORIES as unknown as CategoryDoc[]);
     }).finally(() => {
       if (active) setCatalogLoading(false);
     });

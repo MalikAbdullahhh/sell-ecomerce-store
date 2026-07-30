@@ -10,9 +10,9 @@ import { Rail, RailItem, Section, SectionHead } from "@/components/site/rail";
 import { money, useStore } from "@/lib/store";
 import { cmsApi, mediaUrl, newsletterApi, type TestimonialDoc } from "@/lib/api";
 import { usePageContent } from "@/lib/page-content";
-import { fillTokens } from "@/lib/page-schema";
 import { TestimonialsMarquee } from "@/components/site/testimonials-marquee";
 import { HomePageSkeleton, Skeleton } from "@/components/site/skeletons";
+import { FALLBACK_TESTIMONIALS } from "@/data/catalog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -191,12 +191,13 @@ function Index() {
     image: c.image ? mediaUrl(c.image) : "",
   }));
   const trendingSlugs = settings?.trendingProductSlugs || [];
-  const trending =
+  const mappedTrending =
     trendingSlugs.length > 0
       ? trendingSlugs
         .map((slug) => catalogue.find((p) => p.slug === slug))
         .filter((p): p is (typeof catalogue)[number] => Boolean(p))
       : [];
+  const trending = mappedTrending.length > 0 ? mappedTrending : catalogue.slice(0, 6);
   const arrivals = catalogue.slice(0, 8);
   const [testimonials, setTestimonials] = useState<TestimonialDoc[]>([]);
   const [email, setEmail] = useState("");
@@ -205,8 +206,14 @@ function Index() {
   useEffect(() => {
     cmsApi
       .testimonials()
-      .then((d) => setTestimonials(d.testimonials))
-      .catch(() => setTestimonials([]));
+      .then((d) => {
+        if (d?.testimonials?.length) {
+          setTestimonials(d.testimonials);
+        } else {
+          setTestimonials(FALLBACK_TESTIMONIALS as unknown as TestimonialDoc[]);
+        }
+      })
+      .catch(() => setTestimonials(FALLBACK_TESTIMONIALS as unknown as TestimonialDoc[]));
   }, []);
 
   useEffect(() => {

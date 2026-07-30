@@ -41,7 +41,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { ProductDetailSkeleton } from "@/components/site/skeletons";
-import type { Product, Review } from "@/data/catalog";
+import { type Product, type Review, FALLBACK_PRODUCTS } from "@/data/catalog";
 import { GIFT_FEE, apiProductToProduct, money, useBrand, useStore } from "@/lib/store";
 import { catalogApi, mediaThumbUrl, mediaUrl, reviewApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
@@ -59,6 +59,8 @@ export const Route = createFileRoute("/product/$slug")({
       const product = apiProductToProduct((await catalogApi.product(params.slug)).product);
       return { product, fromCache: false as const };
     } catch {
+      const fallback = FALLBACK_PRODUCTS.find((p) => p.slug === params.slug);
+      if (fallback) return { product: fallback, fromCache: false as const };
       throw notFound();
     }
   },
