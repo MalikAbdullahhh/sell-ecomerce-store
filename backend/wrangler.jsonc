@@ -1,0 +1,12 @@
+{
+  "name": "sell-ecomerce-store-api",
+  "main": "cf-worker.js",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "alias": { "morgan": "./cf-shims/morgan.js" },
+  "define": { "import.meta.url": "\"file:///bundle/app/index.js\"" },
+  "vars": { "NODE_ENV": "production", "PORT": "5000" },
+  "durable_objects": { "bindings": [{ "name": "API_SERVER", "class_name": "ApiServer" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ApiServer"] }],
+  "observability": { "enabled": true }
+}

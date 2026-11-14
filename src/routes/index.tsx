@@ -152,7 +152,7 @@ function CategoryCard({
       <div className="absolute bottom-3 left-3 right-3 z-10">
         <p className="text-lg font-medium text-paper">{c.name}</p>
         {c.blurb ? (
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-paper/75">
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-paper/80 line-clamp-2">
             {c.blurb}
           </p>
         ) : null}

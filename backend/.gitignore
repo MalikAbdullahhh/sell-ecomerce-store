@@ -27,3 +27,6 @@ pnpm-debug.log*
 
 # Vercel
 .vercel
+
+.wrangler
+.dev.vars

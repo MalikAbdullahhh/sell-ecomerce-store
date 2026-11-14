@@ -90,7 +90,7 @@ export function HeroCarousel({
 
             {/* ── Optional Text Overlay (Floating) ── */}
             {(active.eyebrow || active.title || active.subtitle || (active.linkUrl && active.linkText)) && (
-              <div className="absolute inset-0 bg-black/10 z-10 flex items-center">
+              <div className={`absolute inset-0 z-10 flex items-center ${isLight ? "bg-gradient-to-r from-white/80 via-white/40 to-transparent" : "bg-gradient-to-t from-black/75 via-black/35 to-black/10 md:bg-gradient-to-r md:from-black/75 md:via-black/40 md:to-transparent"}`}>
                 <div className="mx-auto w-full max-w-[1440px] px-6 md:px-12">
                   <div className="max-w-xl text-white">
                     {active.eyebrow && (
