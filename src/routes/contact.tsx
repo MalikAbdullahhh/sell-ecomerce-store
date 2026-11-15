@@ -6,6 +6,7 @@ import { CmsIcon } from "@/components/site/cms-icon";
 import { Eyebrow } from "@/components/site/focus";
 import { ContactPageSkeleton } from "@/components/site/skeletons";
 import { contactApi } from "@/lib/api";
+import { sendContact } from "@/lib/fw-contact";
 import { usePageContent } from "@/lib/page-content";
 import { cn } from "@/lib/utils";
 
@@ -55,14 +56,18 @@ function Contact() {
   const [touched, setTouched] = useState(false);
 
   const submitMut = useMutation({
-    mutationFn: () =>
-      contactApi.submit({
-        name: name.trim(),
-        email: email.trim(),
-        phone: phone.trim(),
-        orderNumber: orderNumber.trim(),
-        message: message.trim(),
-      }),
+    // Save to the store's inquiries and email the team; either one is enough to count as received.
+    mutationFn: async () => {
+      const data = { name: name.trim(), email: email.trim(), phone: phone.trim(), orderNumber: orderNumber.trim(), message: message.trim() };
+      const [saved, mailed] = await Promise.allSettled([
+        contactApi.submit(data),
+        data.email
+          ? sendContact("tech-gadgets-pk", { name: data.name, email: data.email, phone: data.phone, message: data.message, subject: data.orderNumber ? `Order ${data.orderNumber}` : undefined, fields: { "Order number": data.orderNumber } })
+          : Promise.resolve({ ok: false as const, error: "" }),
+      ]);
+      if (saved.status === "fulfilled" || (mailed.status === "fulfilled" && mailed.value.ok)) return;
+      throw saved.reason instanceof Error ? saved.reason : new Error("Message could not be sent");
+    },
     onSuccess: () => {
       toast.success(form.successMessage || "Message sent.");
       setName("");
