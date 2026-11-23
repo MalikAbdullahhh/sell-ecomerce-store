@@ -69,7 +69,15 @@ export class ApiServer extends DurableObject {
       return;
     }
     this.alarmSet = false;
-    if (mongoose.connection.readyState !== 0) await mongoose.disconnect().catch(() => {});
+    // Close the database, but never wait more than 5 s for it…
+    if (mongoose.connection.readyState !== 0) {
+      await Promise.race([mongoose.disconnect().catch(() => {}), new Promise((r) => setTimeout(r, 5000))]);
+    }
+    // …then evict this object from memory. Closing the connection alone was not enough: leftover sockets/timers kept
+    // the object resident (and billed) for 15–20 hours a day with no requests, exhausting the free daily duration.
+    // Deferred so this alarm completes normally (an abort inside it would count as a failure and be retried).
+    // The next request simply starts a fresh object and reconnects.
+    setTimeout(() => { try { this.ctx.abort("idle"); } catch {} }, 100);
   }
 }
 
